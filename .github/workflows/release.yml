@@ -16,6 +16,9 @@ jobs:
       contents: write
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      # Suppress the false-positive "uses Expo Go" warning — development
+      # happens via expo run:ios native builds, not Expo Go.
+      EAS_BUILD_NO_EXPO_GO_WARNING: 'true'
     steps:
       - uses: actions/checkout@v4
 

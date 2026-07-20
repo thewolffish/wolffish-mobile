@@ -18,10 +18,10 @@
     "release": "node scripts/release.js",
     "ts:check": "tsc --noEmit",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,json}\" --ignore-path .gitignore",
-    "android:preview": "eas build -p android --profile preview",
-    "android:prod": "eas build -p android --profile production",
+    "android:preview": "EAS_BUILD_NO_EXPO_GO_WARNING=true eas build -p android --profile preview",
+    "android:prod": "EAS_BUILD_NO_EXPO_GO_WARNING=true eas build -p android --profile production",
     "android:submit": "eas submit -p android --profile production",
-    "ios:prod": "eas build -p ios --profile production",
+    "ios:prod": "EAS_BUILD_NO_EXPO_GO_WARNING=true eas build -p ios --profile production",
     "ios:submit": "eas submit -p ios",
     "test": "jest",
     "provision": "node scripts/provision.js"
