@@ -1,0 +1,100 @@
+{
+  "app": {
+    "name": "Wolffish",
+    "tagline": "A calm home for your work"
+  },
+  "common": {
+    "back": "Back",
+    "loading": "Loading…",
+    "dismiss": "Dismiss",
+    "search": "Search…",
+    "cancel": "Cancel"
+  },
+  "theme": {
+    "label": "Appearance",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "locale": {
+    "label": "Language",
+    "en": "English",
+    "ar": "العربية",
+    "confirmTitle": "Change language?",
+    "confirmMessage": "Wolffish restarts to apply the new language.",
+    "confirmSwitch": "Switch"
+  },
+  "showcase": {
+    "title": "Core components",
+    "subtitle": "Every core building block of the Wolffish mobile app, in one place.",
+    "buttons": {
+      "title": "Button",
+      "primary": "Primary",
+      "ghost": "Ghost",
+      "outline": "Outline",
+      "danger": "Danger",
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large",
+      "disabled": "Disabled",
+      "withIcon": "With icon",
+      "loadingState": "Loading"
+    },
+    "inputs": {
+      "title": "Input",
+      "name": "Name",
+      "namePlaceholder": "How should Wolffish call you?",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "passwordPlaceholder": "Your secret",
+      "disabled": "Disabled",
+      "disabledValue": "You can't touch this"
+    },
+    "textarea": {
+      "title": "Textarea",
+      "notes": "Notes",
+      "notesPlaceholder": "Write anything on your mind…",
+      "disabled": "Disabled notes"
+    },
+    "selects": {
+      "title": "Select",
+      "model": "Model",
+      "channel": "Channel",
+      "channelPlaceholder": "Pick a channel",
+      "searchable": "Searchable",
+      "searchablePlaceholder": "Pick a country",
+      "searchPlaceholder": "Search countries…",
+      "long": "Long list",
+      "item": "Item",
+      "disabled": "Disabled"
+    },
+    "alerts": {
+      "title": "Alert",
+      "info": "Wolffish keeps everything on your machine.",
+      "infoTitle": "Fully local",
+      "success": "Your workspace is synced and up to date.",
+      "successTitle": "All good",
+      "warning": "The desktop app hasn't been seen for a while.",
+      "warningTitle": "Heads up",
+      "error": "The connection to the desktop app was lost.",
+      "errorTitle": "Connection lost",
+      "dismissible": "You can dismiss this alert with the close button."
+    },
+    "toasts": {
+      "title": "Toast",
+      "info": "Show info",
+      "success": "Show success",
+      "warning": "Show warning",
+      "error": "Show error",
+      "sticky": "Show sticky",
+      "top": "Show at top",
+      "infoMessage": "Just so you know — all is calm.",
+      "successMessage": "Done. That worked nicely.",
+      "warningMessage": "Careful — check this when you can.",
+      "errorMessage": "Something went wrong. Try again.",
+      "stickyMessage": "I stay until you dismiss me.",
+      "topMessage": "Ambient notice from the top."
+    }
+  }
+}

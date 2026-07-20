@@ -1,0 +1,83 @@
+# Runs when scripts/release.js pushes a vX.Y.Z tag (after the store
+# submission has already happened via EAS). Creates the GitHub Release with
+# generated notes and, when an EXPO_TOKEN repo secret is configured, builds
+# the preview-profile APK on EAS and attaches it as a sideloadable artifact.
+# Store binaries are never built here — EAS owns those.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx tsc --noEmit
+
+      - run: npm test -- --ci
+
+      # Artifacts are enhancements, never release blockers — e.g. Android
+      # credentials may not exist on EAS yet. Only the test/type gates above
+      # are allowed to fail the release.
+      - name: Build sideload APK on EAS
+        if: env.EXPO_TOKEN != ''
+        continue-on-error: true
+        run: |
+          npx eas-cli build --platform android --profile preview --non-interactive --wait --json > eas-build.json
+          APK_URL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('eas-build.json','utf8'))[0].artifacts.buildUrl)")
+          curl -fL "$APK_URL" -o "wolffish-${GITHUB_REF_NAME}.apk"
+
+      # The ipa is not installable outside TestFlight/App Store — it is
+      # attached for transparency, so anyone can inspect the exact binary
+      # that was submitted. Downloaded (not rebuilt) so it IS that binary.
+      - name: Attach submitted iOS build from EAS
+        if: env.EXPO_TOKEN != ''
+        continue-on-error: true
+        run: |
+          npx eas-cli build:list --platform ios --build-profile production --status finished --limit 1 --non-interactive --json > ios-build.json
+          IPA_URL=$(node -e "
+            const b = JSON.parse(require('fs').readFileSync('ios-build.json','utf8'))[0]
+            const tagVersion = process.env.GITHUB_REF_NAME.replace(/^v/, '')
+            if (!b) { console.error('no finished iOS production build'); process.exit(0) }
+            if (b.appVersion !== tagVersion) {
+              console.error('latest iOS build is ' + b.appVersion + ', tag is ' + tagVersion + ' — skipping stale artifact')
+              process.exit(0)
+            }
+            const url = b.artifacts && b.artifacts.buildUrl
+            if (!url) { console.error('no artifact url on build'); process.exit(0) }
+            console.log(url)
+          ")
+          if [ -n "$IPA_URL" ]; then
+            curl -fL "$IPA_URL" -o "wolffish-${GITHUB_REF_NAME}.ipa"
+          fi
+
+      - name: Checksums
+        run: |
+          ARTIFACTS=$(ls wolffish-*.apk wolffish-*.ipa 2>/dev/null || true)
+          if [ -n "$ARTIFACTS" ]; then
+            shasum -a 256 $ARTIFACTS > SHA256SUMS.txt
+            cat SHA256SUMS.txt
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            *.apk
+            *.ipa
+            SHA256SUMS.txt

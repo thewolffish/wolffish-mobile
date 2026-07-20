@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Wolffish semantic tokens — values mirror wolffish-app main.css exactly.
+   The .dark class is toggled by the ThemeProvider via NativeWind. */
+:root {
+  --color-bg: #f0f4f8;
+  --color-surface: #ffffff;
+  --color-fg: #0d1117;
+  --color-muted: #5b6778;
+  --color-border: #d5dde5;
+  --color-primary: #1b365d;
+  --color-primary-fg: #ffffff;
+  --color-accent: #00d4ff;
+  --color-ring: #1b365d;
+}
+
+.dark:root {
+  --color-bg: #0d1117;
+  --color-surface: #161b22;
+  --color-fg: #ffffff;
+  --color-muted: #8b95a7;
+  --color-border: #2a313c;
+  --color-primary: #a5d8ff;
+  --color-primary-fg: #0d1117;
+  --color-accent: #00d4ff;
+  --color-ring: #a5d8ff;
+}

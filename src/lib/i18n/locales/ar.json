@@ -1,0 +1,100 @@
+{
+  "app": {
+    "name": "وولفيش",
+    "tagline": "مساحة هادئة لعملك"
+  },
+  "common": {
+    "back": "رجوع",
+    "loading": "جارٍ التحميل…",
+    "dismiss": "إغلاق",
+    "search": "بحث…",
+    "cancel": "إلغاء"
+  },
+  "theme": {
+    "label": "المظهر",
+    "system": "النظام",
+    "light": "فاتح",
+    "dark": "داكن"
+  },
+  "locale": {
+    "label": "اللغة",
+    "en": "English",
+    "ar": "العربية",
+    "confirmTitle": "تغيير اللغة؟",
+    "confirmMessage": "يُعاد تشغيل وولفيش لتطبيق اللغة الجديدة.",
+    "confirmSwitch": "تبديل"
+  },
+  "showcase": {
+    "title": "المكوّنات الأساسية",
+    "subtitle": "كل لبنات البناء الأساسية لتطبيق وولفيش للجوال في مكان واحد.",
+    "buttons": {
+      "title": "زر",
+      "primary": "أساسي",
+      "ghost": "شفاف",
+      "outline": "محدد",
+      "danger": "خطر",
+      "small": "صغير",
+      "medium": "متوسط",
+      "large": "كبير",
+      "disabled": "معطّل",
+      "withIcon": "مع أيقونة",
+      "loadingState": "جارٍ التحميل"
+    },
+    "inputs": {
+      "title": "حقل إدخال",
+      "name": "الاسم",
+      "namePlaceholder": "كيف تحب أن يناديك وولفيش؟",
+      "email": "البريد الإلكتروني",
+      "emailPlaceholder": "you@example.com",
+      "password": "كلمة المرور",
+      "passwordPlaceholder": "سرّك الخاص",
+      "disabled": "معطّل",
+      "disabledValue": "لا يمكنك لمس هذا"
+    },
+    "textarea": {
+      "title": "مساحة نص",
+      "notes": "ملاحظات",
+      "notesPlaceholder": "اكتب ما يدور في ذهنك…",
+      "disabled": "ملاحظات معطّلة"
+    },
+    "selects": {
+      "title": "قائمة اختيار",
+      "model": "النموذج",
+      "channel": "القناة",
+      "channelPlaceholder": "اختر قناة",
+      "searchable": "قابلة للبحث",
+      "searchablePlaceholder": "اختر دولة",
+      "searchPlaceholder": "ابحث عن الدول…",
+      "long": "قائمة طويلة",
+      "item": "عنصر",
+      "disabled": "معطّلة"
+    },
+    "alerts": {
+      "title": "تنبيه",
+      "info": "وولفيش يحفظ كل شيء على جهازك.",
+      "infoTitle": "محلي بالكامل",
+      "success": "مساحة عملك متزامنة ومحدّثة.",
+      "successTitle": "كل شيء تمام",
+      "warning": "لم يُرصد تطبيق سطح المكتب منذ فترة.",
+      "warningTitle": "انتبه",
+      "error": "انقطع الاتصال بتطبيق سطح المكتب.",
+      "errorTitle": "انقطع الاتصال",
+      "dismissible": "يمكنك إغلاق هذا التنبيه بزر الإغلاق."
+    },
+    "toasts": {
+      "title": "إشعار",
+      "info": "إظهار معلومة",
+      "success": "إظهار نجاح",
+      "warning": "إظهار تحذير",
+      "error": "إظهار خطأ",
+      "sticky": "إظهار مثبّت",
+      "top": "إظهار في الأعلى",
+      "infoMessage": "للعلم فقط — كل شيء هادئ.",
+      "successMessage": "تم. نجح الأمر بسلاسة.",
+      "warningMessage": "انتبه — راجع هذا عندما تستطيع.",
+      "errorMessage": "حدث خطأ ما. حاول مرة أخرى.",
+      "stickyMessage": "أبقى هنا حتى تغلقني.",
+      "topMessage": "إشعار محيطي من الأعلى."
+    }
+  }
+}
