@@ -12,19 +12,19 @@
   "scripts": {
     "start": "expo start",
     "ios": "LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 expo run:ios",
-    "ios:device": "LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 expo run:ios --device",
-    "web": "expo start --web",
-    "release": "node scripts/release.js",
-    "ts:check": "tsc --noEmit",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,json}\" --ignore-path .gitignore",
     "ios:prod": "EAS_BUILD_NO_EXPO_GO_WARNING=true eas build -p ios --profile production",
     "ios:submit": "eas submit -p ios",
-    "test": "jest",
-    "provision": "node scripts/provision.js",
+    "ios:device": "LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 expo run:ios --device",
     "android": "expo run:android",
     "android:preview": "EAS_BUILD_NO_EXPO_GO_WARNING=true eas build -p android --profile preview",
     "android:prod": "EAS_BUILD_NO_EXPO_GO_WARNING=true eas build -p android --profile production",
-    "android:submit": "eas submit -p android --profile production"
+    "android:submit": "eas submit -p android --profile production",
+    "web": "expo start --web",
+    "provision": "node scripts/provision.js",
+    "release": "node scripts/release.js",
+    "ts:check": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,json}\" --ignore-path .gitignore",
+    "test": "jest"
   },
   "dependencies": {
     "@expo/ui": "~57.0.7",
