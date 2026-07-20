@@ -7,8 +7,8 @@ const EXPO_PROJECT_SLUG = 'wolffish-mobile'
 const EXPO_PROJECT_OWNER = 'younes-alturkey'
 const PACKAGE_IDENTIFIER = 'sh.wolffi.mobile'
 // Bumped by scripts/provision.js — keep the exact format of these lines.
-export const APP_VERSION = '1.0.0'
-export const CODE_VERSION = 1
+export const APP_VERSION = '1.0.1'
+export const CODE_VERSION = 2
 export const UPDATE_DATE = '2026-07-20T00:00:00.000Z'
 // Keep in sync with --color-ocean in src/global.css.
 const BRAND_OCEAN = '#1b365d'
