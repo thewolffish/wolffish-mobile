@@ -73,4 +73,11 @@ run('npm', ['install', '--package-lock-only', '--ignore-scripts'])
 run('git', ['add', 'app.config.ts', 'package.json', 'package-lock.json'])
 run('git', ['commit', '-m', `provision: v${nextVersion} (build ${nextCode})`])
 
+const hasOrigin = out('git', ['remote']).split('\n').includes('origin')
+if (hasOrigin) {
+  run('git', ['push', 'origin', 'HEAD'])
+} else {
+  console.log('No "origin" remote — pushed nothing. Push manually when one exists.')
+}
+
 console.log(`Provisioned v${nextVersion} (build ${nextCode}), updated ${updateDate.slice(0, 10)}`)
