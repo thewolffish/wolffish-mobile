@@ -33,16 +33,18 @@ jobs:
 
       - run: npm test -- --ci
 
-      # Artifacts are enhancements, never release blockers — e.g. Android
-      # credentials may not exist on EAS yet. Only the test/type gates above
-      # are allowed to fail the release.
-      - name: Build sideload APK on EAS
-        if: env.EXPO_TOKEN != ''
-        continue-on-error: true
-        run: |
-          npx eas-cli build --platform android --profile preview --non-interactive --wait --json > eas-build.json
-          APK_URL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('eas-build.json','utf8'))[0].artifacts.buildUrl)")
-          curl -fL "$APK_URL" -o "wolffish-${GITHUB_REF_NAME}.apk"
+      # Artifacts are enhancements, never release blockers. Only the
+      # test/type gates above are allowed to fail the release.
+      #
+      # DISABLED until Google Play is connected (no Android keystore on EAS
+      # yet) — uncomment to attach a sideloadable APK to releases:
+      # - name: Build sideload APK on EAS
+      #   if: env.EXPO_TOKEN != ''
+      #   continue-on-error: true
+      #   run: |
+      #     npx eas-cli build --platform android --profile preview --non-interactive --wait --json > eas-build.json
+      #     APK_URL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('eas-build.json','utf8'))[0].artifacts.buildUrl)")
+      #     curl -fL "$APK_URL" -o "wolffish-${GITHUB_REF_NAME}.apk"
 
       # The ipa is not installable outside TestFlight/App Store — it is
       # attached for transparency, so anyone can inspect the exact binary
