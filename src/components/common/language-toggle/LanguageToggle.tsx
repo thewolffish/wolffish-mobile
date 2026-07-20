@@ -74,7 +74,7 @@ export function LanguageToggle({
               )}
             >
               {busy ? (
-                <ActivityIndicator size="small" color={tokens.primaryFg} />
+                <ActivityIndicator size="small" color={tokens.muted} />
               ) : (
                 <Text
                   numberOfLines={1}

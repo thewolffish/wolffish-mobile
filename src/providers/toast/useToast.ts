@@ -18,6 +18,12 @@ export type ToastInput = {
    * must not sit over primary actions.
    */
   placement?: 'top' | 'bottom'
+  /**
+   * Invoked when the toast body is tapped, right before it dismisses —
+   * turns a toast into a lightweight call to action ("tap to restart").
+   * The close button always dismisses without invoking it.
+   */
+  onPress?: () => void
 }
 
 export type ToastContextValue = {

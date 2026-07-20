@@ -49,7 +49,8 @@ export function ToastProvider({ children }: { children: ReactNode }): React.JSX.
         durationMs: input.durationMs ?? DEFAULT_DURATION_MS,
         sticky: input.sticky ?? false,
         placement: input.placement ?? 'bottom',
-        message: input.message
+        message: input.message,
+        onPress: input.onPress
       }
       setToasts((prev) => [...prev, toast])
       if (!toast.sticky) {
@@ -117,7 +118,10 @@ function ToastItem({
       <Pressable
         accessibilityRole="alert"
         accessibilityLiveRegion="polite"
-        onPress={onDismiss}
+        onPress={() => {
+          toast.onPress?.()
+          onDismiss()
+        }}
         className={cn(
           'max-w-md flex-row items-start gap-2 rounded-xl border px-4 py-2.5 shadow-md',
           TONE_CONTAINER[tone]

@@ -8,7 +8,9 @@
     "loading": "جارٍ التحميل…",
     "dismiss": "إغلاق",
     "search": "بحث…",
-    "cancel": "إلغاء"
+    "cancel": "إلغاء",
+    "showPassword": "إظهار كلمة المرور",
+    "hidePassword": "إخفاء كلمة المرور"
   },
   "theme": {
     "label": "المظهر",
@@ -23,6 +25,10 @@
     "confirmTitle": "تغيير اللغة؟",
     "confirmMessage": "يُعاد تشغيل وولفيش لتطبيق اللغة الجديدة.",
     "confirmSwitch": "تبديل"
+  },
+  "updates": {
+    "ready": "نسخة جديدة جاهزة — اضغط لإعادة التشغيل.",
+    "embedded": "نسخة المتجر"
   },
   "showcase": {
     "title": "المكوّنات الأساسية",

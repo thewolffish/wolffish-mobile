@@ -8,7 +8,9 @@
     "loading": "Loading…",
     "dismiss": "Dismiss",
     "search": "Search…",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "theme": {
     "label": "Appearance",
@@ -23,6 +25,10 @@
     "confirmTitle": "Change language?",
     "confirmMessage": "Wolffish restarts to apply the new language.",
     "confirmSwitch": "Switch"
+  },
+  "updates": {
+    "ready": "A new version is ready — tap to restart.",
+    "embedded": "store build"
   },
   "showcase": {
     "title": "Core components",

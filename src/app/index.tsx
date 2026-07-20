@@ -1,4 +1,5 @@
 import { Alert } from '@/components/core/Alert'
+import { BuildInfo } from '@/components/common/build-info/BuildInfo'
 import { Button } from '@/components/core/Button'
 import { GlobalIcon } from '@/components/core/icons'
 import { Input } from '@/components/core/Input'
@@ -302,6 +303,8 @@ export default function Showcase(): React.JSX.Element {
           </Button>
         </View>
       </Section>
+
+      <BuildInfo />
     </ScrollView>
   )
 }

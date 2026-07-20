@@ -6,6 +6,7 @@ if (__DEV__) {
 import '../global.css'
 import '@/lib/i18n'
 
+import { useOtaUpdates } from '@/lib/updates/useOtaUpdates'
 import { ToastProvider } from '@/providers/toast/ToastProvider'
 import { LocaleProvider } from '@/providers/locale/LocaleProvider'
 import { ThemeProvider } from '@/providers/theme/ThemeProvider'
@@ -22,6 +23,7 @@ SplashScreen.preventAutoHideAsync()
 function AppShell(): React.JSX.Element {
   const { isDark } = useTheme()
   const tokens = useTokens()
+  useOtaUpdates()
 
   useEffect(() => {
     // Providers gate rendering until theme + locale are restored, so the

@@ -1,7 +1,9 @@
+import { EyeIcon, ViewOffIcon } from '@/components/core/icons'
 import { useTokens } from '@/providers/theme/useTheme'
 import { cn } from '@/lib/utils/cn'
 import { forwardRef, useState } from 'react'
-import { I18nManager, Text, TextInput, View, type TextInputProps } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import { I18nManager, Pressable, Text, TextInput, View, type TextInputProps } from 'react-native'
 
 // Base bidi direction for typed input text. Alignment alone (text-left,
 // swapped in RTL) puts the text on the correct side, but with an LTR base
@@ -27,6 +29,13 @@ export function rtlPlaceholder(placeholder: string | undefined): string | undefi
   return `⁧${placeholder}⁩`
 }
 
+// The reveal toggle sits on the input's logical end edge, with matching
+// paddingEnd so typed text never runs under it. Yoga resolves Start/End
+// before physical Left/Right/Horizontal (so paddingEnd beats px-3 on that
+// edge only) and flips both with I18nManager — the eye mirrors in RTL.
+const TOGGLE_INSET = { end: 0 } as const
+const TOGGLE_TEXT_PADDING = { paddingEnd: 40 } as const
+
 export type InputProps = TextInputProps & {
   label?: string
   className?: string
@@ -35,41 +44,81 @@ export type InputProps = TextInputProps & {
 }
 
 export const Input = forwardRef<TextInput, InputProps>(function Input(
-  { label, className, containerClassName, editable, placeholder, onFocus, onBlur, style, ...rest },
+  {
+    label,
+    className,
+    containerClassName,
+    editable,
+    placeholder,
+    secureTextEntry,
+    onFocus,
+    onBlur,
+    style,
+    ...rest
+  },
   ref
 ) {
+  const { t } = useTranslation()
   const tokens = useTokens()
   const [focused, setFocused] = useState(false)
+  const [revealed, setRevealed] = useState(false)
   const disabled = editable === false
+  const field = (
+    <TextInput
+      ref={ref}
+      editable={editable}
+      secureTextEntry={secureTextEntry && !revealed}
+      placeholder={rtlPlaceholder(placeholder)}
+      placeholderTextColor={tokens.muted}
+      selectionColor={tokens.accent}
+      onFocus={(e) => {
+        setFocused(true)
+        onFocus?.(e)
+      }}
+      onBlur={(e) => {
+        setFocused(false)
+        onBlur?.(e)
+      }}
+      className={cn(
+        'bg-bg text-fg border-border h-10 w-full rounded-lg border px-3 py-0 font-sans text-sm',
+        INPUT_TEXT_ALIGN,
+        focused && 'border-accent',
+        disabled && 'opacity-50',
+        className
+      )}
+      style={[WRITING_DIRECTION, secureTextEntry ? TOGGLE_TEXT_PADDING : undefined, style]}
+      {...rest}
+    />
+  )
   return (
     <View className={cn('flex-col gap-1.5', containerClassName)}>
       {/* text-left = start alignment: React Native swaps left/right in RTL,
           matching the desktop app's dir-driven alignment. */}
       {label && <Text className="text-muted font-sans-medium text-left text-sm">{label}</Text>}
-      <TextInput
-        ref={ref}
-        editable={editable}
-        placeholder={rtlPlaceholder(placeholder)}
-        placeholderTextColor={tokens.muted}
-        selectionColor={tokens.accent}
-        onFocus={(e) => {
-          setFocused(true)
-          onFocus?.(e)
-        }}
-        onBlur={(e) => {
-          setFocused(false)
-          onBlur?.(e)
-        }}
-        className={cn(
-          'bg-bg text-fg border-border h-10 w-full rounded-lg border px-3 py-0 font-sans text-sm',
-          INPUT_TEXT_ALIGN,
-          focused && 'border-accent',
-          disabled && 'opacity-50',
-          className
-        )}
-        style={[WRITING_DIRECTION, style]}
-        {...rest}
-      />
+      {secureTextEntry ? (
+        <View className="relative">
+          {field}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t(revealed ? 'common.hidePassword' : 'common.showPassword')}
+            disabled={disabled}
+            onPress={() => setRevealed((v) => !v)}
+            className={cn(
+              'absolute bottom-0 top-0 w-10 items-center justify-center',
+              disabled && 'opacity-50'
+            )}
+            style={TOGGLE_INSET}
+          >
+            {revealed ? (
+              <ViewOffIcon size={16} className="text-muted" />
+            ) : (
+              <EyeIcon size={16} className="text-muted" />
+            )}
+          </Pressable>
+        </View>
+      ) : (
+        field
+      )}
     </View>
   )
 })

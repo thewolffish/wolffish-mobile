@@ -22,6 +22,8 @@
     "web": "expo start --web",
     "provision": "node scripts/provision.js",
     "release": "node scripts/release.js",
+    "ota": "node scripts/ota.js",
+    "rollback": "node scripts/rollback.js",
     "ts:check": "tsc --noEmit",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,json}\" --ignore-path .gitignore",
     "test": "jest"
