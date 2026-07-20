@@ -1,8 +1,9 @@
-// Pins a store release AFTER the submission is verified: tags HEAD as
-// v{APP_VERSION} (recording the shipped build number in the tag message)
-// and pushes. Changes no files — provisioning new builds is
-// scripts/provision.js. One release tag usually follows several
-// provisioned builds; the tag marks the one that actually shipped.
+// Pins a store release AFTER the submission is verified: records an empty
+// "release: vX.Y.Z (build N)" marker commit, tags it, and pushes. Changes
+// no files — the marker commit's tree is identical to the provisioned
+// source that was built, so the tag still points at exactly what shipped.
+// Provisioning new builds is scripts/provision.js; one release tag usually
+// follows several provisioned builds.
 const { execFileSync } = require('child_process')
 const fs = require('fs')
 const path = require('path')
@@ -41,6 +42,7 @@ if (out('git', ['tag', '--list', tag])) {
   process.exit(1)
 }
 
+run('git', ['commit', '--allow-empty', '-m', `release: ${tag} (build ${code})`])
 run('git', ['tag', '-a', tag, '-m', `release: ${tag} (build ${code})`])
 
 const hasOrigin = out('git', ['remote']).split('\n').includes('origin')
