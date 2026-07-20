@@ -21,10 +21,10 @@
     "ios:submit": "eas submit -p ios",
     "test": "jest",
     "provision": "node scripts/provision.js",
-    "_android": "expo run:android",
-    "_android:preview": "EAS_BUILD_NO_EXPO_GO_WARNING=true eas build -p android --profile preview",
-    "_android:prod": "EAS_BUILD_NO_EXPO_GO_WARNING=true eas build -p android --profile production",
-    "_android:submit": "eas submit -p android --profile production"
+    "android": "expo run:android",
+    "android:preview": "EAS_BUILD_NO_EXPO_GO_WARNING=true eas build -p android --profile preview",
+    "android:prod": "EAS_BUILD_NO_EXPO_GO_WARNING=true eas build -p android --profile production",
+    "android:submit": "eas submit -p android --profile production"
   },
   "dependencies": {
     "@expo/ui": "~57.0.7",
