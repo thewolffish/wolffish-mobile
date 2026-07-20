@@ -51,6 +51,11 @@ const config: ExpoConfig = {
       projectId: EXPO_PROJECT_ID
     }
   },
+  // expo-updates is installed for Updates.reloadAsync (production app restart
+  // on language switch, growth-app pattern) — OTA updates stay unconfigured.
+  updates: {
+    fallbackToCacheTimeout: 0
+  },
   plugins: [
     'expo-router',
     'expo-localization',

@@ -4,11 +4,12 @@ import i18n, {
   isSupportedLocale,
   type SupportedLocale
 } from '@/lib/i18n'
+import { restartApp } from '@/lib/utils/restart'
 import { LocaleContext } from '@/providers/locale/useLocale'
 import { useAppStore, whenHydrated } from '@/state/appStore'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { DevSettings, I18nManager, View } from 'react-native'
+import { I18nManager, View } from 'react-native'
 
 // Pre-store persistence key — migrated into the zustand store on first run.
 const LEGACY_KEY = 'wolffish.locale'
@@ -63,16 +64,15 @@ export function LocaleProvider({ children }: { children: ReactNode }): React.JSX
       await new Promise((resolve) => setTimeout(resolve, 400))
       I18nManager.allowRTL(wantRtl)
       I18nManager.forceRTL(wantRtl)
-      if (__DEV__) {
-        // The UI stays in the old language until this relaunch completes —
-        // the switch lands all at once. Swap in Updates.reloadAsync once
-        // expo-updates ships with EAS.
-        DevSettings.reload()
+      try {
+        // The UI stays frozen in the old language until this relaunch
+        // completes — the switch lands all at once.
+        await restartApp()
         return
+      } catch {
+        // Restart unavailable — switch strings in place; the layout
+        // direction completes on the next cold start.
       }
-      // Production fallback until expo-updates: no programmatic restart, so
-      // switch strings now; the layout direction completes on the next
-      // cold start.
     }
     await i18n.changeLanguage(next)
     setRenderedLocale(next)
