@@ -153,6 +153,10 @@ try {
     'update',
     '--channel',
     'production',
+    // Which server-side EAS env-var set to resolve at bundle time — required
+    // in non-interactive mode on SDK 55+ (eas-cli 21).
+    '--environment',
+    'production',
     '--message',
     `${tag} (over build ${code})`,
     '--non-interactive'
