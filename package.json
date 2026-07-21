@@ -1,6 +1,6 @@
 {
   "name": "wolffish-mobile",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "license": "MIT",
   "description": "The official mobile app for Wolffish, the personal AI agent that runs on your machine.",
   "main": "expo-router/entry",
