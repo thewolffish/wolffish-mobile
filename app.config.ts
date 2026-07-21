@@ -91,6 +91,22 @@ const config: ExpoConfig = {
     'expo-router',
     'expo-localization',
     [
+      // R8 + resource shrinking on Android release builds: smaller AAB, and
+      // Gradle embeds the deobfuscation map in the bundle so Play Console
+      // decodes crash traces itself (and stops warning about a missing one).
+      // Release buildType only — expo run:android debug builds are untouched.
+      // Risk profile: a future native dep lacking consumer Proguard rules can
+      // crash in release only; the fix is a keep rule in extraProguardRules
+      // here, which (like this plugin) is a store-build change, not an OTA.
+      'expo-build-properties',
+      {
+        android: {
+          enableMinifyInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true
+        }
+      }
+    ],
+    [
       // SDK 57 dropped the top-level `splash` key growth-app uses; this
       // plugin config with the legacy full-screen mode reproduces the same
       // result: splash.png scaled to fit on the brand background.
