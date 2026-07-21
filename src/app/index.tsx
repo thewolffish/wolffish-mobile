@@ -1,14 +1,14 @@
-import { Alert } from '@/components/core/Alert'
 import { BuildInfo } from '@/components/common/build-info/BuildInfo'
+import { LanguageToggle } from '@/components/common/language-toggle/LanguageToggle'
+import { ThemeSelector } from '@/components/common/theme-selector/ThemeSelector'
+import { Alert } from '@/components/core/Alert'
 import { Button } from '@/components/core/Button'
 import { GlobalIcon } from '@/components/core/icons'
 import { Input } from '@/components/core/Input'
 import { Select, type SelectOption } from '@/components/core/Select'
 import { Textarea } from '@/components/core/Textarea'
-import { useToast } from '@/providers/toast/useToast'
-import { LanguageToggle } from '@/components/common/language-toggle/LanguageToggle'
-import { ThemeSelector } from '@/components/common/theme-selector/ThemeSelector'
 import { useTokens } from '@/providers/theme/useTheme'
+import { useToast } from '@/providers/toast/useToast'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
@@ -78,7 +78,7 @@ export default function Showcase(): React.JSX.Element {
         gap: 16
       }}
     >
-      <View className="flex-col gap-1">
+      <View className="flex-col gap-1 bg-red-500">
         <Text className="text-fg font-sans-bold text-left text-3xl">{t('app.name')}</Text>
         <Text className="text-muted text-left font-sans text-base">{t('app.tagline')}</Text>
       </View>
