@@ -61,7 +61,12 @@ const config: ExpoConfig = {
     package: PACKAGE_IDENTIFIER,
     versionCode: CODE_VERSION,
     adaptiveIcon: {
-      foregroundImage: './assets/images/icon-trans.png',
+      // adaptive-icon.png is icon-trans.png shrunk into the adaptive-icon
+      // safe zone (artwork ~58% of the 1024 canvas, transparent padding) —
+      // launchers mask away the outer third of the canvas, so full-bleed
+      // artwork like icon-trans.png renders zoomed and clipped. Regenerate
+      // from icon-trans.png if the artwork changes.
+      foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: BRAND_OCEAN
     },
     predictiveBackGestureEnabled: false
@@ -112,12 +117,24 @@ const config: ExpoConfig = {
       // result: splash.png scaled to fit on the brand background.
       'expo-splash-screen',
       {
+        // These top-level values only reach iOS in practice: the Android
+        // block below overrides every one of them.
         backgroundColor: SPLASH_BACKGROUND,
         image: './assets/images/splash.png',
         // cover: the full-bleed artwork fills every screen aspect with no
         // letterbox bars, so the background color never actually shows.
         resizeMode: 'cover',
-        enableFullScreenImage_legacy: true
+        enableFullScreenImage_legacy: true,
+        android: {
+          // Android 12+ has no full-screen splash: the OS shows a centered
+          // icon on a solid color, and a full-bleed image handed to it gets
+          // squeezed into that icon slot (the "small square" bug). So Android
+          // gets the platform look instead: fish logo on the brand dark.
+          image: './assets/images/icon-trans.png',
+          imageWidth: 180,
+          resizeMode: 'contain',
+          backgroundColor: SPLASH_BACKGROUND
+        }
       }
     ],
     [
