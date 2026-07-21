@@ -1,8 +1,10 @@
-# Runs when scripts/release.js pushes a vX.Y.Z tag (after the store
-# submission has already happened via EAS). Creates the GitHub Release with
-# generated notes and, when an EXPO_TOKEN repo secret is configured, builds
-# the preview-profile APK on EAS and attaches it as a sideloadable artifact.
-# Store binaries are never built here — EAS owns those.
+# Runs when scripts/release.js or scripts/ota.js pushes a vX.Y.Z tag.
+# Creates the GitHub Release with generated notes and, when an EXPO_TOKEN
+# repo secret is configured, attaches the store binary the release runs on —
+# named by the BINARY's own version, not the tag, so every release is
+# self-contained and honest: a store release carries its brand-new ipa; an
+# OTA release re-attaches the current store ipa it rides on (duplication
+# accepted on purpose). Store binaries are never built here — EAS owns those.
 name: Release
 
 on:
@@ -37,37 +39,49 @@ jobs:
       # test/type gates above are allowed to fail the release.
       #
       # DISABLED until Google Play is connected (no Android keystore on EAS
-      # yet) — uncomment to attach a sideloadable APK to releases:
+      # yet) — uncomment to attach a sideloadable APK to releases. Unlike the
+      # downloaded ipa below, this APK is built fresh from the tagged source,
+      # so naming it by the tag is honest: an OTA tag's APK really contains
+      # that version's JS. It polls the preview channel, which stays
+      # unpublished — sideloads simply run their embedded bundle.
       # - name: Build sideload APK on EAS
       #   if: env.EXPO_TOKEN != ''
       #   continue-on-error: true
       #   run: |
-      #     npx eas-cli build --platform android --profile preview --non-interactive --wait --json > eas-build.json
-      #     APK_URL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('eas-build.json','utf8'))[0].artifacts.buildUrl)")
-      #     curl -fL "$APK_URL" -o "wolffish-${GITHUB_REF_NAME}.apk"
+      #     npx eas-cli build --platform android --profile preview --non-interactive --wait --json > android-build.json
+      #     APK_URL=$(node -e "
+      #       const b = JSON.parse(require('fs').readFileSync('android-build.json', 'utf8'))[0]
+      #       if (!b || !b.artifacts || !b.artifacts.buildUrl) { console.error('no apk artifact'); process.exit(0) }
+      #       console.log(b.artifacts.buildUrl)
+      #     ")
+      #     if [ -n "$APK_URL" ]; then
+      #       curl -fL "$APK_URL" -o "wolffish-${GITHUB_REF_NAME}.apk"
+      #     fi
 
       # The ipa is not installable outside TestFlight/App Store — it is
       # attached for transparency, so anyone can inspect the exact binary
-      # that was submitted. Downloaded (not rebuilt) so it IS that binary.
-      - name: Attach submitted iOS build from EAS
+      # users run. Downloaded (not rebuilt) so it IS that binary. Only
+      # RELEASED binaries qualify: the build's version must have a pushed
+      # v-tag, which keeps a submitted-but-still-in-review binary from
+      # leaking into a public release via an OTA tag pushed meanwhile.
+      - name: Attach current released iOS binary from EAS
         if: env.EXPO_TOKEN != ''
         continue-on-error: true
         run: |
-          npx eas-cli build:list --platform ios --build-profile production --status finished --limit 1 --non-interactive --json > ios-build.json
-          IPA_URL=$(node -e "
-            const b = JSON.parse(require('fs').readFileSync('ios-build.json','utf8'))[0]
-            const tagVersion = process.env.GITHUB_REF_NAME.replace(/^v/, '')
-            if (!b) { console.error('no finished iOS production build'); process.exit(0) }
-            if (b.appVersion !== tagVersion) {
-              console.error('latest iOS build is ' + b.appVersion + ', tag is ' + tagVersion + ' — skipping stale artifact')
-              process.exit(0)
-            }
-            const url = b.artifacts && b.artifacts.buildUrl
-            if (!url) { console.error('no artifact url on build'); process.exit(0) }
-            console.log(url)
+          npx eas-cli build:list --platform ios --build-profile production --status finished --limit 10 --non-interactive --json > ios-builds.json
+          git ls-remote --tags origin 'refs/tags/v*' | sed -e 's|.*refs/tags/||' -e 's|\^{}||' | sort -u > released-tags.txt
+          IPA_INFO=$(node -e "
+            const fs = require('fs')
+            const builds = JSON.parse(fs.readFileSync('ios-builds.json', 'utf8'))
+            const released = new Set(fs.readFileSync('released-tags.txt', 'utf8').split('\n').filter(Boolean))
+            const b = builds.find(
+              (b) => b.distribution === 'STORE' && released.has('v' + b.appVersion) && b.artifacts && b.artifacts.buildUrl
+            )
+            if (!b) { console.error('no released iOS binary to attach'); process.exit(0) }
+            console.log(b.artifacts.buildUrl + ' ' + b.appVersion)
           ")
-          if [ -n "$IPA_URL" ]; then
-            curl -fL "$IPA_URL" -o "wolffish-${GITHUB_REF_NAME}.ipa"
+          if [ -n "$IPA_INFO" ]; then
+            curl -fL "${IPA_INFO% *}" -o "wolffish-v${IPA_INFO#* }.ipa"
           fi
 
       - name: Checksums
