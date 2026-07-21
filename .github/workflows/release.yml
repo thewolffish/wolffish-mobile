@@ -38,25 +38,24 @@ jobs:
       # Artifacts are enhancements, never release blockers. Only the
       # test/type gates above are allowed to fail the release.
       #
-      # DISABLED until Google Play is connected (no Android keystore on EAS
-      # yet) — uncomment to attach a sideloadable APK to releases. Unlike the
-      # downloaded ipa below, this APK is built fresh from the tagged source,
+      # Built fresh from the tagged source (unlike the downloaded ipa below),
       # so naming it by the tag is honest: an OTA tag's APK really contains
       # that version's JS. It polls the preview channel, which stays
-      # unpublished — sideloads simply run their embedded bundle.
-      # - name: Build sideload APK on EAS
-      #   if: env.EXPO_TOKEN != ''
-      #   continue-on-error: true
-      #   run: |
-      #     npx eas-cli build --platform android --profile preview --non-interactive --wait --json > android-build.json
-      #     APK_URL=$(node -e "
-      #       const b = JSON.parse(require('fs').readFileSync('android-build.json', 'utf8'))[0]
-      #       if (!b || !b.artifacts || !b.artifacts.buildUrl) { console.error('no apk artifact'); process.exit(0) }
-      #       console.log(b.artifacts.buildUrl)
-      #     ")
-      #     if [ -n "$APK_URL" ]; then
-      #       curl -fL "$APK_URL" -o "wolffish-${GITHUB_REF_NAME}.apk"
-      #     fi
+      # unpublished — sideloads simply run their embedded bundle. Needs the
+      # Android keystore to exist on EAS (eas credentials -p android).
+      - name: Build sideload APK on EAS
+        if: env.EXPO_TOKEN != ''
+        continue-on-error: true
+        run: |
+          npx eas-cli build --platform android --profile preview --non-interactive --wait --json > android-build.json
+          APK_URL=$(node -e "
+            const b = JSON.parse(require('fs').readFileSync('android-build.json', 'utf8'))[0]
+            if (!b || !b.artifacts || !b.artifacts.buildUrl) { console.error('no apk artifact'); process.exit(0) }
+            console.log(b.artifacts.buildUrl)
+          ")
+          if [ -n "$APK_URL" ]; then
+            curl -fL "$APK_URL" -o "wolffish-${GITHUB_REF_NAME}.apk"
+          fi
 
       # The ipa is not installable outside TestFlight/App Store — it is
       # attached for transparency, so anyone can inspect the exact binary
