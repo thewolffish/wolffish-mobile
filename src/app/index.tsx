@@ -83,10 +83,12 @@ export default function Showcase(): React.JSX.Element {
         <Text className="text-muted text-left font-sans text-base">{t('app.tagline')}</Text>
       </View>
 
-      <View className="flex-row items-end gap-3">
-        <ThemeSelector className="flex-1" />
-        <LanguageToggle label={t('locale.label')} />
-      </View>
+      <Section title={t('settings.title')}>
+        <View className="flex-row items-end gap-3">
+          <ThemeSelector className="flex-1" />
+          <LanguageToggle label={t('locale.label')} />
+        </View>
+      </Section>
 
       <View className="flex-col gap-1">
         <Text className="text-fg font-sans-semibold text-left text-xl">{t('showcase.title')}</Text>

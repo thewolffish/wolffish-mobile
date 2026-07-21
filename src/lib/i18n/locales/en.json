@@ -26,6 +26,9 @@
     "confirmMessage": "Wolffish restarts to apply the new language.",
     "confirmSwitch": "Switch"
   },
+  "settings": {
+    "title": "Settings"
+  },
   "updates": {
     "ready": "A new version is ready — tap to restart.",
     "embedded": "store build"
