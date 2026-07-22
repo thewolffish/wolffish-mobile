@@ -21,8 +21,6 @@ const PACKAGE_IDENTIFIER = 'sh.wolffi.mobile'
 export const APP_VERSION = '1.0.11'
 export const CODE_VERSION = 7
 export const UPDATE_DATE = '2026-07-22T00:00:00.000Z'
-// Keep in sync with --color-ocean in src/global.css.
-const BRAND_OCEAN = '#1b365d'
 // Sampled from the top edge of assets/images/splash.png so the storyboard
 // background is indistinguishable from the artwork.
 const SPLASH_BACKGROUND = '#0d1b2d'
@@ -67,7 +65,11 @@ const config: ExpoConfig = {
       // artwork like icon-trans.png renders zoomed and clipped. Regenerate
       // from icon-trans.png if the artwork changes.
       foregroundImage: './assets/images/adaptive-icon.png',
-      backgroundColor: BRAND_OCEAN
+      // Low-poly navy pattern behind the fish. Launchers crop this layer to
+      // the inner ~72/108dp mask and parallax-shift it under the foreground,
+      // so it must be fully opaque and edge-to-edge uniform — nothing
+      // distinctive near the borders.
+      backgroundImage: './assets/images/adaptive-icon-bg.png'
     },
     predictiveBackGestureEnabled: false
   },
