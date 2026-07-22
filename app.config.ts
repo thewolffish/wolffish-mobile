@@ -18,9 +18,9 @@ const PACKAGE_IDENTIFIER = 'sh.wolffi.mobile'
 // exist only after the first Play upload (Play Console → App signing).
 // const DEEP_LINK_HOSTS = ['wolffi.sh', 'www.wolffi.sh']
 // Bumped by scripts/provision.js — keep the exact format of these lines.
-export const APP_VERSION = '1.0.10'
+export const APP_VERSION = '1.0.11'
 export const CODE_VERSION = 7
-export const UPDATE_DATE = '2026-07-21T00:00:00.000Z'
+export const UPDATE_DATE = '2026-07-22T00:00:00.000Z'
 // Keep in sync with --color-ocean in src/global.css.
 const BRAND_OCEAN = '#1b365d'
 // Sampled from the top edge of assets/images/splash.png so the storyboard
