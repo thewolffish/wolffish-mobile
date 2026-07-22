@@ -78,7 +78,7 @@ export default function Showcase(): React.JSX.Element {
         gap: 16
       }}
     >
-      <View className="flex-col gap-1 bg-red-55">
+      <View className="flex-col gap-1 bg-red-500">
         <Text className="text-fg font-sans-bold text-left text-3xl">{t('app.name')}</Text>
         <Text className="text-muted text-left font-sans text-base">{t('app.tagline')}</Text>
       </View>
