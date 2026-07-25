@@ -8,6 +8,7 @@ export type ThemeTokens = {
   fg: string
   muted: string
   border: string
+  borderSoft: string
   primary: string
   primaryFg: string
   accent: string
@@ -20,6 +21,7 @@ export const LIGHT_TOKENS: ThemeTokens = {
   fg: '#0d1117',
   muted: '#5b6778',
   border: '#d5dde5',
+  borderSoft: '#e0e6ed',
   primary: '#1b365d',
   primaryFg: '#ffffff',
   accent: '#00d4ff',
@@ -32,6 +34,7 @@ export const DARK_TOKENS: ThemeTokens = {
   fg: '#ffffff',
   muted: '#8b95a7',
   border: '#2a313c',
+  borderSoft: '#1e242d',
   primary: '#a5d8ff',
   primaryFg: '#0d1117',
   accent: '#00d4ff',

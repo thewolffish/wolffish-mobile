@@ -27,7 +27,203 @@
     "confirmSwitch": "تبديل"
   },
   "settings": {
-    "title": "الإعدادات"
+    "title": "الإعدادات",
+    "verbose": {
+      "label": "نتائج المهام المفصّلة",
+      "description": "عرض كل استدعاء أداة وكل خطوة في المحادثة، إضافةً إلى شارة النموذج/المزوّد. عند الإيقاف (الافتراضي) تبقى التغذية نظيفة — ردود الوكيل والملفات التي يرسلها فقط."
+    },
+    "tabs": {
+      "model": "النموذج",
+      "channels": "القنوات",
+      "services": "الخدمات",
+      "variables": "المتغيرات",
+      "hippocampus": "الحُصين",
+      "usage": "الاستخدام",
+      "data": "البيانات",
+      "updates": "التحديثات",
+      "appearance": "المظهر",
+      "preferences": "التفضيلات",
+      "mcp": "MCP",
+      "cellebrum": "المخيخ"
+    },
+    "appearanceSubtitle": "شكل وولف فيش — السمة واللغة.",
+    "verboseState": {
+      "on": "التفصيل مفعّل",
+      "off": "تغذية نظيفة"
+    },
+    "chatModes": {
+      "single": "فردي",
+      "workflow": "سير عمل",
+      "singleDescription": "نموذج واحد يجيب مباشرة — للأسئلة اليومية.",
+      "workflowDescription": "وكلاء متعددون يخططون ويتحققون — للمهام المعقدة."
+    },
+    "thinking": {
+      "off": "إيقاف",
+      "on": "عادي",
+      "high": "مرتفع",
+      "max": "أقصى"
+    },
+    "model": {
+      "subtitle": "الدماغ — أي نموذج يجيب، وكم يفكر.",
+      "brainTitle": "الدماغ",
+      "brainLabel": "النموذج",
+      "localOnly": "محلي فقط",
+      "localOnlyDescription": "تجاوز مزودي السحابة والإجابة بالنموذج المحلي.",
+      "behaviorTitle": "السلوك",
+      "modeLabel": "وضع المحادثة",
+      "thinkingLabel": "التفكير",
+      "restrictPowerful": "تقييد النماذج القوية",
+      "restrictPowerfulDescription": "إخفاء النماذج المحلية التي تتطلب ذاكرة أكبر من المتاح.",
+      "contextOptimization": "تحسين السياق",
+      "contextOptimizationDescription": "تخزين المطالبات مؤقتاً واقتطاع نتائج الأدوات لتوسيع نافذة السياق.",
+      "localTitle": "محلي",
+      "cloudTitle": "سحابي",
+      "noModel": "لا يوجد نموذج",
+      "providersTitle": "المزوّدون",
+      "apiKey": "مفتاح API",
+      "keySet": "المفتاح مضبوط",
+      "noKey": "لا يوجد مفتاح",
+      "testConnection": "اختبار الاتصال",
+      "testSuccess": "تم التحقق من الاتصال",
+      "desktopNote": "تغيير المفاتيح واختبارات الاتصال تُنفذ على الحاسوب — التطبيق يرسل الأمر فقط.",
+      "modelsCount": "{{count}} نموذجاً"
+    },
+    "channels": {
+      "subtitle": "أين يتحدث وولف فيش معك. خدمات القنوات تعمل على الحاسوب.",
+      "inapp": "داخل التطبيق",
+      "enabled": "مفعّل",
+      "telegramDescription": "جسر بوت تيليجرام — يعمل على حاسوبك.",
+      "whatsappDescription": "جسر واتساب — يعمل على حاسوبك.",
+      "allowedUserIds": "معرّفات المستخدمين المسموح بهم",
+      "allowedNumbers": "أرقام الهواتف المسموح بها",
+      "autoRefresh": "تحديث تلقائي",
+      "autoRefreshDescription": "استئناف محادثات القناة الراكدة تلقائياً.",
+      "staleHours": "تعتبر راكدة بعد (ساعات)",
+      "hideAutomations": "إخفاء الأتمتة",
+      "hideAutomationsDescription": "إبقاء التشغيلات المجدولة خارج استئناف القناة."
+    },
+    "services": {
+      "subtitle": "الاتصالات التي يستخدمها الوكيل. تُدار على الحاسوب — تُعرض هنا للقراءة فقط.",
+      "connected": "متصل",
+      "notConnected": "غير متصل",
+      "desktopOnly": "الاتصال والاختبار وبيانات الاعتماد في تطبيق سطح المكتب.",
+      "desktopOnlyShort": "يُدار من الحاسوب",
+      "items": {
+        "google": "Google Workspace",
+        "github": "GitHub",
+        "notion": "Notion",
+        "brave": "بحث Brave",
+        "memes": "الميمز",
+        "stt": "تحويل الكلام إلى نص",
+        "tts": "تحويل النص إلى كلام",
+        "browserExtension": "امتداد المتصفح",
+        "computerUse": "استخدام الحاسوب",
+        "mcp": "خوادم MCP"
+      },
+      "sttModel": "نموذج Whisper",
+      "ttsVoice": "الصوت",
+      "ttsSpeed": "السرعة",
+      "screenshotMaxWidth": "عرض لقطة الشاشة",
+      "screenshotFormat": "صيغة لقطة الشاشة",
+      "speed": {
+        "slow": "بطيء",
+        "normal": "عادي",
+        "fast": "سريع",
+        "veryFast": "سريع جداً"
+      }
+    },
+    "variables": {
+      "subtitle": "قيم مسماة يستخدمها الوكيل في المطالبات. الحساسة تبقى مخفية.",
+      "add": "إضافة متغير",
+      "delete": "حذف المتغير",
+      "sensitive": "حساس",
+      "namePlaceholder": "الاسم",
+      "valuePlaceholder": "القيمة",
+      "empty": "لا توجد متغيرات بعد."
+    },
+    "hippocampus": {
+      "subtitle": "صيانة الذاكرة — متى يعمل الضغط والدمج.",
+      "dailyTitle": "الضغط اليومي",
+      "dailyHour": "الساعة",
+      "weeklyTitle": "الدمج الأسبوعي",
+      "weeklyDay": "اليوم",
+      "weeklyHour": "الساعة"
+    },
+    "usage": {
+      "subtitle": "محسوب محلياً من المحادثات المستوردة.",
+      "conversations": "المحادثات",
+      "messages": "الرسائل",
+      "turns": "الجولات",
+      "toolCalls": "استدعاءات الأدوات",
+      "inputTokens": "رموز الإدخال",
+      "outputTokens": "رموز الإخراج",
+      "cost": "التكلفة الإجمالية",
+      "topModel": "النموذج المفضل",
+      "byChannel": "حسب القناة",
+      "channels": {
+        "inapp": "داخل التطبيق",
+        "telegram": "تيليجرام",
+        "whatsapp": "واتساب",
+        "heartbeat": "الأتمتة",
+        "procedure": "الإجراءات"
+      }
+    },
+    "data": {
+      "subtitle": "ما يخزنه وولف فيش على هذا الجهاز.",
+      "storageTitle": "التخزين",
+      "cachedMedia": "الوسائط المخزنة",
+      "cachedFiles": "الملفات المخزنة",
+      "budget": "حد التحرير",
+      "conversations": "المحادثات",
+      "releaseTitle": "تحرير التخزين",
+      "releaseNow": "حرّر الوسائط المخزنة الآن",
+      "released": "حُرر {{count}} ملفاً — تُنزّل مجدداً عند الفتح"
+    },
+    "updates": {
+      "subtitle": "كيف يحدّث هذا التطبيق نفسه.",
+      "autoLabel": "التحديثات التلقائية",
+      "autoDescription": "تنزيل تحديثات OTA في الخلفية وتطبيقها عند الإقلاع التالي.",
+      "aboutTitle": "هذا الإصدار",
+      "version": "الإصدار",
+      "channel": "الحزمة",
+      "embedded": "إصدار المتجر",
+      "ota": "تحديث OTA",
+      "runtime": "بيئة التشغيل",
+      "updateId": "معرّف التحديث",
+      "publishedAt": "تاريخ النشر"
+    },
+    "days": {
+      "sunday": "الأحد",
+      "monday": "الاثنين",
+      "tuesday": "الثلاثاء",
+      "wednesday": "الأربعاء",
+      "thursday": "الخميس",
+      "friday": "الجمعة",
+      "saturday": "السبت"
+    },
+    "toggle": {
+      "on": "تشغيل",
+      "off": "إيقاف"
+    },
+    "preferences": {
+      "subtitle": "التفضيلات العامة ومفاتيح أمان الوكيل.",
+      "generalTitle": "عام",
+      "launchAtStartup": "التشغيل عند بدء النظام",
+      "launchAtStartupDescription": "تشغيل وولف فيش على الحاسوب عند تسجيل الدخول.",
+      "weekStartsOn": "يبدأ الأسبوع يوم",
+      "safetyTitle": "الأمان",
+      "bypassPermissions": "تجاوز الأذونات",
+      "bypassPermissionsDescription": "السماح للوكيل بالعمل دون طلب موافقة لكل أداة.",
+      "blockCredentials": "حظر بيانات الاعتماد",
+      "blockCredentialsDescription": "رفض كتابة أو قراءة كلمات المرور ومفاتيح API."
+    },
+    "cellebrum": {
+      "subtitle": "قدرات الوكيل ({{count}}) — المهارات والإضافات من مساحة عملك. الاستيراد والحذف يبقيان على الحاسوب."
+    },
+    "mcp": {
+      "subtitle": "خوادم MCP المهيأة.",
+      "desktopNote": "إضافة الخوادم والترويسات وتسجيل الدخول في تطبيق سطح المكتب."
+    }
   },
   "updates": {
     "ready": "نسخة جديدة جاهزة — اضغط لإعادة التشغيل.",
@@ -105,5 +301,179 @@
       "stickyMessage": "أبقى هنا حتى تغلقني.",
       "topMessage": "إشعار محيطي من الأعلى."
     }
+  },
+  "home": {
+    "demoMode": "وضع العرض",
+    "demoHint": "كل ميزة، وكل نوع ملف — مع ثلاثة أشهر من المحادثات الحقيقية."
+  },
+  "demo": {
+    "importing": "جارٍ تجهيز بيانات العرض…",
+    "missing": "بيانات العرض غير موجودة على هذا الجهاز. ابنِها وادفعها أولاً.",
+    "imported": "تم استيراد {{count}} محادثة",
+    "reply": {
+      "heading": "وضع العرض",
+      "body": "هذه جولة كاملة في التطبيق — الرسائل الجديدة لا تُعالج هنا، لكن يمكنك تصفّح كل شيء وتعديله وضبطه.",
+      "echoLabel": "قلت:",
+      "outro": "اتصل بتطبيق وولف فيش على حاسوبك لتشغيل محادثات حقيقية."
+    }
+  },
+  "chat": {
+    "placeholder": "اكتب لوولف‌ فيش",
+    "send": "إرسال",
+    "stop": "إيقاف",
+    "empty": {
+      "title": "وولف‌ فيش جاهز",
+      "subtitle": "اسأل أي شيء. أنا أقضم كل شئ."
+    },
+    "thinking": "يفكر…",
+    "thinkingWords": [
+      "يتأمل",
+      "يتدبّر",
+      "يستنبط",
+      "يتفكّر",
+      "يسترسل",
+      "يتمعّن",
+      "يستحضر",
+      "يتبصّر",
+      "يختمر",
+      "يستقصي",
+      "يبتكر",
+      "يستلهم",
+      "ينسج",
+      "يستكشف",
+      "يتروّى",
+      "يتخيّل",
+      "يستشعر",
+      "يستدرك",
+      "يتحرّى",
+      "يستوعب",
+      "يتبحّر",
+      "يتحسّس",
+      "يستجلي",
+      "يستوحي",
+      "يستشرف",
+      "يتفحّص",
+      "يستكنه",
+      "يتلمّس",
+      "يستبين",
+      "يتبيّن"
+    ],
+    "newChat": "محادثة جديدة",
+    "history": "السجل",
+    "conversations": "المحادثات",
+    "conversationsUntitled": "بدون عنوان",
+    "copy": "نسخ",
+    "copied": "تم النسخ",
+    "copyMessage": "نسخ الرسالة",
+    "modelLabel": "النموذج: {{model}}",
+    "reasoning": "التفكير",
+    "fileCard": {
+      "deleted": "تم حذف الملف",
+      "download": "تنزيل",
+      "share": "مشاركة",
+      "expand": "توسيع",
+      "close": "إغلاق"
+    },
+    "fileViewer": {
+      "lines": "{{count}} سطر",
+      "rows": "{{count}} صف"
+    },
+    "htmlViewer": {
+      "preview": "معاينة",
+      "source": "المصدر"
+    },
+    "audioPlayer": {
+      "deleted": "ملف الصوت محذوف أو غير متاح"
+    },
+    "videoPlayer": {
+      "deleted": "ملف الفيديو محذوف أو غير متاح"
+    },
+    "imageViewer": {
+      "deleted": "ملف الصورة محذوف أو غير متاح"
+    },
+    "voice": {
+      "record": "تسجيل رسالة صوتية",
+      "noMic": "لا يوجد ميكروفون متاح",
+      "permissionDenied": "إذن الميكروفون مرفوض — فعّله من إعدادات النظام.",
+      "recording": "جارٍ التسجيل",
+      "send": "إرسال التسجيل",
+      "delete": "حذف التسجيل",
+      "transcribing": "جارٍ النسخ…",
+      "error": "فشل التسجيل"
+    },
+    "toolCard": {
+      "args": "المعاملات",
+      "output": "النتيجة",
+      "error": "خطأ",
+      "status": {
+        "running": "قيد التنفيذ",
+        "success": "اكتمل",
+        "failed": "فشل",
+        "denied": "مرفوض"
+      }
+    },
+    "questionCard": {
+      "otherLabel": "شيء آخر",
+      "yourAnswer": "إجابتك",
+      "yourAnswers": "إجاباتك",
+      "questionCount": "السؤال {{current}} من {{total}}"
+    },
+    "workflowCard": {
+      "title": "سير العمل",
+      "agentsDone": "اكتمل {{done}}/{{total}} من الوكلاء",
+      "toolCalls": "{{count}} استدعاء أداة"
+    },
+    "compactionCard": {
+      "title": "الضغط",
+      "started": "جارٍ ضغط {{messages}} رسالة…",
+      "saved": "ضُغطت {{targets}} عناصر، وُفّر نحو {{tokens}} رمز"
+    },
+    "turnFooter": {
+      "error": "خطأ في الاتصال",
+      "maxTokens": "توقف عند حد الاستجابة"
+    },
+    "providerError": {
+      "retry": "إعادة المحاولة"
+    },
+    "menu": {
+      "title": "أدوات المحادثة",
+      "project": "المشروع",
+      "noProject": "بدون مشروع",
+      "context": "السياق",
+      "lastTurn": "آخر جولة",
+      "allTime": "الإجمالي",
+      "turns": "جولة",
+      "noStats": "لا توجد إحصاءات لهذه المحادثة بعد."
+    },
+    "editor": {
+      "title": "تحرير الرسالة",
+      "placeholder": "اكتب بصيغة ماركداون…",
+      "done": "تم",
+      "close": "إغلاق"
+    }
+  },
+  "history": {
+    "loading": "جاري تحميل المحادثات…",
+    "empty": "لا توجد محادثات بعد.",
+    "delete": "حذف",
+    "deleteTitle": "حذف هذه المحادثة؟",
+    "deleteWarning": "ستُحذف هذه المحادثة نهائياً. هذا الإجراء لا يمكن التراجع عنه.",
+    "deleteConfirm": "حذف",
+    "deleteCancel": "إلغاء",
+    "newChat": "محادثة جديدة",
+    "processing": "قيد المعالجة…"
+  },
+  "units": {
+    "bytes": "{{value}} بايت",
+    "kilobytes": "{{value}} ك.ب",
+    "megabytes": "{{value}} م.ب",
+    "gigabytes": "{{value}} غ.ب",
+    "seconds": "{{value}} ث",
+    "minutes": "{{value}} د",
+    "hours": "{{value}} س",
+    "now": "الآن",
+    "days": "{{value}} ي",
+    "months": "{{value}} شهر",
+    "years": "{{value}} سنة"
   }
 }

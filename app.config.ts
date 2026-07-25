@@ -97,6 +97,10 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     'expo-localization',
+    // Delivered/attached videos play inline in the chat feed (MediaBlocks
+    // VideoBlock). The config plugin is what wires up the native player;
+    // background playback and PiP stay off — chat video is foreground only.
+    ['expo-video', { supportsBackgroundPlayback: false, supportsPictureInPicture: true }],
     [
       // R8 + resource shrinking on Android release builds: smaller AAB, and
       // Gradle embeds the deobfuscation map in the bundle so Play Console
@@ -137,6 +141,16 @@ const config: ExpoConfig = {
           resizeMode: 'contain',
           backgroundColor: SPLASH_BACKGROUND
         }
+      }
+    ],
+    [
+      // Voice notes: the composer's record button captures audio via
+      // expo-audio. iOS requires a usage string; the plugin also adds
+      // RECORD_AUDIO on Android. Native change → new fingerprint runtime →
+      // ships only in a store binary.
+      'expo-audio',
+      {
+        microphonePermission: 'Allow Wolffish to record voice notes you send to your agent.'
       }
     ],
     [

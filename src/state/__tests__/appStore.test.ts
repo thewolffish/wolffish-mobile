@@ -42,8 +42,20 @@ describe('appStore', () => {
     const lastPayload = JSON.parse(calls[calls.length - 1][1] as string) as {
       state: Record<string, unknown>
     }
-    expect(lastPayload.state).toEqual({ theme: 'light', locale: null })
+    expect(lastPayload.state).toEqual({
+      theme: 'light',
+      locale: null,
+      demoMode: false,
+      demoImported: false,
+      verboseFeed: false
+    })
     // Functions (setters) must never be serialized.
-    expect(Object.keys(lastPayload.state)).toEqual(['theme', 'locale'])
+    expect(Object.keys(lastPayload.state).sort()).toEqual([
+      'demoImported',
+      'demoMode',
+      'locale',
+      'theme',
+      'verboseFeed'
+    ])
   })
 })

@@ -10,6 +10,10 @@
   --color-fg: #0d1117;
   --color-muted: #5b6778;
   --color-border: #d5dde5;
+  /* border at ~60% over bg — RN can't alpha-compose var() colors (a
+     border-border/60 class silently drops and leaves the default black),
+     so the desktop's faint divider tone is precomputed per theme. */
+  --color-border-soft: #e0e6ed;
   --color-primary: #1b365d;
   --color-primary-fg: #ffffff;
   --color-accent: #00d4ff;
@@ -22,6 +26,7 @@
   --color-fg: #ffffff;
   --color-muted: #8b95a7;
   --color-border: #2a313c;
+  --color-border-soft: #1e242d;
   --color-primary: #a5d8ff;
   --color-primary-fg: #0d1117;
   --color-accent: #00d4ff;

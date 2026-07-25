@@ -4,7 +4,14 @@ import { useTheme, type ThemeSource } from '@/providers/theme/useTheme'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-export function ThemeSelector({ className }: { className?: string }): React.JSX.Element {
+export function ThemeSelector({
+  className,
+  hideLabel = false
+}: {
+  className?: string
+  /** Hide the inline label when a surrounding section already titles it. */
+  hideLabel?: boolean
+}): React.JSX.Element {
   const { t } = useTranslation()
   const { theme, setTheme } = useTheme()
 
@@ -31,7 +38,7 @@ export function ThemeSelector({ className }: { className?: string }): React.JSX.
 
   return (
     <Select<ThemeSource>
-      label={t('theme.label')}
+      label={hideLabel ? undefined : t('theme.label')}
       value={theme}
       options={options}
       onChange={(next) => void setTheme(next)}

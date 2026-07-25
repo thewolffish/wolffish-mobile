@@ -7,11 +7,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ActivityIndicator, Pressable, Text, View } from 'react-native'
 
-// Each option is labelled in its own language so the control stays readable
-// whichever language the app is currently in (growth-app pattern).
+// Each option is labelled with its full name in its own language so the
+// control stays readable whichever language the app is currently in.
 const OPTIONS: readonly { value: SupportedLocale; label: string }[] = [
-  { value: 'ar', label: 'عربي' },
-  { value: 'en', label: 'EN' }
+  { value: 'ar', label: 'العربية' },
+  { value: 'en', label: 'English' }
 ]
 
 export function LanguageToggle({
@@ -51,7 +51,7 @@ export function LanguageToggle({
           control. */}
       <View
         className={cn(
-          'border-border bg-bg h-10 flex-row items-stretch self-start rounded-lg border p-0.5',
+          'border-border bg-bg h-10 w-full flex-row items-stretch rounded-lg border p-0.5',
           switching !== null && 'opacity-50'
         )}
       >
@@ -65,11 +65,11 @@ export function LanguageToggle({
               accessibilityState={{ selected: active }}
               disabled={active || switching !== null}
               onPress={() => choose(option.value)}
-              // Fixed min width + the track's fixed height keep the segment
-              // from reflowing when the label swaps for the spinner.
-              style={{ minWidth: 48 }}
+              // Equal-width segments fill the track; the fixed height keeps
+              // the segment from reflowing when the label swaps for the
+              // spinner.
               className={cn(
-                'flex-row items-center justify-center rounded-md px-3',
+                'flex-1 flex-row items-center justify-center rounded-md px-3',
                 active ? 'bg-primary' : 'bg-transparent'
               )}
             >

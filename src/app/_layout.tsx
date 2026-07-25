@@ -11,7 +11,12 @@ import { ToastProvider } from '@/providers/toast/ToastProvider'
 import { LocaleProvider } from '@/providers/locale/LocaleProvider'
 import { ThemeProvider } from '@/providers/theme/ThemeProvider'
 import { useTheme, useTokens } from '@/providers/theme/useTheme'
-import { asyncStoragePersister, PERSIST_MAX_AGE_MS, queryClient } from '@/lib/query/queryClient'
+import {
+  asyncStoragePersister,
+  PERSIST_MAX_AGE_MS,
+  queryClient,
+  shouldPersistQuery
+} from '@/lib/query/queryClient'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
@@ -48,7 +53,11 @@ export default function RootLayout(): React.JSX.Element {
   return (
     <PersistQueryClientProvider
       client={queryClient}
-      persistOptions={{ persister: asyncStoragePersister, maxAge: PERSIST_MAX_AGE_MS }}
+      persistOptions={{
+        persister: asyncStoragePersister,
+        maxAge: PERSIST_MAX_AGE_MS,
+        dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery }
+      }}
     >
       <ThemeProvider>
         <LocaleProvider>

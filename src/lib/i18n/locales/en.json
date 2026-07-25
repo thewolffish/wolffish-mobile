@@ -27,7 +27,203 @@
     "confirmSwitch": "Switch"
   },
   "settings": {
-    "title": "Settings"
+    "title": "Settings",
+    "verbose": {
+      "label": "Verbose task results",
+      "description": "Show every tool call and step in the chat, plus the model/provider chip. Off (the default) keeps a clean feed — only agent replies and the files it sends."
+    },
+    "tabs": {
+      "model": "Model",
+      "channels": "Channels",
+      "services": "Services",
+      "variables": "Variables",
+      "hippocampus": "Hippocampus",
+      "usage": "Usage",
+      "data": "Data",
+      "updates": "Updates",
+      "appearance": "Appearance",
+      "preferences": "Preferences",
+      "mcp": "MCP",
+      "cellebrum": "Cellebrum"
+    },
+    "appearanceSubtitle": "How Wolffish looks — theme and language.",
+    "verboseState": {
+      "on": "Verbose on",
+      "off": "Clean feed"
+    },
+    "chatModes": {
+      "single": "Single",
+      "workflow": "Workflow",
+      "singleDescription": "One model answers directly — everyday questions.",
+      "workflowDescription": "Many agents plan, verify — complex tasks."
+    },
+    "thinking": {
+      "off": "Off",
+      "on": "Normal",
+      "high": "High",
+      "max": "Max"
+    },
+    "model": {
+      "subtitle": "The Brain — which model answers, and how hard it thinks.",
+      "brainTitle": "Brain",
+      "brainLabel": "Model",
+      "localOnly": "Local only",
+      "localOnlyDescription": "Skip cloud providers and answer with the local model.",
+      "behaviorTitle": "Behavior",
+      "modeLabel": "Chat mode",
+      "thinkingLabel": "Thinking",
+      "restrictPowerful": "Restrict powerful models",
+      "restrictPowerfulDescription": "Hide local models that need more RAM than this machine has.",
+      "contextOptimization": "Context optimization",
+      "contextOptimizationDescription": "Prompt caching and tool-output truncation to stretch the context window.",
+      "localTitle": "Local",
+      "cloudTitle": "Cloud",
+      "noModel": "No model",
+      "providersTitle": "Providers",
+      "apiKey": "API key",
+      "keySet": "Key set",
+      "noKey": "No key",
+      "testConnection": "Test connection",
+      "testSuccess": "Connection verified",
+      "desktopNote": "Key changes and connection tests run on the desktop — the mobile app sends the command.",
+      "modelsCount": "{{count}} models"
+    },
+    "channels": {
+      "subtitle": "Where Wolffish talks to you. Channel daemons run on the desktop.",
+      "inapp": "In-App",
+      "enabled": "Enabled",
+      "telegramDescription": "The Telegram bot bridge — runs on your desktop.",
+      "whatsappDescription": "The WhatsApp bridge — runs on your desktop.",
+      "allowedUserIds": "Allowed user IDs",
+      "allowedNumbers": "Allowed phone numbers",
+      "autoRefresh": "Auto refresh",
+      "autoRefreshDescription": "Resume stale channel conversations automatically.",
+      "staleHours": "Stale after (hours)",
+      "hideAutomations": "Hide automations",
+      "hideAutomationsDescription": "Keep scheduled runs out of channel resume."
+    },
+    "services": {
+      "subtitle": "Connections the agent uses. Managed on the desktop — shown here read-only.",
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "desktopOnly": "Connect, test, and credentials live in the desktop app.",
+      "desktopOnlyShort": "Desktop-managed",
+      "items": {
+        "google": "Google Workspace",
+        "github": "GitHub",
+        "notion": "Notion",
+        "brave": "Brave Search",
+        "memes": "Memes",
+        "stt": "Speech to Text",
+        "tts": "Text to Speech",
+        "browserExtension": "Browser Extension",
+        "computerUse": "Computer Use",
+        "mcp": "MCP Servers"
+      },
+      "sttModel": "Whisper model",
+      "ttsVoice": "Voice",
+      "ttsSpeed": "Speed",
+      "screenshotMaxWidth": "Screenshot width",
+      "screenshotFormat": "Screenshot format",
+      "speed": {
+        "slow": "Slow",
+        "normal": "Normal",
+        "fast": "Fast",
+        "veryFast": "Very fast"
+      }
+    },
+    "variables": {
+      "subtitle": "Named values the agent can use in prompts. Sensitive ones stay masked.",
+      "add": "Add variable",
+      "delete": "Delete variable",
+      "sensitive": "Sensitive",
+      "namePlaceholder": "NAME",
+      "valuePlaceholder": "Value",
+      "empty": "No variables yet."
+    },
+    "hippocampus": {
+      "subtitle": "Memory upkeep — when compaction and consolidation run.",
+      "dailyTitle": "Daily compaction",
+      "dailyHour": "Hour",
+      "weeklyTitle": "Weekly consolidation",
+      "weeklyDay": "Day",
+      "weeklyHour": "Hour"
+    },
+    "usage": {
+      "subtitle": "Computed locally from the imported conversations.",
+      "conversations": "Conversations",
+      "messages": "Messages",
+      "turns": "Turns",
+      "toolCalls": "Tool calls",
+      "inputTokens": "Input tokens",
+      "outputTokens": "Output tokens",
+      "cost": "Total cost",
+      "topModel": "Favourite model",
+      "byChannel": "By channel",
+      "channels": {
+        "inapp": "In-App",
+        "telegram": "Telegram",
+        "whatsapp": "WhatsApp",
+        "heartbeat": "Automations",
+        "procedure": "Procedures"
+      }
+    },
+    "data": {
+      "subtitle": "What Wolffish stores on this device.",
+      "storageTitle": "Storage",
+      "cachedMedia": "Cached media",
+      "cachedFiles": "Cached files",
+      "budget": "Release threshold",
+      "conversations": "Conversations",
+      "releaseTitle": "Release storage",
+      "releaseNow": "Release cached media now",
+      "released": "{{count}} files released — they re-download on next open"
+    },
+    "updates": {
+      "subtitle": "How this app updates itself.",
+      "autoLabel": "Automatic updates",
+      "autoDescription": "Download over-the-air updates in the background and apply on next launch.",
+      "aboutTitle": "This build",
+      "version": "Version",
+      "channel": "Bundle",
+      "embedded": "Store build",
+      "ota": "OTA update",
+      "runtime": "Runtime",
+      "updateId": "Update ID",
+      "publishedAt": "Published"
+    },
+    "days": {
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    },
+    "toggle": {
+      "on": "On",
+      "off": "Off"
+    },
+    "preferences": {
+      "subtitle": "General preferences and the agent's safety switches.",
+      "generalTitle": "General",
+      "launchAtStartup": "Launch at startup",
+      "launchAtStartupDescription": "Start the desktop Wolffish when you log in.",
+      "weekStartsOn": "Week starts on",
+      "safetyTitle": "Safety",
+      "bypassPermissions": "Bypass permissions",
+      "bypassPermissionsDescription": "Let the agent act without per-tool approval prompts.",
+      "blockCredentials": "Block credentials",
+      "blockCredentialsDescription": "Refuse to type or read passwords and API keys."
+    },
+    "cellebrum": {
+      "subtitle": "The agent's {{count}} capabilities — skills and plugins from your workspace. Import and delete stay on the desktop."
+    },
+    "mcp": {
+      "subtitle": "Configured MCP servers.",
+      "desktopNote": "Adding servers, headers and sign-in live in the desktop app."
+    }
   },
   "updates": {
     "ready": "A new version is ready — tap to restart.",
@@ -105,5 +301,179 @@
       "stickyMessage": "I stay until you dismiss me.",
       "topMessage": "Ambient notice from the top."
     }
+  },
+  "home": {
+    "demoMode": "Demo Mode",
+    "demoHint": "Every feature, every file type — with three months of real conversations."
+  },
+  "demo": {
+    "importing": "Preparing demo data…",
+    "missing": "Demo data not found on this device. Build and push it first.",
+    "imported": "{{count}} conversations imported",
+    "reply": {
+      "heading": "Demo mode",
+      "body": "This is a full tour of the app — new messages aren't processed here, but you can browse, edit and configure anything.",
+      "echoLabel": "You said:",
+      "outro": "Connect to your desktop Wolffish to run real turns."
+    }
+  },
+  "chat": {
+    "placeholder": "Message Wolffish",
+    "send": "Send",
+    "stop": "Stop",
+    "empty": {
+      "title": "Wolffish is ready",
+      "subtitle": "Ask anything. I bite through anything."
+    },
+    "thinking": "Thinking…",
+    "thinkingWords": [
+      "Pondering",
+      "Ruminating",
+      "Cogitating",
+      "Deliberating",
+      "Musing",
+      "Contemplating",
+      "Mulling",
+      "Brooding",
+      "Percolating",
+      "Noodling",
+      "Concocting",
+      "Conjuring",
+      "Simmering",
+      "Weaving",
+      "Unraveling",
+      "Speculating",
+      "Devising",
+      "Fathoming",
+      "Surmising",
+      "Reckoning",
+      "Meditating",
+      "Reflecting",
+      "Distilling",
+      "Digesting",
+      "Unfurling",
+      "Deciphering",
+      "Ferreting",
+      "Hatching",
+      "Envisioning",
+      "Discerning"
+    ],
+    "newChat": "New chat",
+    "history": "History",
+    "conversations": "Conversations",
+    "conversationsUntitled": "Untitled",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyMessage": "Copy message",
+    "modelLabel": "Model: {{model}}",
+    "reasoning": "Reasoning",
+    "fileCard": {
+      "deleted": "File was deleted",
+      "download": "Download",
+      "share": "Share",
+      "expand": "Expand",
+      "close": "Close"
+    },
+    "fileViewer": {
+      "lines": "{{count}} lines",
+      "rows": "{{count}} rows"
+    },
+    "htmlViewer": {
+      "preview": "Preview",
+      "source": "Source"
+    },
+    "audioPlayer": {
+      "deleted": "Audio file was deleted or unavailable"
+    },
+    "videoPlayer": {
+      "deleted": "Video file was deleted or unavailable"
+    },
+    "imageViewer": {
+      "deleted": "Image file was deleted or unavailable"
+    },
+    "voice": {
+      "record": "Record voice message",
+      "noMic": "No microphone available",
+      "permissionDenied": "Mic access denied — allow in system settings.",
+      "recording": "Recording",
+      "send": "Send recording",
+      "delete": "Delete recording",
+      "transcribing": "Transcribing…",
+      "error": "Recording failed"
+    },
+    "toolCard": {
+      "args": "Arguments",
+      "output": "Output",
+      "error": "Error",
+      "status": {
+        "running": "Running",
+        "success": "Done",
+        "failed": "Failed",
+        "denied": "Denied"
+      }
+    },
+    "questionCard": {
+      "otherLabel": "Something else",
+      "yourAnswer": "Your answer",
+      "yourAnswers": "Your answers",
+      "questionCount": "Question {{current}} of {{total}}"
+    },
+    "workflowCard": {
+      "title": "Workflow",
+      "agentsDone": "{{done}}/{{total}} agents done",
+      "toolCalls": "{{count}} tool calls"
+    },
+    "compactionCard": {
+      "title": "Compaction",
+      "started": "Compacting {{messages}} messages…",
+      "saved": "{{targets}} targets compacted, ~{{tokens}} tokens saved"
+    },
+    "turnFooter": {
+      "error": "Connection error",
+      "maxTokens": "Stopped at the response limit"
+    },
+    "providerError": {
+      "retry": "Try again"
+    },
+    "menu": {
+      "title": "Chat controls",
+      "project": "Project",
+      "noProject": "No project",
+      "context": "Context",
+      "lastTurn": "Last turn",
+      "allTime": "All time",
+      "turns": "turns",
+      "noStats": "No stats for this conversation yet."
+    },
+    "editor": {
+      "title": "Edit prompt",
+      "placeholder": "Write in markdown…",
+      "done": "Done",
+      "close": "Close"
+    }
+  },
+  "history": {
+    "loading": "Loading conversations…",
+    "empty": "No conversations yet.",
+    "delete": "Delete",
+    "deleteTitle": "Delete this conversation?",
+    "deleteWarning": "This conversation will be permanently deleted. This cannot be undone.",
+    "deleteConfirm": "Delete",
+    "deleteCancel": "Cancel",
+    "newChat": "New chat",
+    "processing": "Processing…"
+  },
+  "units": {
+    "bytes": "{{value}} B",
+    "kilobytes": "{{value}} KB",
+    "megabytes": "{{value}} MB",
+    "gigabytes": "{{value}} GB",
+    "seconds": "{{value}}s",
+    "minutes": "{{value}}m",
+    "hours": "{{value}}h",
+    "now": "now",
+    "days": "{{value}}d",
+    "months": "{{value}}mo",
+    "years": "{{value}}y"
   }
 }

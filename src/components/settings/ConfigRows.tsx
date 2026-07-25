@@ -1,0 +1,215 @@
+import { Input } from '@/components/core/Input'
+import { Select, type SelectOption } from '@/components/core/Select'
+import { cn } from '@/lib/utils/cn'
+import {
+  setConfigValue,
+  useConfigValue,
+  useDemoConfig,
+  type DemoConfigValues
+} from '@/state/demoConfig'
+import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Pressable, Text, View, type KeyboardTypeOptions } from 'react-native'
+
+/**
+ * Config-bound settings rows. Each row subscribes to exactly ONE flat store
+ * key (single-field zustand selector), so flipping a switch or typing in a
+ * field re-renders that row alone — never the panel tree. Text rows are
+ * uncontrolled (defaultValue + commit on change), so typing doesn't
+ * re-render anything at all.
+ */
+
+/**
+ * The desktop's binary switch, exactly: a segmented Off | On tablist
+ * (`border p-0.5` pill, active segment `bg-primary text-primary-fg
+ * shadow-sm`). The desktop deliberately avoids sliding knobs — a knob
+ * translating along physical X inverts under RTL; segments never do.
+ */
+export function Toggle({
+  value,
+  onValueChange,
+  disabled,
+  accessibilityLabel
+}: {
+  value: boolean
+  onValueChange: (value: boolean) => void
+  disabled?: boolean
+  accessibilityLabel?: string
+}): React.JSX.Element {
+  const { t } = useTranslation()
+  const options = [
+    { value: false, label: t('settings.toggle.off') },
+    { value: true, label: t('settings.toggle.on') }
+  ]
+  return (
+    <View
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value, disabled }}
+      accessibilityLabel={accessibilityLabel}
+      className={cn(
+        'border-border bg-bg flex-row items-center self-start rounded-lg border p-0.5',
+        disabled && 'opacity-60'
+      )}
+    >
+      {options.map((option) => {
+        const active = option.value === value
+        return (
+          <Pressable
+            key={String(option.value)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            disabled={disabled || active}
+            onPress={() => onValueChange(option.value)}
+            className={cn('rounded-md px-3 py-1', active && 'bg-primary shadow-sm')}
+          >
+            <Text
+              className={cn(
+                'font-sans-medium text-xs',
+                active ? 'text-primary-fg' : 'text-muted'
+              )}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        )
+      })}
+    </View>
+  )
+}
+
+type BooleanKeys = {
+  [K in keyof DemoConfigValues]: DemoConfigValues[K] extends boolean ? K : never
+}[keyof DemoConfigValues]
+
+type StringKeys = {
+  [K in keyof DemoConfigValues]: DemoConfigValues[K] extends string ? K : never
+}[keyof DemoConfigValues]
+
+export type RowChrome = {
+  label: string
+  description?: string
+  icon?: React.ReactNode
+}
+
+function RowShell({
+  label,
+  description,
+  icon,
+  disabled,
+  children
+}: RowChrome & { disabled?: boolean; children: React.ReactNode }): React.JSX.Element {
+  return (
+    <View className={cn('flex-row items-center gap-3', disabled && 'opacity-50')}>
+      {icon}
+      <View className="flex-1 flex-col gap-0.5">
+        <Text className="text-fg font-sans-medium text-left text-sm">{label}</Text>
+        {description ? (
+          <Text className="text-muted text-left font-sans text-xs leading-5">{description}</Text>
+        ) : null}
+      </View>
+      {children}
+    </View>
+  )
+}
+
+/** Switch bound to one boolean config key; `requires` gates it on another. */
+export const ConfigSwitchRow = memo(function ConfigSwitchRow({
+  field,
+  requires,
+  ...chrome
+}: RowChrome & { field: BooleanKeys; requires?: BooleanKeys }): React.JSX.Element {
+  const value = useConfigValue(field)
+  const gate = useDemoConfig((state) => (requires ? state[requires] : true))
+  return (
+    <RowShell {...chrome} disabled={!gate}>
+      <Toggle
+        value={value}
+        disabled={!gate}
+        onValueChange={(next) => setConfigValue(field, next)}
+        accessibilityLabel={chrome.label}
+      />
+    </RowShell>
+  )
+})
+
+/**
+ * Text field bound to one string config key. Uncontrolled: renders once with
+ * the stored value and commits on every keystroke without re-rendering.
+ */
+export const ConfigTextRow = memo(function ConfigTextRow({
+  field,
+  label,
+  icon,
+  requires,
+  placeholder,
+  keyboardType
+}: {
+  field: StringKeys
+  label: string
+  icon?: React.ReactNode
+  requires?: BooleanKeys
+  placeholder?: string
+  keyboardType?: KeyboardTypeOptions
+}): React.JSX.Element {
+  const gate = useDemoConfig((state) => (requires ? state[requires] : true))
+  return (
+    <View className={cn('flex-col gap-1.5', !gate && 'opacity-50')}>
+      <View className="flex-row items-center gap-2">
+        {icon}
+        <Text className="text-muted font-sans-medium text-left text-sm">{label}</Text>
+      </View>
+      <Input
+        defaultValue={useDemoConfig.getState()[field]}
+        onChangeText={(text) => setConfigValue(field, text)}
+        editable={gate}
+        placeholder={placeholder}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType={keyboardType}
+      />
+    </View>
+  )
+})
+
+/** Select bound to one string config key. */
+export const ConfigSelectRow = memo(function ConfigSelectRow({
+  field,
+  label,
+  options,
+  searchable
+}: {
+  field: StringKeys
+  label?: string
+  options: readonly SelectOption<string>[]
+  searchable?: boolean
+}): React.JSX.Element {
+  const value = useConfigValue(field)
+  return (
+    <Select<string>
+      label={label}
+      value={value}
+      options={options}
+      onChange={(next) => setConfigValue(field, next as DemoConfigValues[typeof field])}
+      searchable={searchable}
+    />
+  )
+})
+
+/** Switch for one entry of a Record<string, boolean> collection. */
+export const MapSwitchRow = memo(function MapSwitchRow({
+  mapKey,
+  name,
+  ...chrome
+}: RowChrome & { mapKey: 'capabilities' | 'mcpServers'; name: string }): React.JSX.Element {
+  const value = useDemoConfig((state) => state[mapKey][name] ?? false)
+  const setMapEntry = useDemoConfig((state) => state.setMapEntry)
+  return (
+    <RowShell {...chrome}>
+      <Toggle
+        value={value}
+        onValueChange={(next) => setMapEntry(mapKey, name, next)}
+        accessibilityLabel={chrome.label}
+      />
+    </RowShell>
+  )
+})

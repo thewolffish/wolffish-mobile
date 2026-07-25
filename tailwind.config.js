@@ -21,6 +21,7 @@ module.exports = {
         fg: 'var(--color-fg)',
         muted: 'var(--color-muted)',
         border: 'var(--color-border)',
+        'border-soft': 'var(--color-border-soft)',
         primary: 'var(--color-primary)',
         'primary-fg': 'var(--color-primary-fg)',
         accent: 'var(--color-accent)',

@@ -1,17 +1,21 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
-import { QueryClient } from '@tanstack/react-query'
+import { defaultShouldDehydrateQuery, QueryClient, type Query } from '@tanstack/react-query'
 
 /**
- * Server-state layer. The query cache is persisted to the device so heavy
- * content (conversation metadata, opened histories, media descriptors)
- * survives restarts and refreshes slowly in the background instead of
+ * Server-state layer. The query cache is persisted to the device so remote
+ * content survives restarts and refreshes slowly in the background instead of
  * refetching everything up front:
  *
  * - gcTime keeps data eligible for persistence for 7 days.
  * - staleTime means cached data renders instantly and refetches in the
  *   background only after a minute of staleness.
  * - maxAge on the persister drops anything older than 7 days at restore.
+ *
+ * Conversation queries are backed by SQLite (lib/conversations) and are
+ * excluded from AsyncStorage persistence — SQLite is already durable, and
+ * mirroring hundreds of conversations into AsyncStorage would defeat the
+ * point of the database.
  */
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,6 +26,16 @@ export const queryClient = new QueryClient({
     }
   }
 })
+
+/** Query families whose source of truth is on-device SQLite. */
+const LOCAL_QUERY_KEYS = new Set(['conversations', 'conversation'])
+
+export function shouldPersistQuery(query: Query): boolean {
+  if (typeof query.queryKey[0] === 'string' && LOCAL_QUERY_KEYS.has(query.queryKey[0])) {
+    return false
+  }
+  return defaultShouldDehydrateQuery(query)
+}
 
 export const asyncStoragePersister = createAsyncStoragePersister({
   storage: AsyncStorage,
