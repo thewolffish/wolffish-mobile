@@ -19,7 +19,10 @@ function formatTokens(tokens: number): string {
 function StatCard({ label, value }: { label: string; value: string }): React.JSX.Element {
   return (
     <View className="bg-surface border-border min-w-[45%] flex-1 flex-col gap-1 rounded-2xl border p-4">
-      <Text className="text-fg font-sans-semibold text-left text-xl" style={{ writingDirection: 'ltr' }}>
+      <Text
+        className="text-fg font-sans-semibold text-left text-xl"
+        style={{ writingDirection: 'ltr' }}
+      >
         {value}
       </Text>
       <Text className="text-muted text-left font-sans text-xs">{label}</Text>
@@ -51,7 +54,10 @@ export default function UsageScreen(): React.JSX.Element {
         <StatCard label={t('settings.usage.turns')} value={`${data.turns}`} />
         <StatCard label={t('settings.usage.toolCalls')} value={`${data.toolCalls}`} />
         <StatCard label={t('settings.usage.inputTokens')} value={formatTokens(data.inputTokens)} />
-        <StatCard label={t('settings.usage.outputTokens')} value={formatTokens(data.outputTokens)} />
+        <StatCard
+          label={t('settings.usage.outputTokens')}
+          value={formatTokens(data.outputTokens)}
+        />
         <StatCard label={t('settings.usage.cost')} value={`$${data.cost.toFixed(2)}`} />
         <StatCard label={t('settings.usage.topModel')} value={data.topModel ?? '—'} />
       </View>

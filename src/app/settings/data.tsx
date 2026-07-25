@@ -63,7 +63,10 @@ export default function DataScreen(): React.JSX.Element {
   return (
     <PanelScreen title={t('settings.tabs.data')} subtitle={t('settings.data.subtitle')}>
       <Section title={t('settings.data.storageTitle')}>
-        <InfoRow label={t('settings.data.cachedMedia')} value={formatBytes(data.cache.totalBytes)} />
+        <InfoRow
+          label={t('settings.data.cachedMedia')}
+          value={formatBytes(data.cache.totalBytes)}
+        />
         <InfoRow label={t('settings.data.cachedFiles')} value={`${data.cache.fileCount}`} />
         <InfoRow
           label={t('settings.data.budget')}

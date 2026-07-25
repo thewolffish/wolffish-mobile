@@ -51,9 +51,7 @@ const ProviderCard = memo(function ProviderCard({
         {provider.hasKey ? (
           <View className="flex-row items-center gap-1">
             <CheckmarkCircle02Icon size={14} className="text-emerald-600" />
-            <Text className="font-sans text-xs text-emerald-600">
-              {t('settings.model.keySet')}
-            </Text>
+            <Text className="font-sans text-xs text-emerald-600">{t('settings.model.keySet')}</Text>
           </View>
         ) : (
           <Text className="text-muted font-sans text-xs">{t('settings.model.noKey')}</Text>

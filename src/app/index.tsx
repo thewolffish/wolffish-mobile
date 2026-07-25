@@ -67,7 +67,12 @@ export default function Home(): React.JSX.Element {
         <Text className="text-muted text-center font-sans text-sm leading-relaxed">
           {t('app.tagline')}
         </Text>
-        <Button size="lg" disabled={importing} onPress={() => void enterDemo()} className="mt-4 self-center">
+        <Button
+          size="lg"
+          disabled={importing}
+          onPress={() => void enterDemo()}
+          className="mt-4 self-center"
+        >
           {importing && <ActivityIndicator size="small" color={tokens.primaryFg} />}
           {importing ? t('demo.importing') : t('home.demoMode')}
         </Button>

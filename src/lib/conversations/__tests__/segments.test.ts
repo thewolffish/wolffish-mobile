@@ -227,7 +227,9 @@ describe('buildRenderBlocks', () => {
     )
     const workflows = blocks.filter((block) => block.type === 'workflow')
     expect(workflows).toHaveLength(1)
-    expect(workflows[0]).toMatchObject({ snapshot: expect.objectContaining({ status: 'completed' }) })
+    expect(workflows[0]).toMatchObject({
+      snapshot: expect.objectContaining({ status: 'completed' })
+    })
   })
 
   it('tolerates unknown segment kinds and malformed entries', () => {

@@ -109,9 +109,7 @@ export default function VariablesScreen(): React.JSX.Element {
         <Button
           variant="outline"
           size="sm"
-          onPress={() =>
-            setVariables([...variables, { name: '', value: '', sensitive: false }])
-          }
+          onPress={() => setVariables([...variables, { name: '', value: '', sensitive: false }])}
         >
           <PlusSignIcon size={14} className="text-fg" />
           {t('settings.variables.add')}

@@ -66,7 +66,9 @@ export function Section({
   className?: string
 }): React.JSX.Element {
   return (
-    <View className={cn('bg-surface border-border flex-col gap-4 rounded-2xl border p-4', className)}>
+    <View
+      className={cn('bg-surface border-border flex-col gap-4 rounded-2xl border p-4', className)}
+    >
       {title ? (
         <Text className="text-fg font-sans-semibold text-left text-base">{title}</Text>
       ) : null}
@@ -99,7 +101,12 @@ export function SwitchRow({
           <Text className="text-muted text-left font-sans text-xs leading-5">{description}</Text>
         ) : null}
       </View>
-      <Toggle value={value} onValueChange={onValueChange} disabled={disabled} accessibilityLabel={label} />
+      <Toggle
+        value={value}
+        onValueChange={onValueChange}
+        disabled={disabled}
+        accessibilityLabel={label}
+      />
     </View>
   )
 }

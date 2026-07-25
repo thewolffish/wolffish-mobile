@@ -66,14 +66,20 @@ const Row = memo(function Row({
       className="bg-surface border-border flex-row items-center gap-3 rounded-xl border px-4 py-3 active:bg-border/30"
     >
       <View className="border-border h-6 w-6 items-center justify-center rounded-full border">
-        <Text className="text-muted font-sans-semibold text-[8px]" style={{ writingDirection: 'ltr' }}>
+        <Text
+          className="text-muted font-sans-semibold text-[8px]"
+          style={{ writingDirection: 'ltr' }}
+        >
           {index + 1}
         </Text>
       </View>
       <View className="flex-1 flex-col gap-0.5">
         <View className="flex-row items-center gap-1.5">
           <ChannelBadge meta={meta} />
-          <Text numberOfLines={1} className="text-fg font-sans-medium flex-shrink text-left text-sm">
+          <Text
+            numberOfLines={1}
+            className="text-fg font-sans-medium flex-shrink text-left text-sm"
+          >
             {title}
           </Text>
         </View>

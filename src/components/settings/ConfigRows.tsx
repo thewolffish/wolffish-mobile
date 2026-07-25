@@ -63,10 +63,7 @@ export function Toggle({
             className={cn('rounded-md px-3 py-1', active && 'bg-primary shadow-sm')}
           >
             <Text
-              className={cn(
-                'font-sans-medium text-xs',
-                active ? 'text-primary-fg' : 'text-muted'
-              )}
+              className={cn('font-sans-medium text-xs', active ? 'text-primary-fg' : 'text-muted')}
             >
               {option.label}
             </Text>

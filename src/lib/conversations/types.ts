@@ -14,11 +14,7 @@
 export type ConversationChannel = 'electron' | 'telegram' | 'whatsapp' | 'heartbeat' | 'procedure'
 
 export type SegmentTurnEndReason =
-  | 'end_turn'
-  | 'tool_use'
-  | 'max_tokens'
-  | 'error'
-  | 'no_provider_available'
+  'end_turn' | 'tool_use' | 'max_tokens' | 'error' | 'no_provider_available'
 
 export type ToolResultStatus = 'success' | 'failed' | 'denied'
 

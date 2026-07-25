@@ -72,7 +72,11 @@ const READ_ONLY_SERVICES: ServiceStatus[] = [
     connected: false,
     connections: [{ label: 'Chrome extension', detail: 'port 8477' }]
   },
-  { key: 'computerUse', connected: true, connections: [{ label: 'macOS', detail: 'screen + input' }] }
+  {
+    key: 'computerUse',
+    connected: true,
+    connections: [{ label: 'macOS', detail: 'screen + input' }]
+  }
 ]
 
 /** Cerebellum capabilities seen in the workspace — togglable like the desktop. */
@@ -330,8 +334,16 @@ export const useDemoConfig = create<DemoConfigState>()(
                   ? [{ label: services.google.projectId, detail: 'Gmail · Calendar · Drive' }]
                   : []
               },
-              { key: 'github', connected: services.github.length > 0, connections: services.github },
-              { key: 'notion', connected: services.notion.length > 0, connections: services.notion },
+              {
+                key: 'github',
+                connected: services.github.length > 0,
+                connections: services.github
+              },
+              {
+                key: 'notion',
+                connected: services.notion.length > 0,
+                connections: services.notion
+              },
               {
                 key: 'browserExtension',
                 connected: false,

@@ -119,9 +119,8 @@ export default function ChatScreen(): React.JSX.Element {
   }, [conversationId])
 
   const BackIcon = I18nManager.isRTL ? ArrowRight01Icon : ArrowLeft01Icon
-  const title = conversation?.title && conversation.title !== 'Untitled'
-    ? conversation.title
-    : t('app.name')
+  const title =
+    conversation?.title && conversation.title !== 'Untitled' ? conversation.title : t('app.name')
 
   const empty = feed.length === 0
   // Reading the conversation out of SQLite is async, so an opened conversation
