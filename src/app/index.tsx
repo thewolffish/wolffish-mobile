@@ -1,6 +1,7 @@
 import { BuildInfo } from '@/components/common/build-info/BuildInfo'
 import { Button } from '@/components/core/Button'
-import { applyConfigSnapshot, importDemoData } from '@/lib/demo/importer'
+import { ProgressBar } from '@/components/core/ProgressBar'
+import { applyConfigSnapshot, importDemoData, type DemoProgress } from '@/lib/demo/importer'
 import { useAppStore } from '@/state/appStore'
 import { useToast } from '@/providers/toast/useToast'
 import { useTokens } from '@/providers/theme/useTheme'
@@ -14,38 +15,41 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 /**
  * Home — deliberately blank: the fish, the name, and the Demo Mode door.
- * Entering demo mode ingests the pushed demo dataset once (165 unique
- * conversations from three months of real desktop usage), then opens chat.
- * The desktop-pairing flow will slot in beside the demo button later.
+ * The first tap downloads the demo dataset from cdn.wolffi.sh (169 unique
+ * conversations from three months of real desktop usage) and ingests it, under
+ * a progress bar; every later tap opens straight into chat. The
+ * desktop-pairing flow will slot in beside the demo button later.
  */
 export default function Home(): React.JSX.Element {
   const { t } = useTranslation()
   const toast = useToast()
   const tokens = useTokens()
   const insets = useSafeAreaInsets()
-  const demoImported = useAppStore((state) => state.demoImported)
-  const setDemoImported = useAppStore((state) => state.setDemoImported)
+  const demoVersion = useAppStore((state) => state.demoVersion)
+  const setDemoVersion = useAppStore((state) => state.setDemoVersion)
   const setDemoMode = useAppStore((state) => state.setDemoMode)
-  const [importing, setImporting] = useState(false)
+  const [progress, setProgress] = useState<DemoProgress | null>(null)
+  const busy = progress !== null
 
   const enterDemo = async (): Promise<void> => {
-    if (importing) return
-    if (!demoImported) {
-      setImporting(true)
+    if (busy) return
+    if (!demoVersion) {
+      setProgress({ phase: 'download', ratio: 0, imported: 0, total: 0 })
       try {
-        const result = await importDemoData()
-        if (result.skipped) {
-          toast.show({ tone: 'warning', message: t('demo.missing') })
-          return
-        }
-        setDemoImported(true)
+        const result = await importDemoData(setProgress)
+        setDemoVersion(result.version)
         invalidateConversationList()
         toast.show({ tone: 'success', message: t('demo.imported', { count: result.imported }) })
+      } catch {
+        // Offline, or the bundle is mid-publish. Nothing is marked imported,
+        // so the next tap starts over; already-inserted conversations upsert.
+        toast.show({ tone: 'error', message: t('demo.failed') })
+        return
       } finally {
-        setImporting(false)
+        setProgress(null)
       }
     }
-    // Refresh the config surface from the snapshot on every entry — the
+    // Refresh the config surface from the saved snapshot on every entry — the
     // demo's stand-in for live sync's cached-then-refresh.
     void applyConfigSnapshot()
     setDemoMode(true)
@@ -69,16 +73,29 @@ export default function Home(): React.JSX.Element {
         </Text>
         <Button
           size="lg"
-          disabled={importing}
+          disabled={busy}
           onPress={() => void enterDemo()}
           className="mt-4 self-center"
         >
-          {importing && <ActivityIndicator size="small" color={tokens.primaryFg} />}
-          {importing ? t('demo.importing') : t('home.demoMode')}
+          {busy && <ActivityIndicator size="small" color={tokens.primaryFg} />}
+          {busy ? t('demo.importing') : t('home.demoMode')}
         </Button>
-        <Text className="text-muted max-w-64 text-center font-sans text-xs leading-5">
-          {t('home.demoHint')}
-        </Text>
+
+        {/* Progress takes the hint's slot rather than pushing it around. */}
+        {progress ? (
+          <View className="w-64 items-center gap-2">
+            <ProgressBar value={progress.ratio} />
+            <Text className="text-muted text-center font-sans text-xs leading-5">
+              {progress.phase === 'download' || progress.total === 0
+                ? t('demo.downloading')
+                : t('demo.progress', { done: progress.imported, total: progress.total })}
+            </Text>
+          </View>
+        ) : (
+          <Text className="text-muted max-w-64 text-center font-sans text-xs leading-5">
+            {t('home.demoHint')}
+          </Text>
+        )}
       </View>
 
       <View className="items-center">

@@ -17,8 +17,12 @@ export type AppState = {
   locale: SupportedLocale | null
   /** Demo mode: the app runs against the imported demo dataset. */
   demoMode: boolean
-  /** True once the demo dataset has been ingested into SQLite. */
-  demoImported: boolean
+  /**
+   * Version of the demo bundle ingested into SQLite, null before the first
+   * import. Holding the version rather than a boolean means a republished
+   * dataset is distinguishable from an imported one when that check lands.
+   */
+  demoVersion: string | null
   /**
    * Verbose feed — mirrors the desktop's inapp.verbose: show tool cards and
    * model chips (on) vs a clean feed of replies and delivered files (off).
@@ -27,7 +31,7 @@ export type AppState = {
   setTheme: (theme: ThemeSource) => void
   setLocale: (locale: SupportedLocale) => void
   setDemoMode: (demoMode: boolean) => void
-  setDemoImported: (demoImported: boolean) => void
+  setDemoVersion: (demoVersion: string | null) => void
   setVerboseFeed: (verboseFeed: boolean) => void
 }
 
@@ -37,24 +41,33 @@ export const useAppStore = create<AppState>()(
       theme: 'system',
       locale: null,
       demoMode: false,
-      demoImported: false,
+      demoVersion: null,
       verboseFeed: false,
       setTheme: (theme) => set({ theme }),
       setLocale: (locale) => set({ locale }),
       setDemoMode: (demoMode) => set({ demoMode }),
-      setDemoImported: (demoImported) => set({ demoImported }),
+      setDemoVersion: (demoVersion) => set({ demoVersion }),
       setVerboseFeed: (verboseFeed) => set({ verboseFeed })
     }),
     {
       name: 'wolffish.app',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 2,
-      migrate: (persisted) => persisted as AppState,
+      version: 3,
+      // v3 replaced the demoImported boolean with the imported bundle's
+      // version. The old flag meant "the dataset was pushed to this device",
+      // which no device off the App Store could ever have been — dropping it
+      // sends every install through the one download it always needed.
+      migrate: (persisted) => {
+        const { demoImported: _demoImported, ...rest } = (persisted ?? {}) as AppState & {
+          demoImported?: boolean
+        }
+        return { ...rest, demoVersion: null } as AppState
+      },
       partialize: (state) => ({
         theme: state.theme,
         locale: state.locale,
         demoMode: state.demoMode,
-        demoImported: state.demoImported,
+        demoVersion: state.demoVersion,
         verboseFeed: state.verboseFeed
       })
     }

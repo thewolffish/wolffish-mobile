@@ -46,13 +46,13 @@ describe('appStore', () => {
       theme: 'light',
       locale: null,
       demoMode: false,
-      demoImported: false,
+      demoVersion: null,
       verboseFeed: false
     })
     // Functions (setters) must never be serialized.
     expect(Object.keys(lastPayload.state).sort()).toEqual([
-      'demoImported',
       'demoMode',
+      'demoVersion',
       'locale',
       'theme',
       'verboseFeed'

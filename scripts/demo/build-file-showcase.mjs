@@ -9,7 +9,7 @@
  * a real file of that type — the same one for every user.
  *
  *   node scripts/demo/build-file-showcase.mjs        # writes into demo-data/
- *   scripts/demo/push-demo-data.sh                   # push to booted simulator
+ *   node scripts/demo/build-demo-bundle.mjs          # pack for the CDN
  *
  * The conversation delivers each file exactly the way the desktop does — a
  * send_file tool result carrying a `[wolffish-output: <path> (<kind>)]` marker

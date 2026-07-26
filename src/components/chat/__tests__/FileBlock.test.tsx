@@ -133,6 +133,10 @@ describe('FileBlock — one delivered file per supported type', () => {
     await renderBlock(<FileBlock relPath="voice/reply.mp3" declared="audio" />)
     await waitFor(() => expect(screen.getByText('reply.mp3')).toBeTruthy())
     expect(screen.getByText('0:00 / 0:12')).toBeTruthy()
+
+    // Audio carries the same export affordance as video.
+    await fireEvent.press(screen.getByLabelText('Share'))
+    expect(Sharing.shareAsync).toHaveBeenCalledWith('file:///cache/voice/reply.mp3')
   })
 
   it('renders a PDF preview that expands (iOS)', async () => {

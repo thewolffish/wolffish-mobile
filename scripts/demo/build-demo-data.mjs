@@ -17,7 +17,9 @@
  * JSON, no personal media leaves the workspace, and every user sees the same
  * files. The manifest lists any referenced extension with no published sample.
  *
- * Push to a booted simulator with scripts/demo/push-demo-data.sh.
+ * Pack for publishing with scripts/demo/build-demo-bundle.mjs, then upload the
+ * result to cdn.wolffi.sh/demo — that is where demo mode downloads it from, on
+ * every device, including a fresh App Store install.
  * Never commit demo-data/ — it derives from personal usage data.
  */
 import { promises as fs } from 'node:fs'

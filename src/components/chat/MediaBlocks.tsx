@@ -262,6 +262,13 @@ export function AudioBlock({
           {mmss(position)} / {mmss(duration)}
         </Text>
       </View>
+      {/* Same share affordance the video card carries, on the trailing edge so
+          the transport keeps its shape. */}
+      <IconAction
+        label={t('chat.fileCard.share')}
+        icon={<Upload01Icon size={14} className="text-muted" />}
+        onPress={() => shareFile(uri)}
+      />
     </View>
   )
 }

@@ -308,8 +308,10 @@
   },
   "demo": {
     "importing": "Preparing demo data…",
-    "missing": "Demo data not found on this device. Build and push it first.",
+    "downloading": "Downloading demo data…",
+    "progress": "{{done}} of {{total}} conversations",
     "imported": "{{count}} conversations imported",
+    "failed": "Could not download the demo data. Check your connection and try again.",
     "reply": {
       "heading": "Demo mode",
       "body": "This is a full tour of the app — new messages aren't processed here, but you can browse, edit and configure anything.",

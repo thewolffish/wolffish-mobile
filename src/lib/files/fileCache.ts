@@ -30,10 +30,6 @@ function workspaceRoot(): Directory {
   return new Directory(Paths.document, 'workspace')
 }
 
-function demoSourceRoot(): Directory {
-  return new Directory(Paths.document, 'demo-source')
-}
-
 function fileAt(root: Directory, relPath: string): File {
   return new File(root, relPath)
 }
@@ -190,20 +186,4 @@ export async function getCacheUsage(): Promise<CacheUsage> {
     'SELECT SUM(size_bytes) AS total, COUNT(*) AS n FROM cached_files'
   )
   return { totalBytes: row?.total ?? 0, fileCount: row?.n ?? 0 }
-}
-
-/**
- * Whether the demo dataset has been pushed to this device. Conversations only
- * — the dataset carries no media, so there is no workspace directory to check.
- */
-export function demoSourceAvailable(): boolean {
-  try {
-    return demoSourceRoot().exists
-  } catch {
-    return false
-  }
-}
-
-export function demoSourceConversationsDir(): Directory {
-  return new Directory(demoSourceRoot(), 'conversations')
 }
