@@ -97,8 +97,11 @@ const SAFE_AREA = {
   insets: { top: 47, left: 0, right: 0, bottom: 34 }
 }
 
-function renderBlock(element: ReactElement): void {
-  render(
+// `render` and `fireEvent` are async in RNTL 14: they resolve their own
+// `act()` before the render result is published to `screen`. Every call site
+// must await, or the queries below race the mount.
+async function renderBlock(element: ReactElement): Promise<void> {
+  await render(
     <SafeAreaProvider initialMetrics={SAFE_AREA}>
       <ThemeContext.Provider
         value={{ theme: 'light', isDark: false, setTheme: async () => undefined }}
@@ -111,33 +114,33 @@ function renderBlock(element: ReactElement): void {
 
 describe('FileBlock — one delivered file per supported type', () => {
   it('renders an image as a tappable thumbnail that expands full screen', async () => {
-    renderBlock(<FileBlock relPath="files/shot.png" declared="image" />)
+    await renderBlock(<FileBlock relPath="files/shot.png" declared="image" />)
     await waitFor(() => expect(screen.getByTestId('image')).toBeTruthy())
 
-    fireEvent.press(screen.getByLabelText('shot.png'))
+    await fireEvent.press(screen.getByLabelText('shot.png'))
     // Thumbnail + the expanded sheet's full-bleed copy.
     await waitFor(() => expect(screen.getAllByTestId('image').length).toBeGreaterThan(1))
     expect(screen.getByText('shot.png')).toBeTruthy()
   })
 
   it('renders a video in the native player', async () => {
-    renderBlock(<FileBlock relPath="files/clip.mp4" declared="video" />)
+    await renderBlock(<FileBlock relPath="files/clip.mp4" declared="video" />)
     await waitFor(() => expect(screen.getByTestId('video')).toBeTruthy())
     expect(screen.getByText('clip.mp4')).toBeTruthy()
   })
 
   it('renders audio as a transport with a play control', async () => {
-    renderBlock(<FileBlock relPath="voice/reply.mp3" declared="audio" />)
+    await renderBlock(<FileBlock relPath="voice/reply.mp3" declared="audio" />)
     await waitFor(() => expect(screen.getByText('reply.mp3')).toBeTruthy())
     expect(screen.getByText('0:00 / 0:12')).toBeTruthy()
   })
 
   it('renders a PDF preview that expands (iOS)', async () => {
-    renderBlock(<FileBlock relPath="files/report.pdf" declared="document" />)
+    await renderBlock(<FileBlock relPath="files/report.pdf" declared="document" />)
     await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy())
     expect(screen.getByText('report.pdf')).toBeTruthy()
 
-    fireEvent.press(screen.getByLabelText('Expand'))
+    await fireEvent.press(screen.getByLabelText('Expand'))
     // The sheet takes over the single document renderer; its close control is
     // the proof it is up.
     await waitFor(() => expect(screen.getByLabelText('Close')).toBeTruthy())
@@ -145,37 +148,37 @@ describe('FileBlock — one delivered file per supported type', () => {
   })
 
   it('renders HTML live, toggles to source, and expands', async () => {
-    renderBlock(<FileBlock relPath="files/page.html" declared="file" />)
+    await renderBlock(<FileBlock relPath="files/page.html" declared="file" />)
     await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy())
 
-    fireEvent.press(screen.getByLabelText('Source'))
+    await fireEvent.press(screen.getByLabelText('Source'))
     await waitFor(() => expect(screen.queryByTestId('webview')).toBeNull())
     expect(screen.getByText(/<h1>Report<\/h1>/)).toBeTruthy()
 
-    fireEvent.press(screen.getByLabelText('Preview'))
+    await fireEvent.press(screen.getByLabelText('Preview'))
     await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy())
 
-    fireEvent.press(screen.getByLabelText('Expand'))
+    await fireEvent.press(screen.getByLabelText('Expand'))
     await waitFor(() => expect(screen.getByLabelText('Close')).toBeTruthy())
     expect(screen.getByTestId('webview')).toBeTruthy()
   })
 
   it('renders markdown as rich text, not source', async () => {
-    renderBlock(<FileBlock relPath="files/README.md" declared="file" />)
+    await renderBlock(<FileBlock relPath="files/README.md" declared="file" />)
     await waitFor(() => expect(screen.getByText('Title')).toBeTruthy())
     expect(screen.getByText('bold')).toBeTruthy()
     expect(screen.getByText('README.md')).toBeTruthy()
   })
 
   it('renders plain text as line-numbered source', async () => {
-    renderBlock(<FileBlock relPath="files/notes.txt" declared="document" />)
+    await renderBlock(<FileBlock relPath="files/notes.txt" declared="document" />)
     await waitFor(() => expect(screen.getByText(/plain line one/)).toBeTruthy())
     expect(screen.getByText('1\n2')).toBeTruthy()
     expect(screen.getByText('2 lines')).toBeTruthy()
   })
 
   it('renders source files as a code card', async () => {
-    renderBlock(<FileBlock relPath="files/app.ts" declared="file" />)
+    await renderBlock(<FileBlock relPath="files/app.ts" declared="file" />)
     await waitFor(() => expect(screen.getByText(/export const answer = 42/)).toBeTruthy())
     expect(screen.getByText(/typescript/)).toBeTruthy()
   })
@@ -183,17 +186,17 @@ describe('FileBlock — one delivered file per supported type', () => {
   it('renders an SVG exactly like any other image', async () => {
     // expo-image decodes SVG, so a delivered logo gets the same thumbnail,
     // lightbox and share as a .png — no card chrome, and never its markup.
-    renderBlock(<FileBlock relPath="files/logo.svg" declared="file" />)
+    await renderBlock(<FileBlock relPath="files/logo.svg" declared="file" />)
     await waitFor(() => expect(screen.getByTestId('image')).toBeTruthy())
     expect(screen.queryByText(/<circle/)).toBeNull()
 
-    fireEvent.press(screen.getByLabelText('logo.svg'))
+    await fireEvent.press(screen.getByLabelText('logo.svg'))
     await waitFor(() => expect(screen.getAllByTestId('image').length).toBeGreaterThan(1))
     expect(screen.getByText('logo.svg')).toBeTruthy()
   })
 
   it('renders CSV as a table', async () => {
-    renderBlock(<FileBlock relPath="files/data.csv" declared="document" />)
+    await renderBlock(<FileBlock relPath="files/data.csv" declared="document" />)
     await waitFor(() => expect(screen.getByText('widget')).toBeTruthy())
     expect(screen.getByText('name')).toBeTruthy()
     expect(screen.getByText('qty')).toBeTruthy()
@@ -205,11 +208,11 @@ describe('FileBlock — one delivered file per supported type', () => {
     ['files/letter.docx', 'letter.docx', 'DOCX'],
     ['files/archive.zip', 'archive.zip', 'ZIP']
   ])('hands %s to the system viewer through a file card', async (relPath, name, ext) => {
-    renderBlock(<FileBlock relPath={relPath} declared="file" sizeBytes={2048} />)
+    await renderBlock(<FileBlock relPath={relPath} declared="file" sizeBytes={2048} />)
     await waitFor(() => expect(screen.getByText(name)).toBeTruthy())
     expect(screen.getByText(`${ext} · 2 KB`)).toBeTruthy()
 
-    fireEvent.press(screen.getByLabelText(name))
+    await fireEvent.press(screen.getByLabelText(name))
     expect(Sharing.shareAsync).toHaveBeenCalledWith(`file:///cache/${relPath}`)
   })
 })
@@ -225,12 +228,12 @@ describe('FileBlock — degraded states', () => {
     ['files/gone.pdf', 'document', 'File was deleted'],
     ['files/gone.zip', 'file', 'File was deleted']
   ])('shows the per-type unavailable state for a pruned %s', async (relPath, declared, label) => {
-    renderBlock(<FileBlock relPath={relPath} declared={declared as 'file'} />)
+    await renderBlock(<FileBlock relPath={relPath} declared={declared as 'file'} />)
     await waitFor(() => expect(screen.getByText(label)).toBeTruthy())
   })
 
   it('renders attachments on the user side with the same dispatch', async () => {
-    renderBlock(
+    await renderBlock(
       <FileBlock
         relPath="files/data.csv"
         declared="other"

@@ -42,6 +42,21 @@ if (out('git', ['tag', '--list', tag])) {
   process.exit(1)
 }
 
+// Gate: the source the tag will point at must be healthy. The release workflow
+// re-runs the type and test gates on the pushed tag, so skipping them here only
+// moves the failure to a place where the tag already exists — an unpushable
+// fix, since the tag is what triggers the run. Same three checks as
+// provision.js and ota.js, deliberately after the cheap validations above.
+// Each check prints its own diagnosis, so swallow the exec stack trace.
+try {
+  run('npx', ['prettier', '--check', '**/*.{js,jsx,ts,tsx}', '--ignore-path', '.gitignore'])
+  run('npx', ['tsc', '--noEmit'])
+  run('npx', ['jest', '--silent'])
+} catch {
+  console.error('\nGate failed — nothing was committed, tagged or pushed. Fix the above and retry.')
+  process.exit(1)
+}
+
 run('git', ['commit', '--allow-empty', '-m', `release: ${tag} (build ${code})`])
 run('git', ['tag', '-a', tag, '-m', `release: ${tag} (build ${code})`])
 
