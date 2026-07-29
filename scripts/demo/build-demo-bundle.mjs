@@ -4,11 +4,12 @@
  *
  * Demo mode downloads this bundle on first entry — nothing is pushed to a
  * device and nothing is bundled into the app. Input is demo-data/ (produced by
- * build-demo-data.mjs); output is a flat directory ready to upload as-is:
+ * build-demo-data.mjs); output is demo-data/bundle/ — a flat directory whose
+ * CONTENTS upload to cdn.wolffi.sh/demo as-is:
  *
- *   manifest.json            index: version, totals, shard list
- *   config-snapshot.json     the config surface, copied verbatim
- *   conversations-000.json   { conversations: ConversationFile[] }
+ *   demo-data/bundle/manifest.json            index: version, totals, shards
+ *   demo-data/bundle/config-snapshot.json     the config surface, verbatim
+ *   demo-data/bundle/conversations-000.json   { conversations: [...] }
  *   …
  *
  * The 168 conversation files are packed into ~1.5 MB shards rather than served
@@ -23,11 +24,12 @@
  */
 import { createHash } from 'node:crypto'
 import { promises as fs } from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 
 const SRC_DIR = process.env.DEMO_DATA ?? path.join(process.cwd(), 'demo-data')
-const OUT_DIR = argValue('--out') ?? path.join(os.homedir(), 'Desktop', 'wolffish-demo-bundle')
+// Inside demo-data, next to the dataset it is packed from — the demo lives in
+// one folder, and the thing you upload is not scattered somewhere else.
+const OUT_DIR = argValue('--out') ?? path.join(SRC_DIR, 'bundle')
 
 /** Target uncompressed bytes per shard. One huge conversation may exceed it. */
 const SHARD_TARGET_BYTES = 1.5 * 1024 * 1024

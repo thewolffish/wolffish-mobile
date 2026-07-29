@@ -205,6 +205,53 @@ export async function appendMessage(
   })
 }
 
+/**
+ * Replace the conversation's stats block. The desktop rewrites the whole
+ * block at each turn fold (channels/turn-stats.ts), so this is a whole-value
+ * write too — the caller reads, accumulates, and hands back the new block.
+ */
+export async function updateConversationStats(
+  conversationId: string,
+  stats: ConversationStats
+): Promise<void> {
+  const db = await getDb()
+  await db.runAsync(
+    'UPDATE conversations SET stats_json = ? WHERE id = ?',
+    JSON.stringify(stats),
+    conversationId
+  )
+}
+
+/** File a conversation under a project, or unfile it with null. */
+export async function setConversationProject(
+  conversationId: string,
+  projectId: string | null
+): Promise<void> {
+  const db = await getDb()
+  await db.runAsync(
+    'UPDATE conversations SET project_id = ? WHERE id = ?',
+    projectId,
+    conversationId
+  )
+}
+
+/** Read just the stats block — the accumulate-then-write path's first half. */
+export async function getConversationStats(
+  conversationId: string
+): Promise<ConversationStats | null> {
+  const db = await getDb()
+  const row = await db.getFirstAsync<{ stats_json: string | null }>(
+    'SELECT stats_json FROM conversations WHERE id = ?',
+    conversationId
+  )
+  if (!row?.stats_json) return null
+  try {
+    return JSON.parse(row.stats_json) as ConversationStats
+  } catch {
+    return null
+  }
+}
+
 /** Replace one message in place (streaming placeholder → final persist). */
 export async function replaceMessage(
   conversationId: string,

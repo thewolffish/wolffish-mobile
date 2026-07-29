@@ -14,6 +14,12 @@
      border-border/60 class silently drops and leaves the default black),
      so the desktop's faint divider tone is precomputed per theme. */
   --color-border-soft: #e0e6ed;
+  /* Badge tones, same reason: the desktop's chips are bg-border/40 and
+     bg-primary/10 + ring-primary/30 over surface, composited here because the
+     alpha modifier can't survive a var() color. */
+  --color-surface-soft: #eef1f5;
+  --color-primary-soft: #e8ebef;
+  --color-primary-line: #bbc3ce;
   --color-primary: #1b365d;
   --color-primary-fg: #ffffff;
   --color-accent: #00d4ff;
@@ -27,6 +33,9 @@
   --color-muted: #8b95a7;
   --color-border: #2a313c;
   --color-border-soft: #1e242d;
+  --color-surface-soft: #1e242c;
+  --color-primary-soft: #242e38;
+  --color-primary-line: #415464;
   --color-primary: #a5d8ff;
   --color-primary-fg: #0d1117;
   --color-accent: #00d4ff;

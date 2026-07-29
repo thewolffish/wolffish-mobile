@@ -24,15 +24,18 @@ export type AppState = {
    */
   demoVersion: string | null
   /**
-   * Verbose feed — mirrors the desktop's inapp.verbose: show tool cards and
-   * model chips (on) vs a clean feed of replies and delivered files (off).
+   * Whether THIS device applies OTA updates (EAS Update). Device-local and
+   * deliberately not part of the desktop config snapshot: it governs this
+   * install's own bundle, which no desktop knows or owns. Every check runs
+   * from JS (lib/updates/useOtaUpdates) precisely so this switch can stop
+   * them — see app.config.ts `checkAutomatically`.
    */
-  verboseFeed: boolean
+  otaEnabled: boolean
   setTheme: (theme: ThemeSource) => void
   setLocale: (locale: SupportedLocale) => void
   setDemoMode: (demoMode: boolean) => void
   setDemoVersion: (demoVersion: string | null) => void
-  setVerboseFeed: (verboseFeed: boolean) => void
+  setOtaEnabled: (otaEnabled: boolean) => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -42,33 +45,39 @@ export const useAppStore = create<AppState>()(
       locale: null,
       demoMode: false,
       demoVersion: null,
-      verboseFeed: false,
+      otaEnabled: true,
       setTheme: (theme) => set({ theme }),
       setLocale: (locale) => set({ locale }),
       setDemoMode: (demoMode) => set({ demoMode }),
       setDemoVersion: (demoVersion) => set({ demoVersion }),
-      setVerboseFeed: (verboseFeed) => set({ verboseFeed })
+      setOtaEnabled: (otaEnabled) => set({ otaEnabled })
     }),
     {
       name: 'wolffish.app',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 3,
-      // v3 replaced the demoImported boolean with the imported bundle's
-      // version. The old flag meant "the dataset was pushed to this device",
-      // which no device off the App Store could ever have been — dropping it
-      // sends every install through the one download it always needed.
-      migrate: (persisted) => {
-        const { demoImported: _demoImported, ...rest } = (persisted ?? {}) as AppState & {
-          demoImported?: boolean
+      version: 4,
+      migrate: (persisted, version) => {
+        const state = (persisted ?? {}) as AppState & { demoImported?: boolean }
+        // v3 replaced the demoImported boolean with the imported bundle's
+        // version. The old flag meant "the dataset was pushed to this device",
+        // which no device off the App Store could ever have been — dropping it
+        // sends every install through the one download it always needed.
+        if (version < 3) {
+          const { demoImported: _demoImported, ...rest } = state
+          return { ...rest, demoVersion: null } as AppState
         }
-        return { ...rest, demoVersion: null } as AppState
+        // v4 only added otaEnabled, and a key missing from the persisted blob
+        // falls back to the initializer's value — so later versions must NOT
+        // re-run the v3 branch, which would drop demoVersion and send an
+        // already-loaded device back through the whole demo download.
+        return state
       },
       partialize: (state) => ({
         theme: state.theme,
         locale: state.locale,
         demoMode: state.demoMode,
         demoVersion: state.demoVersion,
-        verboseFeed: state.verboseFeed
+        otaEnabled: state.otaEnabled
       })
     }
   )

@@ -55,7 +55,11 @@ export function ModelSwitch(): React.JSX.Element {
         onPress={() => setConfigValue('localOnly', true)}
         className={cn(
           'h-11 flex-1 flex-row items-center justify-center gap-2 rounded-md px-3',
-          localActive && 'bg-primary shadow-sm',
+          // No shadow class here: toggling one on/off between renders makes
+          // NativeWind "upgrade" the view, and its dev-only upgrade warning
+          // stringifies props — which walks React Navigation's throwing
+          // context getters and red-boxes the app on every switch tap.
+          localActive && 'bg-primary',
           !localEnabled && 'opacity-50'
         )}
       >
@@ -78,7 +82,7 @@ export function ModelSwitch(): React.JSX.Element {
         onPress={() => setConfigValue('localOnly', false)}
         className={cn(
           'h-11 flex-1 flex-row items-center justify-center gap-2 rounded-md px-3',
-          !localActive && 'bg-primary shadow-sm'
+          !localActive && 'bg-primary'
         )}
       >
         <ProviderMark
@@ -121,6 +125,12 @@ export function ModelSelector(): React.JSX.Element {
     [providers]
   )
 
+  const localModels = useDemoConfig((state) => state.localModels)
+  const localOptions = useMemo<readonly SelectOption<string>[]>(
+    () => localModels.map((model) => ({ value: model, label: model })),
+    [localModels]
+  )
+
   const activeProvider = providers.find((provider) => provider.id === brainProvider)
   const modelOptions = useMemo<readonly SelectOption<string>[]>(() => {
     const models = activeProvider?.models?.length
@@ -136,7 +146,7 @@ export function ModelSelector(): React.JSX.Element {
       <Select<string>
         label={t('settings.model.localTitle')}
         value={localModel}
-        options={[{ value: localModel, label: localModel }]}
+        options={localOptions}
         onChange={(model) => setConfigValue('localModel', model)}
       />
     )

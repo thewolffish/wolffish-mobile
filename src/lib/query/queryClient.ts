@@ -37,9 +37,17 @@ export function shouldPersistQuery(query: Query): boolean {
   return defaultShouldDehydrateQuery(query)
 }
 
+/**
+ * AsyncStorage key the dehydrated cache is written under. Exported because a
+ * demo refresh deletes it outright (lib/demo/reset) — clearing the in-memory
+ * cache alone leaves the last dehydrated copy on disk to be restored at the
+ * next launch.
+ */
+export const QUERY_CACHE_KEY = 'wolffish.query-cache'
+
 export const asyncStoragePersister = createAsyncStoragePersister({
   storage: AsyncStorage,
-  key: 'wolffish.query-cache',
+  key: QUERY_CACHE_KEY,
   throttleTime: 3_000
 })
 

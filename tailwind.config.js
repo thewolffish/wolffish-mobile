@@ -18,11 +18,14 @@ module.exports = {
         // global.css so they follow the active light/dark scheme.
         bg: 'var(--color-bg)',
         surface: 'var(--color-surface)',
+        'surface-soft': 'var(--color-surface-soft)',
         fg: 'var(--color-fg)',
         muted: 'var(--color-muted)',
         border: 'var(--color-border)',
         'border-soft': 'var(--color-border-soft)',
         primary: 'var(--color-primary)',
+        'primary-soft': 'var(--color-primary-soft)',
+        'primary-line': 'var(--color-primary-line)',
         'primary-fg': 'var(--color-primary-fg)',
         accent: 'var(--color-accent)',
         ring: 'var(--color-ring)'

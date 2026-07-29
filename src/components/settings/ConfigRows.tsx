@@ -21,25 +21,29 @@ import { Pressable, Text, View, type KeyboardTypeOptions } from 'react-native'
 
 /**
  * The desktop's binary switch, exactly: a segmented Off | On tablist
- * (`border p-0.5` pill, active segment `bg-primary text-primary-fg
- * shadow-sm`). The desktop deliberately avoids sliding knobs — a knob
+ * (`border p-0.5` pill, active segment `bg-primary text-primary-fg`; the
+ * desktop's shadow is dropped, see below). The desktop deliberately avoids
+ * sliding knobs — a knob
  * translating along physical X inverts under RTL; segments never do.
  */
 export function Toggle({
   value,
   onValueChange,
   disabled,
-  accessibilityLabel
+  accessibilityLabel,
+  labels
 }: {
   value: boolean
   onValueChange: (value: boolean) => void
   disabled?: boolean
   accessibilityLabel?: string
+  /** Segment wording — defaults to the shared Off | On pair. */
+  labels?: { off: string; on: string }
 }): React.JSX.Element {
   const { t } = useTranslation()
   const options = [
-    { value: false, label: t('settings.toggle.off') },
-    { value: true, label: t('settings.toggle.on') }
+    { value: false, label: labels?.off ?? t('settings.toggle.off') },
+    { value: true, label: labels?.on ?? t('settings.toggle.on') }
   ]
   return (
     <View
@@ -60,7 +64,12 @@ export function Toggle({
             accessibilityState={{ selected: active }}
             disabled={disabled || active}
             onPress={() => onValueChange(option.value)}
-            className={cn('rounded-md px-3 py-1', active && 'bg-primary shadow-sm')}
+            // No shadow class on the active segment: a shadow that appears and
+            // disappears between renders makes NativeWind upgrade the view, and
+            // its dev-only upgrade warning stringifies props — which walks
+            // React Navigation's throwing context getters and red-boxes the app
+            // on every toggle. Same reason as ModelSwitch/ChatControls.
+            className={cn('rounded-md px-3 py-1', active && 'bg-primary')}
           >
             <Text
               className={cn('font-sans-medium text-xs', active ? 'text-primary-fg' : 'text-muted')}
@@ -108,6 +117,41 @@ function RowShell({
     </View>
   )
 }
+
+/**
+ * Read-only state of one boolean config key — a dot and On/Off where a
+ * switch would be. For settings this device can display but must not drive:
+ * starting or stopping a channel bridge is the desktop's own act (it owns
+ * the grammY / Baileys process), so mobile reports the state instead of
+ * pretending to flip it.
+ */
+export const ConfigStatusRow = memo(function ConfigStatusRow({
+  field,
+  ...chrome
+}: RowChrome & { field: BooleanKeys }): React.JSX.Element {
+  const { t } = useTranslation()
+  const value = useConfigValue(field)
+  return (
+    <RowShell {...chrome}>
+      <View className="flex-row items-center gap-1.5">
+        {/* StatusDot's markup rather than the import: SettingsUI already
+            pulls Toggle from this file, and reaching back would cycle. */}
+        <View
+          className={cn('h-2 w-2 rounded-full', value ? 'bg-emerald-500' : 'bg-border')}
+          accessibilityElementsHidden
+        />
+        <Text
+          className={cn(
+            'font-sans text-xs',
+            value ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted'
+          )}
+        >
+          {value ? t('settings.toggle.on') : t('settings.toggle.off')}
+        </Text>
+      </View>
+    </RowShell>
+  )
+})
 
 /** Switch bound to one boolean config key; `requires` gates it on another. */
 export const ConfigSwitchRow = memo(function ConfigSwitchRow({

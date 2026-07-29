@@ -1,16 +1,23 @@
 import { Button } from '@/components/core/Button'
 import { Input } from '@/components/core/Input'
+import { Select } from '@/components/core/Select'
 import { CheckmarkCircle02Icon } from '@/components/core/icons'
 import { PROVIDER_LABELS, PROVIDER_LOGOS } from '@/components/core/providerLogos'
 import { ModeAndThinkingControls } from '@/components/chat/ChatControls'
 import { ModelSelector, ModelSwitch } from '@/components/chat/ModelSwitch'
-import { ConfigSwitchRow } from '@/components/settings/ConfigRows'
-import { PanelScreen, Section } from '@/components/settings/SettingsUI'
+import { PanelScreen, Section, StatusDot } from '@/components/settings/SettingsUI'
+import { cn } from '@/lib/utils/cn'
 import { useToast } from '@/providers/toast/useToast'
-import { useDemoConfig, type DemoProvider } from '@/state/demoConfig'
-import { memo, useState } from 'react'
+import { useTokens } from '@/providers/theme/useTheme'
+import {
+  setConfigValue,
+  useConfigValue,
+  useDemoConfig,
+  type DemoProvider
+} from '@/state/demoConfig'
+import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Text, View } from 'react-native'
+import { ActivityIndicator, Text, View } from 'react-native'
 
 /**
  * Model — the Brain, desktop UX: the Local/Cloud ModelSwitch up top, the
@@ -26,6 +33,7 @@ const ProviderCard = memo(function ProviderCard({
 }): React.JSX.Element {
   const { t } = useTranslation()
   const toast = useToast()
+  const tokens = useTokens()
   const [testing, setTesting] = useState(false)
   const Logo = PROVIDER_LOGOS[provider.id]
 
@@ -69,17 +77,110 @@ const ProviderCard = memo(function ProviderCard({
           </Text>
         </Text>
       ) : null}
+      {/* A normal secure field, like every other text row: masked by default
+          with Input's reveal toggle. What changed is the value behind it —
+          a real per-provider key from the bundle, not a bullet placeholder.
+          `key` remounts the uncontrolled field when the config snapshot
+          replaces the fallback providers it first mounted with. */}
       <Input
+        key={provider.apiKey ?? 'none'}
         label={t('settings.model.apiKey')}
-        defaultValue={provider.hasKey ? '••••••••••••' : ''}
+        defaultValue={provider.apiKey ?? ''}
         secureTextEntry
         autoCapitalize="none"
         autoCorrect={false}
       />
+      {/* The label never swaps for a loading string — the spinner carries the
+          busy state so the button keeps its identity mid-action. */}
       <Button variant="outline" size="sm" disabled={testing} onPress={test}>
-        {testing ? t('common.loading') : t('settings.model.testConnection')}
+        {testing && <ActivityIndicator size="small" color={tokens.fg} />}
+        {t('settings.model.testConnection')}
       </Button>
     </Section>
+  )
+})
+
+/**
+ * Local — the engine card, headed like Providers below it (name outside, card
+ * within) because it is the same kind of thing: the runtime the local models
+ * run on. What it holds is the desktop's to know — whether Ollama answered at
+ * snapshot time, which models it has pulled, the folder it scans — since this
+ * device cannot reach that machine's localhost. Choosing among the installed
+ * models is ours; pulling a new one, the endpoint, and the enabled switch are
+ * not, and the Brain switch above already shows which side is answering.
+ */
+const LocalSection = memo(function LocalSection(): React.JSX.Element {
+  const { t } = useTranslation()
+  const running = useDemoConfig((state) => state.ollamaRunning)
+  const models = useDemoConfig((state) => state.localModels)
+  const model = useConfigValue('localModel')
+  const folder = useConfigValue('ollamaModelsFolder')
+  const Logo = PROVIDER_LOGOS.ollama
+  const options = useMemo(() => models.map((name) => ({ value: name, label: name })), [models])
+  return (
+    <>
+      <View className="flex-col gap-1.5">
+        <Text className="text-fg font-sans-semibold text-left text-base">
+          {t('settings.model.localTitle')}
+        </Text>
+        <Text className="text-muted text-left font-sans text-xs leading-5">
+          {t('settings.model.localNote')}
+        </Text>
+      </View>
+      <Section className="gap-3">
+        {/* Dot and label read as one unit — the same pairing the Services panel
+            uses for a link that is either up or down. */}
+        <View className="flex-row items-center gap-2">
+          {Logo ? <Logo size={16} className="text-fg" /> : null}
+          <Text className="text-fg font-sans-medium flex-1 text-left text-sm">
+            {PROVIDER_LABELS.ollama}
+          </Text>
+          <View className="flex-row items-center gap-1.5">
+            <StatusDot connected={running} />
+            <Text
+              className={cn(
+                'font-sans text-xs',
+                running ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted'
+              )}
+            >
+              {running ? t('settings.model.ollamaRunning') : t('settings.model.ollamaNotRunning')}
+            </Text>
+          </View>
+        </View>
+        {/* Pick among what the desktop has pulled. With nothing pulled the
+            picker would open on an empty sheet, so say so in its place. */}
+        {options.length > 0 ? (
+          <Select<string>
+            label={t('settings.model.installedModel')}
+            value={model}
+            options={options}
+            onChange={(next) => setConfigValue('localModel', next)}
+            searchable={options.length > 8}
+          />
+        ) : (
+          <Text className="text-muted text-left font-sans text-xs">
+            {t('settings.model.noModelsInstalled')}
+          </Text>
+        )}
+        <View className="flex-col gap-1.5">
+          <Text className="text-muted font-sans-medium text-left text-sm">
+            {t('settings.model.ollamaModelsFolder')}
+          </Text>
+          {/* The desktop's path box: a bordered mono capsule on the page
+              ground, forced LTR because a filesystem path is not a sentence —
+              under RTL its leading slash would jump to the wrong end. */}
+          <View className="bg-bg border-border rounded-lg border px-3 py-2">
+            <Text
+              selectable
+              className="text-muted text-left font-mono text-[11px] leading-4"
+              style={{ writingDirection: 'ltr' }}
+            >
+              {folder || '—'}
+            </Text>
+          </View>
+        </View>
+      </Section>
+    </>
   )
 })
 
@@ -92,21 +193,13 @@ export default function ModelScreen(): React.JSX.Element {
       <Section title={t('settings.model.brainTitle')}>
         <ModelSwitch />
         <ModelSelector />
-        <ConfigSwitchRow
-          field="restrictPowerfulModels"
-          label={t('settings.model.restrictPowerful')}
-          description={t('settings.model.restrictPowerfulDescription')}
-        />
-        <ConfigSwitchRow
-          field="contextOptimization"
-          label={t('settings.model.contextOptimization')}
-          description={t('settings.model.contextOptimizationDescription')}
-        />
       </Section>
 
       <Section title={t('settings.model.behaviorTitle')}>
         <ModeAndThinkingControls />
       </Section>
+
+      <LocalSection />
 
       <View className="flex-col gap-1.5">
         <Text className="text-fg font-sans-semibold text-left text-base">

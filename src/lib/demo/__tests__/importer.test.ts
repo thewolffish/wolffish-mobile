@@ -16,9 +16,14 @@ import type { ConversationFile } from '@/lib/conversations/types'
 const mockUpsert = jest.fn<Promise<void>, [ConversationFile]>().mockResolvedValue(undefined)
 const mockWritten: string[] = []
 const mockCreated = jest.fn()
+const mockPurge = jest.fn<Promise<void>, []>().mockResolvedValue(undefined)
 
 jest.mock('@/lib/conversations/repo', () => ({
   upsertConversation: (file: ConversationFile) => mockUpsert(file)
+}))
+
+jest.mock('@/lib/demo/reset', () => ({
+  purgeDemoState: () => mockPurge()
 }))
 
 jest.mock('expo-file-system', () => ({
@@ -62,6 +67,11 @@ const MANIFEST = {
 
 let serveBody: (url: string) => Promise<unknown>
 
+/** The bundle file a request is for, with any cache-busting query dropped. */
+function fileOf(url: string): string {
+  return url.slice(url.lastIndexOf('/') + 1).split('?')[0]
+}
+
 /** Serves the bundle layout the build script emits, per-file overridable. */
 function serve(overrides: Record<string, unknown> = {}): jest.Mock {
   const bodies: Record<string, unknown> = {
@@ -72,7 +82,7 @@ function serve(overrides: Record<string, unknown> = {}): jest.Mock {
     ...overrides
   }
   serveBody = (url: string) => {
-    const body = bodies[url.slice(url.lastIndexOf('/') + 1)]
+    const body = bodies[fileOf(url)]
     if (body === undefined) return Promise.resolve({ ok: false, status: 404 })
     return Promise.resolve({
       ok: true,
@@ -88,6 +98,7 @@ function serve(overrides: Record<string, unknown> = {}): jest.Mock {
 describe('demo bundle import', () => {
   beforeEach(() => {
     mockUpsert.mockClear().mockResolvedValue(undefined)
+    mockPurge.mockClear().mockResolvedValue(undefined)
     mockCreated.mockClear()
     mockWritten.length = 0
   })
@@ -96,22 +107,49 @@ describe('demo bundle import', () => {
     const fetched = serve()
     const result = await importDemoData()
 
-    expect(fetched.mock.calls.map(([url]) => url)).toEqual([
-      `${DEMO_BASE_URL}/manifest.json`,
-      `${DEMO_BASE_URL}/conversations-000.json`,
-      `${DEMO_BASE_URL}/conversations-001.json`,
-      `${DEMO_BASE_URL}/config-snapshot.json`
+    expect(fetched.mock.calls.map(([url]) => fileOf(url))).toEqual([
+      'manifest.json',
+      'conversations-000.json',
+      'conversations-001.json',
+      'config-snapshot.json'
     ])
     expect(result).toEqual({ version: 'abc123def456', imported: 3, failed: 0, total: 3 })
     expect(mockUpsert.mock.calls.map(([file]) => file.id)).toEqual(['a', 'b', 'c'])
   })
 
-  it('downloads the whole bundle before writing anything to the database', async () => {
+  /**
+   * The published bundle carries no Cache-Control and React Native's fetch
+   * cannot ask for a fresh copy, so the URL is the only thing standing between
+   * a republished dataset and an HTTP cache that answers with the old one.
+   */
+  it('stamps every payload URL with the manifest version and never repeats a manifest URL', async () => {
+    const fetched = serve()
+    await importDemoData()
+    const urls = fetched.mock.calls.map(([url]) => url as string)
+
+    expect(urls.slice(1)).toEqual([
+      `${DEMO_BASE_URL}/conversations-000.json?v=abc123def456`,
+      `${DEMO_BASE_URL}/conversations-001.json?v=abc123def456`,
+      `${DEMO_BASE_URL}/config-snapshot.json?v=abc123def456`
+    ])
+    expect(urls[0]).toMatch(new RegExp(`^${DEMO_BASE_URL}/manifest\\.json\\?t=\\d+$`))
+
+    const first = urls[0]
+    await new Promise((resolve) => setTimeout(resolve, 2))
+    await importDemoData()
+    expect(fetched.mock.calls[4][0]).not.toEqual(first)
+  })
+
+  it('downloads the whole bundle, then purges, then writes to the database', async () => {
     const order: string[] = []
     const fetched = serve()
     fetched.mockImplementation((url: string) => {
-      order.push(`fetch:${url.slice(url.lastIndexOf('/') + 1)}`)
+      order.push(`fetch:${fileOf(url)}`)
       return serveBody(url)
+    })
+    mockPurge.mockImplementation(() => {
+      order.push('purge')
+      return Promise.resolve()
     })
     mockUpsert.mockImplementation((file) => {
       order.push(`insert:${file.id}`)
@@ -119,9 +157,16 @@ describe('demo bundle import', () => {
     })
     await importDemoData()
 
-    // Every fetch precedes every insert: a shard that 404s must not leave the
-    // database holding a partial dataset.
-    expect(order.lastIndexOf('fetch:config-snapshot.json')).toBeLessThan(order.indexOf('insert:a'))
+    // Every fetch precedes the purge, and the purge precedes every insert: a
+    // shard that 404s must cost neither the old dataset nor half the new one.
+    expect(order.lastIndexOf('fetch:config-snapshot.json')).toBeLessThan(order.indexOf('purge'))
+    expect(order.indexOf('purge')).toBeLessThan(order.indexOf('insert:a'))
+  })
+
+  it('replaces the previous dataset rather than importing on top of it', async () => {
+    serve()
+    await importDemoData()
+    expect(mockPurge).toHaveBeenCalledTimes(1)
   })
 
   it('saves the config snapshot so later entries work offline', async () => {
@@ -144,6 +189,12 @@ describe('demo bundle import', () => {
     }
     expect(seen[0]).toEqual({ phase: 'download', ratio: 0, imported: 0, total: 3 })
     expect(seen.at(-1)).toEqual({ phase: 'import', ratio: 1, imported: 3, total: 3 })
+
+    // The wipe is a phase of its own — it happens after the download and the
+    // label has to say so rather than claiming conversations are landing.
+    const reset = seen.findIndex((progress) => progress.phase === 'reset')
+    expect(reset).toBeGreaterThan(0)
+    expect(seen.findIndex((progress) => progress.phase === 'import')).toBeGreaterThan(reset)
   })
 
   it('skips a malformed conversation instead of losing the shard', async () => {
@@ -160,10 +211,20 @@ describe('demo bundle import', () => {
     await expect(importDemoData()).rejects.toThrow('404')
     expect(mockUpsert).not.toHaveBeenCalled()
     expect(mockWritten).toHaveLength(0)
+    // Nothing was wiped either: a device that already holds a demo keeps it
+    // when the refresh cannot complete.
+    expect(mockPurge).not.toHaveBeenCalled()
   })
 
   it('rejects a manifest with no shards rather than reporting an empty success', async () => {
     serve({ 'manifest.json': { ...MANIFEST, shards: [] } })
     await expect(importDemoData()).rejects.toThrow('no shards')
+    expect(mockPurge).not.toHaveBeenCalled()
+  })
+
+  it('rejects a manifest with no version — an unversioned bundle can never refresh', async () => {
+    serve({ 'manifest.json': { ...MANIFEST, version: '' } })
+    await expect(importDemoData()).rejects.toThrow('no version')
+    expect(mockPurge).not.toHaveBeenCalled()
   })
 })

@@ -12,8 +12,8 @@ import { useConversation } from '@/lib/conversations/hooks'
 import type { ConversationMessage } from '@/lib/conversations/types'
 import { ensureDemoConversation, sendDemoPrompt, stopDemoTurn } from '@/lib/demo/agent'
 import { importLocalFile } from '@/lib/files/fileCache'
-import { useAppStore } from '@/state/appStore'
 import { useChatRuntime } from '@/state/chatRuntime'
+import { useConfigValue } from '@/state/demoConfig'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -57,7 +57,9 @@ export default function ChatScreen(): React.JSX.Element {
   const stream = useChatRuntime((state) =>
     conversationId ? state.streams[conversationId] : undefined
   )
-  const verbose = useAppStore((state) => state.verboseFeed)
+  // One flag for both ends: the desktop's `inapp.verbose`. The feed is a
+  // display preference of the workspace, not of the device rendering it.
+  const verbose = useConfigValue('inappVerbose')
 
   const streaming = stream !== undefined
 

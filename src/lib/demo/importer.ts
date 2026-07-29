@@ -1,5 +1,6 @@
 import { upsertConversation } from '@/lib/conversations/repo'
 import type { ConversationFile } from '@/lib/conversations/types'
+import { purgeDemoState } from '@/lib/demo/reset'
 import { useDemoConfig, type ConfigSnapshot } from '@/state/demoConfig'
 import { Directory, File, Paths } from 'expo-file-system'
 
@@ -22,8 +23,16 @@ import { Directory, File, Paths } from 'expo-file-system'
  * metadata-first, content-on-demand flow the real desktop sync will use.
  */
 
-/** Where the published demo bundle lives. Peer of SAMPLE_BASE_URL. */
-export const DEMO_BASE_URL = 'https://cdn.wolffi.sh/demo'
+/**
+ * Where the published demo bundle lives. Peer of SAMPLE_BASE_URL.
+ *
+ * EXPO_PUBLIC_DEMO_BASE_URL points a development run at a bundle that has not
+ * been uploaded yet — `npx serve ~/Desktop/wolffish-demo-bundle` and start the
+ * app with the variable set — which is the only way to see a freshly built
+ * dataset before publishing it. Expo inlines EXPO_PUBLIC_* at bundle time, so
+ * leave it unset for any build that ships.
+ */
+export const DEMO_BASE_URL = process.env.EXPO_PUBLIC_DEMO_BASE_URL ?? 'https://cdn.wolffi.sh/demo'
 
 /** One packed slice of the dataset. `bytes` is the uncompressed shard size. */
 export type DemoShard = { file: string; bytes: number; conversations: number }
@@ -39,7 +48,12 @@ export type DemoManifest = {
 }
 
 export type DemoProgress = {
-  phase: 'download' | 'import'
+  /**
+   * `reset` sits between the two: the old dataset is wiped only once the new
+   * one is safely downloaded, so the bar never rewinds and a failed download
+   * never costs the user what they already had.
+   */
+  phase: 'download' | 'reset' | 'import'
   /** 0–1 across the whole bundle. */
   ratio: number
   imported: number
@@ -81,6 +95,56 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 /**
+ * Bundle-relative URL, stamped with the version whose manifest named the file.
+ *
+ * Shard filenames are positional — `conversations-000.json` is a different
+ * dataset in every bundle — and nothing in the response says how long it may
+ * be reused: the CDN sends no Cache-Control, which licenses the HTTP client to
+ * apply heuristic freshness and answer from its own cache. React Native's
+ * fetch cannot override that (the `cache` init option is not plumbed through
+ * its XHR), so the URL is the only lever: a new version is a new URL, and the
+ * stale copy is never asked for again. Below the app, Cloudflare and the
+ * device both keep caching normally, which is what a versioned URL is for.
+ */
+function bundleUrl(file: string, version: string): string {
+  return `${DEMO_BASE_URL}/${file}?v=${encodeURIComponent(version)}`
+}
+
+/**
+ * The manifest URL, unique per call.
+ *
+ * The manifest is the version probe, so it is the one file that must never
+ * come from a cache: a stale copy reports the version this device already
+ * holds and the refresh silently never happens — the exact failure the version
+ * check exists to prevent, and one that looks like nothing at all on screen.
+ * It is ~1 KB, so paying full price for it on every check is free.
+ */
+function manifestUrl(): string {
+  return `${DEMO_BASE_URL}/manifest.json?t=${Date.now()}`
+}
+
+/**
+ * The published manifest — a ~1 KB version probe. `version` is a content hash
+ * of the bundle, so comparing it against the imported one is what lets a
+ * republished dataset reach a device that already imported an older copy;
+ * without it, the first import is the only one a device ever performs.
+ *
+ * Bounded so a hanging network cannot hold the demo door shut: callers treat
+ * any failure as "no refresh available" and enter with what they have.
+ */
+export async function fetchDemoManifest(timeoutMs = 4000): Promise<DemoManifest> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(manifestUrl(), { signal: controller.signal })
+    if (!response.ok) throw new Error(`manifest → HTTP ${response.status}`)
+    return JSON.parse(await response.text()) as DemoManifest
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/**
  * Apply the real-workspace config snapshot into the demo config store —
  * capabilities with their SKILL.md descriptions, MCP servers, connections,
  * channel settings, brain/preferences. Reads the copy saved at import time, so
@@ -109,13 +173,19 @@ function saveConfigSnapshot(raw: string): void {
 }
 
 /**
- * Download the published bundle and ingest it into SQLite.
+ * Download the published bundle, wipe whatever this device holds, and ingest
+ * the new dataset into SQLite.
  *
- * Every shard is fetched before the first one is inserted, so a network
- * failure leaves the database untouched rather than half a dataset behind a
- * flag that says it imported. Shard bodies are held as strings and released as
- * each is parsed — the whole set is ~18 MB of text, and holding it is what
+ * Every shard is fetched before anything is deleted or inserted, so a network
+ * failure leaves the existing demo untouched rather than half a dataset behind
+ * a flag that says it imported. Shard bodies are held as strings and released
+ * as each is parsed — the whole set is ~18 MB of text, and holding it is what
  * buys a download phase that can be measured instead of guessed at.
+ *
+ * The purge in the middle is unconditional: this function only runs when the
+ * published version differs from the imported one (or nothing is imported at
+ * all), which is precisely when a full replacement is what "refresh" means.
+ * Deciding again here would only add a way for the two answers to disagree.
  *
  * Throws when the manifest or any shard cannot be fetched; the caller reports
  * it and leaves the version unset, so the next tap starts over. Inserts are
@@ -124,11 +194,12 @@ function saveConfigSnapshot(raw: string): void {
 export async function importDemoData(
   onProgress?: (progress: DemoProgress) => void
 ): Promise<DemoImportResult> {
-  const manifest = await fetchJson<DemoManifest>(`${DEMO_BASE_URL}/manifest.json`)
+  const manifest = await fetchJson<DemoManifest>(manifestUrl())
   if (!Array.isArray(manifest.shards) || manifest.shards.length === 0) {
     throw new Error('demo manifest has no shards')
   }
   if (!manifest.config?.file) throw new Error('demo manifest has no config snapshot')
+  if (!manifest.version) throw new Error('demo manifest has no version')
 
   const totalBytes =
     manifest.totalBytes || manifest.shards.reduce((sum, shard) => sum + shard.bytes, 0)
@@ -136,13 +207,17 @@ export async function importDemoData(
   let imported = 0
   let failed = 0
 
-  // Repainting on every one of 169 inserts costs more than the bar can show.
+  // Repainting on every one of 169 inserts costs more than the bar can show —
+  // but only within a phase: the first report of a new phase always lands, or
+  // the label lags behind the work it names.
   let lastPercent = -1
+  let lastPhase: DemoProgress['phase'] | null = null
   const report = (phase: DemoProgress['phase'], ratio: number): void => {
     const clamped = Math.max(0, Math.min(ratio, 1))
     const percent = Math.round(clamped * 100)
-    if (percent === lastPercent && phase === 'import') return
+    if (percent === lastPercent && phase === lastPhase && phase === 'import') return
     lastPercent = percent
+    lastPhase = phase
     onProgress?.({ phase, ratio: clamped, imported, total })
   }
 
@@ -151,11 +226,19 @@ export async function importDemoData(
   let doneBytes = 0
   report('download', 0)
   for (const shard of manifest.shards) {
-    bodies.push(await fetchText(`${DEMO_BASE_URL}/${shard.file}`))
+    bodies.push(await fetchText(bundleUrl(shard.file, manifest.version)))
     doneBytes += shard.bytes
     report('download', totalBytes > 0 ? (doneBytes / totalBytes) * DOWNLOAD_WEIGHT : 0)
   }
-  const configRaw = await fetchText(`${DEMO_BASE_URL}/${manifest.config.file}`)
+  const configRaw = await fetchText(bundleUrl(manifest.config.file, manifest.version))
+
+  // ---- Purge -----------------------------------------------------------
+  // Last point at which nothing has been destroyed: everything the new bundle
+  // needs is in hand, so the old dataset — conversations, cached media, saved
+  // snapshot, this device's config edits — goes now rather than being merged
+  // into. See lib/demo/reset for why a union of bundles is the wrong answer.
+  report('reset', DOWNLOAD_WEIGHT)
+  await purgeDemoState()
 
   // ---- Import ----------------------------------------------------------
   let processed = 0

@@ -82,17 +82,27 @@ const config: ExpoConfig = {
       projectId: EXPO_PROJECT_ID
     }
   },
-  // OTA updates (EAS Update). Store builds poll this URL at every cold start
-  // and never block launch (fallbackToCacheTimeout 0): a downloaded update
-  // applies on the next cold start, and useOtaUpdates adds foreground checks
-  // plus a restart toast. Publishing is scripts/ota.js. The fingerprint
-  // runtime version gates which binaries an update can reach — see
-  // fingerprint.config.js for what is deliberately excluded from the hash
-  // (version bumps must not fork the runtime).
+  // OTA updates (EAS Update). Never blocks launch (fallbackToCacheTimeout 0):
+  // an update downloads in the background and applies on the next cold start,
+  // and useOtaUpdates adds the launch check, foreground checks and the restart
+  // toast. Publishing is scripts/ota.js. The fingerprint runtime version gates
+  // which binaries an update can reach — see fingerprint.config.js for what is
+  // deliberately excluded from the hash (version bumps must not fork the
+  // runtime).
+  //
+  // checkAutomatically ON_ERROR_RECOVERY is what makes Settings → Updates a
+  // real switch rather than a label. The default (ON_LOAD) checks and
+  // downloads inside the native launch sequence, before any JS runs, so no
+  // user preference can reach it — turning updates "off" would have gone on
+  // updating the app. Now the only routine checks are the ones JS makes, and
+  // those are gated on appStore.otaEnabled. ON_ERROR_RECOVERY rather than
+  // NEVER keeps expo-updates' anti-brick path: a build that crashes on launch
+  // can still pull a fix.
   runtimeVersion: { policy: 'fingerprint' },
   updates: {
     url: `https://u.expo.dev/${EXPO_PROJECT_ID}`,
-    fallbackToCacheTimeout: 0
+    fallbackToCacheTimeout: 0,
+    checkAutomatically: 'ON_ERROR_RECOVERY'
   },
   plugins: [
     'expo-router',

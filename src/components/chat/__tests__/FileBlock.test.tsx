@@ -70,6 +70,9 @@ jest.mock('expo-video', () => {
     useVideoPlayer: () => ({
       loop: false,
       status: 'readyToPlay',
+      // Deliberately not 16/9 — proves the card takes its shape from the track
+      // rather than from the placeholder aspect.
+      videoTrack: { size: { width: 640, height: 480 } },
       play: jest.fn(),
       pause: jest.fn(),
       addListener: jest.fn(() => ({ remove: jest.fn() })),
@@ -127,6 +130,14 @@ describe('FileBlock — one delivered file per supported type', () => {
     await renderBlock(<FileBlock relPath="files/clip.mp4" declared="video" />)
     await waitFor(() => expect(screen.getByTestId('video')).toBeTruthy())
     expect(screen.getByText('clip.mp4')).toBeTruthy()
+  })
+
+  it('sizes the video by its own aspect ratio, not a fixed height', async () => {
+    await renderBlock(<FileBlock relPath="files/clip.mp4" declared="video" />)
+    const style = await waitFor(() => screen.getByTestId('video').props.style)
+    // 640x480 track -> 4/3, width-constrained, height left to the ratio.
+    expect(style).toMatchObject({ width: '100%', aspectRatio: 4 / 3 })
+    expect(style.height).toBeUndefined()
   })
 
   it('renders audio as a transport with a play control', async () => {

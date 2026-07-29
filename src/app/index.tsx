@@ -1,7 +1,12 @@
 import { BuildInfo } from '@/components/common/build-info/BuildInfo'
 import { Button } from '@/components/core/Button'
 import { ProgressBar } from '@/components/core/ProgressBar'
-import { applyConfigSnapshot, importDemoData, type DemoProgress } from '@/lib/demo/importer'
+import {
+  applyConfigSnapshot,
+  fetchDemoManifest,
+  importDemoData,
+  type DemoProgress
+} from '@/lib/demo/importer'
 import { useAppStore } from '@/state/appStore'
 import { useToast } from '@/providers/toast/useToast'
 import { useTokens } from '@/providers/theme/useTheme'
@@ -31,10 +36,25 @@ export default function Home(): React.JSX.Element {
   const [progress, setProgress] = useState<DemoProgress | null>(null)
   const busy = progress !== null
 
+  /**
+   * Is there a dataset to pull? Nothing imported yet, or the published bundle
+   * is a different build than the one on this device. Offline, or a manifest
+   * that will not load, answers no — demo mode still opens on what is stored.
+   */
+  const needsImport = async (): Promise<boolean> => {
+    if (!demoVersion) return true
+    try {
+      const manifest = await fetchDemoManifest()
+      return manifest.version !== demoVersion
+    } catch {
+      return false
+    }
+  }
+
   const enterDemo = async (): Promise<void> => {
     if (busy) return
-    if (!demoVersion) {
-      setProgress({ phase: 'download', ratio: 0, imported: 0, total: 0 })
+    setProgress({ phase: 'download', ratio: 0, imported: 0, total: 0 })
+    if (await needsImport()) {
       try {
         const result = await importDemoData(setProgress)
         setDemoVersion(result.version)
@@ -48,6 +68,8 @@ export default function Home(): React.JSX.Element {
       } finally {
         setProgress(null)
       }
+    } else {
+      setProgress(null)
     }
     // Refresh the config surface from the saved snapshot on every entry — the
     // demo's stand-in for live sync's cached-then-refresh.
@@ -86,9 +108,13 @@ export default function Home(): React.JSX.Element {
           <View className="w-64 items-center gap-2">
             <ProgressBar value={progress.ratio} />
             <Text className="text-muted text-center font-sans text-xs leading-5">
-              {progress.phase === 'download' || progress.total === 0
+              {progress.phase === 'download'
                 ? t('demo.downloading')
-                : t('demo.progress', { done: progress.imported, total: progress.total })}
+                : progress.phase === 'reset'
+                  ? t('demo.resetting')
+                  : progress.total === 0
+                    ? t('demo.downloading')
+                    : t('demo.progress', { done: progress.imported, total: progress.total })}
             </Text>
           </View>
         ) : (

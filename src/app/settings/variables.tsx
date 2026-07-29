@@ -1,16 +1,17 @@
 import { Button } from '@/components/core/Button'
 import { Input } from '@/components/core/Input'
-import { Delete02Icon, EyeIcon, PlusSignIcon, ViewOffIcon } from '@/components/core/icons'
-import { PanelScreen, Section, SwitchRow } from '@/components/settings/SettingsUI'
+import { PlusSignIcon } from '@/components/core/icons'
+import { Toggle } from '@/components/settings/ConfigRows'
+import { PanelScreen, Section } from '@/components/settings/SettingsUI'
 import { setConfigValue, useConfigValue, type DemoVariable } from '@/state/demoConfig'
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Pressable, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 
 /**
  * Variables — the desktop VariablesPanel: named prompt variables the agent
- * can substitute, editable in place. Sensitive values render masked with an
- * eye toggle; edits persist locally in demo mode.
+ * can substitute, editable in place. Sensitive hides the value only (the name
+ * is always plaintext), masked by Input's own eye toggle; edits persist
+ * locally in demo mode.
  */
 
 function VariableRow({
@@ -23,59 +24,40 @@ function VariableRow({
   onDelete: () => void
 }): React.JSX.Element {
   const { t } = useTranslation()
-  const [revealed, setRevealed] = useState(false)
-  const masked = variable.sensitive && !revealed
-  const RevealIcon = revealed ? ViewOffIcon : EyeIcon
 
   return (
     <View className="border-border flex-col gap-3 rounded-xl border p-3">
-      <View className="flex-row items-center gap-2">
-        <Input
-          containerClassName="flex-1"
-          value={variable.name}
-          onChangeText={(name) => onChange({ ...variable, name })}
-          placeholder={t('settings.variables.namePlaceholder')}
-          autoCapitalize="characters"
-          autoCorrect={false}
-        />
-        {/* Reveal button is always mounted (only its visibility toggles) —
-            mounting/unmounting a styled sibling makes NativeWind's css-interop
-            flag a remount and, in dev, crash while stringifying props. */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('common.showPassword')}
-          accessibilityElementsHidden={!variable.sensitive}
-          hitSlop={8}
-          disabled={!variable.sensitive}
-          onPress={() => setRevealed((value) => !value)}
-          style={{ opacity: variable.sensitive ? 1 : 0 }}
-          className="h-9 w-9 items-center justify-center rounded-lg active:bg-border/40"
-        >
-          <RevealIcon size={16} className="text-muted" />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('settings.variables.delete')}
-          hitSlop={8}
-          onPress={onDelete}
-          className="h-9 w-9 items-center justify-center rounded-lg active:bg-rose-500/10"
-        >
-          <Delete02Icon size={16} className="text-rose-500" />
-        </Pressable>
-      </View>
+      <Input
+        value={variable.name}
+        onChangeText={(name) => onChange({ ...variable, name })}
+        placeholder={t('settings.variables.namePlaceholder')}
+        autoCapitalize="characters"
+        autoCorrect={false}
+      />
       <Input
         value={variable.value}
         onChangeText={(value) => onChange({ ...variable, value })}
         placeholder={t('settings.variables.valuePlaceholder')}
-        secureTextEntry={masked}
+        secureTextEntry={variable.sensitive}
         autoCapitalize="none"
         autoCorrect={false}
       />
-      <SwitchRow
-        label={t('settings.variables.sensitive')}
-        value={variable.sensitive}
-        onValueChange={(sensitive) => onChange({ ...variable, sensitive })}
-      />
+      {/* Delete sits where the row label used to; the toggle carries its own
+          wording (Plaintext | Sensitive) instead of the shared Off | On. */}
+      <View className="flex-row items-center justify-between gap-3">
+        <Button variant="danger" size="sm" onPress={onDelete}>
+          {t('settings.variables.delete')}
+        </Button>
+        <Toggle
+          value={variable.sensitive}
+          onValueChange={(sensitive) => onChange({ ...variable, sensitive })}
+          accessibilityLabel={t('settings.variables.sensitive')}
+          labels={{
+            off: t('settings.variables.plaintext'),
+            on: t('settings.variables.sensitive')
+          }}
+        />
+      </View>
     </View>
   )
 }

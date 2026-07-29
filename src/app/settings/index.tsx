@@ -13,7 +13,6 @@ import {
   PuzzleIcon
 } from '@/components/core/icons'
 import { NavRow, PanelScreen } from '@/components/settings/SettingsUI'
-import { useAppStore } from '@/state/appStore'
 import { useConfigValue } from '@/state/demoConfig'
 import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -26,8 +25,6 @@ import { View } from 'react-native'
 export default function SettingsScreen(): React.JSX.Element {
   const { t } = useTranslation()
   const brainModel = useConfigValue('brainModel')
-  const chatMode = useConfigValue('chatMode')
-  const verbose = useAppStore((state) => state.verboseFeed)
 
   const rows: Array<{
     key: string
@@ -44,8 +41,7 @@ export default function SettingsScreen(): React.JSX.Element {
     {
       key: 'channels',
       href: '/settings/channels',
-      icon: <BubbleChatIcon size={18} className="text-muted" />,
-      description: verbose ? t('settings.verboseState.on') : t('settings.verboseState.off')
+      icon: <BubbleChatIcon size={18} className="text-muted" />
     },
     {
       key: 'services',
@@ -59,13 +55,13 @@ export default function SettingsScreen(): React.JSX.Element {
       icon: <Key01Icon size={18} className="text-muted" />
     },
     {
-      key: 'cellebrum',
-      href: '/settings/cellebrum',
+      key: 'capabilities',
+      href: '/settings/capabilities',
       icon: <BrainIcon size={18} className="text-muted" />
     },
     {
-      key: 'hippocampus',
-      href: '/settings/hippocampus',
+      key: 'knowledge',
+      href: '/settings/knowledge',
       icon: <DnaIcon size={18} className="text-muted" />
     },
     {
@@ -86,8 +82,7 @@ export default function SettingsScreen(): React.JSX.Element {
     {
       key: 'preferences',
       href: '/settings/preferences',
-      icon: <AiMagicIcon size={18} className="text-muted" />,
-      description: t(`settings.chatModes.${chatMode}`)
+      icon: <AiMagicIcon size={18} className="text-muted" />
     },
     {
       key: 'appearance',

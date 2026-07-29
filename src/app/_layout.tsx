@@ -6,6 +6,7 @@ if (__DEV__) {
 import '../global.css'
 import '@/lib/i18n'
 
+import { UpdateNotice } from '@/components/updates/UpdateNotice'
 import { useOtaUpdates } from '@/lib/updates/useOtaUpdates'
 import { ToastProvider } from '@/providers/toast/ToastProvider'
 import { LocaleProvider } from '@/providers/locale/LocaleProvider'
@@ -45,6 +46,7 @@ function AppShell(): React.JSX.Element {
           contentStyle: { backgroundColor: tokens.bg }
         }}
       />
+      <UpdateNotice />
     </>
   )
 }

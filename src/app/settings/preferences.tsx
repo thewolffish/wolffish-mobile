@@ -6,10 +6,10 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 /**
- * Preferences — the desktop WolffishPanel, fully controllable from mobile:
- * launch at startup, the agent safety switches, and week start. In live mode
- * these write straight to the desktop's config over the sync link; in demo
- * mode they persist locally.
+ * Preferences — the desktop WolffishPanel, one for one and fully controllable
+ * from mobile: launch at startup, the local-model RAM guard, the agent safety
+ * switches, and week start. In live mode these write straight to the desktop's
+ * config over the sync link; in demo mode they persist locally.
  */
 export default function PreferencesScreen(): React.JSX.Element {
   const { t } = useTranslation()
@@ -33,6 +33,11 @@ export default function PreferencesScreen(): React.JSX.Element {
           field="launchAtStartup"
           label={t('settings.preferences.launchAtStartup')}
           description={t('settings.preferences.launchAtStartupDescription')}
+        />
+        <ConfigSwitchRow
+          field="restrictPowerfulModels"
+          label={t('settings.preferences.restrictPowerfulModels')}
+          description={t('settings.preferences.restrictPowerfulModelsDescription')}
         />
         <Select<string>
           label={t('settings.preferences.weekStartsOn')}

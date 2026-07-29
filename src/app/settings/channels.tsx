@@ -1,34 +1,40 @@
-import { ConfigSelectRow, ConfigSwitchRow, ConfigTextRow } from '@/components/settings/ConfigRows'
-import { PanelScreen, Section, SwitchRow } from '@/components/settings/SettingsUI'
-import { useAppStore } from '@/state/appStore'
+import {
+  ConfigSelectRow,
+  ConfigStatusRow,
+  ConfigSwitchRow,
+  ConfigTextRow
+} from '@/components/settings/ConfigRows'
+import { PanelScreen, Section } from '@/components/settings/SettingsUI'
 import { useTranslation } from 'react-i18next'
 
 const STALE_HOURS = ['1', '3', '6', '12', '24'].map((value) => ({ value, label: value }))
 
 /**
- * Channels — the desktop's In-App / Telegram / WhatsApp panels with their
- * full control sets: enable, allow-lists, auto-refresh, stale window, verbose
- * and hide-automations. Every row binds to a single config key, so a toggle
- * re-renders only itself.
+ * Channels — the desktop's In-App / Telegram / WhatsApp panels. Mobile edits
+ * a channel's settings (allow-list, auto-refresh, stale window, verbose,
+ * hide-automations) but never its power switch: enabling a channel starts a
+ * bridge process on the desktop, which is the desktop's to start, so the
+ * enabled row reports state and the rest gate on it. Every row binds to a
+ * single config key, so a toggle re-renders only itself.
  */
 export default function ChannelsScreen(): React.JSX.Element {
   const { t } = useTranslation()
-  const verbose = useAppStore((state) => state.verboseFeed)
-  const setVerboseFeed = useAppStore((state) => state.setVerboseFeed)
 
   return (
     <PanelScreen title={t('settings.tabs.channels')} subtitle={t('settings.channels.subtitle')}>
+      {/* One in-app feed setting, not two: `inapp.verbose` is the desktop's
+          own key and it drives this device's chat as well — the preference
+          belongs to the workspace, not to whichever screen renders it. */}
       <Section title={t('settings.channels.inapp')}>
-        <SwitchRow
+        <ConfigSwitchRow
+          field="inappVerbose"
           label={t('settings.verbose.label')}
           description={t('settings.verbose.description')}
-          value={verbose}
-          onValueChange={setVerboseFeed}
         />
       </Section>
 
       <Section title="Telegram">
-        <ConfigSwitchRow
+        <ConfigStatusRow
           field="telegramEnabled"
           label={t('settings.channels.enabled')}
           description={t('settings.channels.telegramDescription')}
@@ -63,7 +69,7 @@ export default function ChannelsScreen(): React.JSX.Element {
       </Section>
 
       <Section title="WhatsApp">
-        <ConfigSwitchRow
+        <ConfigStatusRow
           field="whatsappEnabled"
           label={t('settings.channels.enabled')}
           description={t('settings.channels.whatsappDescription')}

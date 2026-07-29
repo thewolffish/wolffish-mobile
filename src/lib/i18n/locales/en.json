@@ -30,32 +30,28 @@
     "title": "Settings",
     "verbose": {
       "label": "Verbose task results",
-      "description": "Show every tool call and step in the chat, plus the model/provider chip. Off (the default) keeps a clean feed — only agent replies and the files it sends."
+      "description": "Show every tool call and step."
     },
     "tabs": {
       "model": "Model",
       "channels": "Channels",
       "services": "Services",
       "variables": "Variables",
-      "hippocampus": "Hippocampus",
+      "knowledge": "Knowledge",
       "usage": "Usage",
       "data": "Data",
       "updates": "Updates",
       "appearance": "Appearance",
       "preferences": "Preferences",
       "mcp": "MCP",
-      "cellebrum": "Cellebrum"
+      "capabilities": "Capabilities"
     },
-    "appearanceSubtitle": "How Wolffish looks — theme and language.",
-    "verboseState": {
-      "on": "Verbose on",
-      "off": "Clean feed"
-    },
+    "appearanceSubtitle": "Theme and language.",
     "chatModes": {
       "single": "Single",
       "workflow": "Workflow",
-      "singleDescription": "One model answers directly — everyday questions.",
-      "workflowDescription": "Many agents plan, verify — complex tasks."
+      "singleDescription": "One model answers directly.",
+      "workflowDescription": "Many agents plan and verify."
     },
     "thinking": {
       "off": "Off",
@@ -64,18 +60,14 @@
       "max": "Max"
     },
     "model": {
-      "subtitle": "The Brain — which model answers, and how hard it thinks.",
+      "subtitle": "Which model answers, and how it thinks.",
       "brainTitle": "Brain",
       "brainLabel": "Model",
       "localOnly": "Local only",
-      "localOnlyDescription": "Skip cloud providers and answer with the local model.",
+      "localOnlyDescription": "Answer with the local model.",
       "behaviorTitle": "Behavior",
       "modeLabel": "Chat mode",
       "thinkingLabel": "Thinking",
-      "restrictPowerful": "Restrict powerful models",
-      "restrictPowerfulDescription": "Hide local models that need more RAM than this machine has.",
-      "contextOptimization": "Context optimization",
-      "contextOptimizationDescription": "Prompt caching and tool-output truncation to stretch the context window.",
       "localTitle": "Local",
       "cloudTitle": "Cloud",
       "noModel": "No model",
@@ -85,28 +77,34 @@
       "noKey": "No key",
       "testConnection": "Test connection",
       "testSuccess": "Connection verified",
-      "desktopNote": "Key changes and connection tests run on the desktop — the mobile app sends the command.",
-      "modelsCount": "{{count}} models"
+      "desktopNote": "Keys and tests run on the desktop.",
+      "modelsCount": "{{count}} models",
+      "ollamaRunning": "Running",
+      "ollamaNotRunning": "Not running",
+      "ollamaModelsFolder": "Models folder",
+      "localNote": "Ollama is the runtime local models answer from. It runs on the desktop, and you pick from what it has installed.",
+      "installedModel": "Installed model",
+      "noModelsInstalled": "No models installed on the desktop."
     },
     "channels": {
-      "subtitle": "Where Wolffish talks to you. Channel daemons run on the desktop.",
+      "subtitle": "Where Wolffish talks to you.",
       "inapp": "In-App",
       "enabled": "Enabled",
-      "telegramDescription": "The Telegram bot bridge — runs on your desktop.",
-      "whatsappDescription": "The WhatsApp bridge — runs on your desktop.",
+      "telegramDescription": "Bridge runs on your desktop.",
+      "whatsappDescription": "Bridge runs on your desktop.",
       "allowedUserIds": "Allowed user IDs",
       "allowedNumbers": "Allowed phone numbers",
       "autoRefresh": "Auto refresh",
-      "autoRefreshDescription": "Resume stale channel conversations automatically.",
+      "autoRefreshDescription": "Auto-resume stale chats.",
       "staleHours": "Stale after (hours)",
       "hideAutomations": "Hide automations",
-      "hideAutomationsDescription": "Keep scheduled runs out of channel resume."
+      "hideAutomationsDescription": "Skip scheduled runs on resume."
     },
     "services": {
-      "subtitle": "Connections the agent uses. Managed on the desktop — shown here read-only.",
+      "subtitle": "Connections the agent uses.",
       "connected": "Connected",
       "notConnected": "Not connected",
-      "desktopOnly": "Connect, test, and credentials live in the desktop app.",
+      "desktopOnly": "Managed in the desktop app.",
       "desktopOnlyShort": "Desktop-managed",
       "items": {
         "google": "Google Workspace",
@@ -130,27 +128,62 @@
         "normal": "Normal",
         "fast": "Fast",
         "veryFast": "Very fast"
+      },
+      "secretPlaceholder": "Set on the desktop",
+      "secretNote": "Credentials stay in the desktop keychain — typing here does not send them.",
+      "voiceLang": {
+        "us": "English (US)",
+        "uk": "English (UK)"
+      },
+      "brave": {
+        "description": "Search with Brave first, DuckDuckGo as fallback.",
+        "apiKey": "Brave API key"
+      },
+      "memes": {
+        "description": "memegen.link needs nothing; Imgflip and Giphy need credentials.",
+        "imgflipUsername": "Imgflip username",
+        "imgflipPassword": "Imgflip password",
+        "giphyKey": "Giphy API key"
+      },
+      "stt": {
+        "hint": "Bigger models transcribe better and run slower."
+      },
+      "tts": {
+        "hint": "Kokoro runs locally — voices are English only."
+      },
+      "browserExtension": {
+        "port": "Pairing port",
+        "quality": "JPEG quality (1-100)",
+        "pairingNote": "Installing and pairing the extension happens on the desktop."
       }
     },
     "variables": {
-      "subtitle": "Named values the agent can use in prompts. Sensitive ones stay masked.",
+      "subtitle": "Named values for prompts.",
       "add": "Add variable",
       "delete": "Delete variable",
       "sensitive": "Sensitive",
+      "plaintext": "Plaintext",
       "namePlaceholder": "NAME",
       "valuePlaceholder": "Value",
       "empty": "No variables yet."
     },
-    "hippocampus": {
-      "subtitle": "Memory upkeep — when compaction and consolidation run.",
+    "knowledge": {
+      "subtitle": "When memory upkeep runs.",
       "dailyTitle": "Daily compaction",
       "dailyHour": "Hour",
       "weeklyTitle": "Weekly consolidation",
       "weeklyDay": "Day",
-      "weeklyHour": "Hour"
+      "weeklyHour": "Hour",
+      "lastRun": {
+        "dailyTitle": "Last daily run",
+        "weeklyTitle": "Last weekly run",
+        "ranAt": "Ran {{time}}",
+        "took": "Took {{duration}}",
+        "tokens": "{{input}} tokens in · {{output}} tokens out"
+      }
     },
     "usage": {
-      "subtitle": "Computed locally from the imported conversations.",
+      "subtitle": "Computed from your conversations.",
       "conversations": "Conversations",
       "messages": "Messages",
       "turns": "Turns",
@@ -169,7 +202,7 @@
       }
     },
     "data": {
-      "subtitle": "What Wolffish stores on this device.",
+      "subtitle": "What's stored on this device.",
       "storageTitle": "Storage",
       "cachedMedia": "Cached media",
       "cachedFiles": "Cached files",
@@ -180,17 +213,36 @@
       "released": "{{count}} files released — they re-download on next open"
     },
     "updates": {
-      "subtitle": "How this app updates itself.",
+      "subtitle": "How this app and your desktop stay current.",
+      "thisAppTitle": "This app",
+      "thisAppDescription": "The Wolffish app running on this device.",
       "autoLabel": "Automatic updates",
-      "autoDescription": "Download over-the-air updates in the background and apply on next launch.",
-      "aboutTitle": "This build",
+      "autoDescription": "Check for and download updates for this app, and offer to restart into them. Off means this app only changes when you update it from the App Store.",
+      "checkManual": "Check for updates",
+      "checkManualDescription": "Look for a new version now, even with automatic updates off.",
+      "check": "Check",
+      "checking": "Checking…",
+      "upToDate": "Up to date",
+      "checkFailed": "Could not check for updates",
+      "checkUnavailable": "This build does not receive over-the-air updates.",
       "version": "Version",
       "channel": "Bundle",
       "embedded": "Store build",
       "ota": "OTA update",
       "runtime": "Runtime",
       "updateId": "Update ID",
-      "publishedAt": "Published"
+      "publishedAt": "Published",
+      "desktopTitle": "Desktop app",
+      "desktopDescription": "The Wolffish desktop this device is paired with.",
+      "platform": "Platform",
+      "syncedAt": "Last synced",
+      "desktopAutoLabel": "Automatic updates",
+      "desktopAutoDescription": "Whether the desktop app updates itself. Changing this here changes it there."
+    },
+    "changelog": {
+      "title": "What's new",
+      "subtitle": "What changed, release by release.",
+      "empty": "No release notes yet."
     },
     "days": {
       "sunday": "Sunday",
@@ -206,27 +258,38 @@
       "off": "Off"
     },
     "preferences": {
-      "subtitle": "General preferences and the agent's safety switches.",
+      "subtitle": "General and safety settings.",
       "generalTitle": "General",
       "launchAtStartup": "Launch at startup",
-      "launchAtStartupDescription": "Start the desktop Wolffish when you log in.",
+      "launchAtStartupDescription": "Open Wolffish when you log in.",
+      "restrictPowerfulModels": "Restrict powerful local models",
+      "restrictPowerfulModelsDescription": "Block local models bigger than your RAM.",
       "weekStartsOn": "Week starts on",
       "safetyTitle": "Safety",
       "bypassPermissions": "Bypass permissions",
-      "bypassPermissionsDescription": "Let the agent act without per-tool approval prompts.",
+      "bypassPermissionsDescription": "Act without approval prompts.",
       "blockCredentials": "Block credentials",
-      "blockCredentialsDescription": "Refuse to type or read passwords and API keys."
+      "blockCredentialsDescription": "Never type passwords or keys."
     },
-    "cellebrum": {
-      "subtitle": "The agent's {{count}} capabilities — skills and plugins from your workspace. Import and delete stay on the desktop."
+    "capabilities": {
+      "subtitle": "The agent's {{count}} capabilities.",
+      "active": "Active",
+      "inactive": "Inactive",
+      "core": "Core",
+      "official": "Official",
+      "unknown": "Unknown",
+      "alwaysOn": "Always on",
+      "lockedHint": "Core capability — always on and can't be disabled."
     },
     "mcp": {
       "subtitle": "Configured MCP servers.",
-      "desktopNote": "Adding servers, headers and sign-in live in the desktop app."
+      "desktopNote": "Servers are added on the desktop."
     }
   },
   "updates": {
-    "ready": "A new version is ready — tap to restart.",
+    "ready": "Update ready",
+    "readyHint": "Tap to restart into it",
+    "install": "Update",
     "embedded": "store build"
   },
   "showcase": {
@@ -243,7 +306,7 @@
       "large": "Large",
       "disabled": "Disabled",
       "withIcon": "With icon",
-      "loadingState": "Loading"
+      "loadingState": "Save"
     },
     "inputs": {
       "title": "Input",
@@ -307,8 +370,9 @@
     "demoHint": "Every feature, every file type — with three months of real conversations."
   },
   "demo": {
-    "importing": "Preparing demo data…",
+    "importing": "Preparing demo data",
     "downloading": "Downloading demo data…",
+    "resetting": "Clearing the previous demo data…",
     "progress": "{{done}} of {{total}} conversations",
     "imported": "{{count}} conversations imported",
     "failed": "Could not download the demo data. Check your connection and try again.",
@@ -452,6 +516,29 @@
       "placeholder": "Write in markdown…",
       "done": "Done",
       "close": "Close"
+    },
+    "contextCard": {
+      "noModel": "No model",
+      "empty": "No usage yet — send a message to start measuring.",
+      "context": "Context window",
+      "usage": "{{used}} of {{max}} ({{percent}}%)",
+      "compactAt": "Auto-compacts at {{value}}",
+      "cacheRead": "Cache read",
+      "cacheWrite": "Cache write",
+      "measuredUnder": "Measured under {{model}}",
+      "lastTurn": "Last turn",
+      "input": "Input",
+      "output": "Output",
+      "calls": "API calls",
+      "tools": "{{count}} tools",
+      "cost": "Cost",
+      "workflow": "Workflow",
+      "workflowTotals": "{{tools}} tool calls · {{tokens}} tokens",
+      "allTime": "All time",
+      "turns": "Turns",
+      "apiCalls": "API calls",
+      "toolCalls": "Tool calls",
+      "cachedShare": "{{percent}}% of ingested context came from cache"
     }
   },
   "history": {
@@ -463,7 +550,17 @@
     "deleteConfirm": "Delete",
     "deleteCancel": "Cancel",
     "newChat": "New chat",
-    "processing": "Processing…"
+    "processing": "Processing…",
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "last7": "Previous 7 days",
+      "last30": "Previous 30 days",
+      "last3m": "Previous 3 months",
+      "last6m": "Previous 6 months",
+      "lastYear": "Previous year",
+      "older": "Older"
+    }
   },
   "units": {
     "bytes": "{{value}} B",

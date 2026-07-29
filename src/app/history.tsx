@@ -8,21 +8,29 @@ import {
   WhatsAppLogo
 } from '@/components/core/icons'
 import { ConfirmDialog } from '@/components/core/ConfirmDialog'
+import { HistorySkeleton } from '@/components/history/HistorySkeleton'
+import { groupConversations } from '@/lib/conversations/grouping'
 import { removeConversation, useConversationList } from '@/lib/conversations/hooks'
 import type { ConversationMeta } from '@/lib/conversations/types'
+import { cn } from '@/lib/utils/cn'
 import { formatRelativeTime } from '@/lib/utils/relativeTime'
 import { router } from 'expo-router'
 import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FlatList, I18nManager, Pressable, Text, View } from 'react-native'
+import { I18nManager, Pressable, SectionList, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 /**
  * Conversation history — the desktop History page as a single-column list:
- * numbered recency chip, channel/source badge, title, relative time, delete
- * with the desktop's confirm copy. Rows open the conversation in the chat
- * screen; data comes straight from the SQLite index so the list is instant.
+ * date-grouped under the same recency headers, numbered recency chip,
+ * channel/source badge, title, relative time, delete with the desktop's confirm
+ * copy. Rows open the conversation in the chat screen; data comes straight from
+ * the SQLite index so the list is instant.
  */
+
+function RowSeparator(): React.JSX.Element {
+  return <View className="h-2" />
+}
 
 function ChannelBadge({ meta }: { meta: ConversationMeta }): React.JSX.Element | null {
   if (meta.icon) {
@@ -44,14 +52,15 @@ function ChannelBadge({ meta }: { meta: ConversationMeta }): React.JSX.Element |
 
 const Row = memo(function Row({
   meta,
-  index,
+  position,
   time,
   untitledLabel,
   deleteLabel,
   onDelete
 }: {
   meta: ConversationMeta
-  index: number
+  /** Rank in the WHOLE list, not in its group — see ConversationGroup. */
+  position: number
   time: string
   untitledLabel: string
   deleteLabel: string
@@ -70,7 +79,7 @@ const Row = memo(function Row({
           className="text-muted font-sans-semibold text-[8px]"
           style={{ writingDirection: 'ltr' }}
         >
-          {index + 1}
+          {position}
         </Text>
       </View>
       <View className="flex-1 flex-col gap-0.5">
@@ -92,7 +101,9 @@ const Row = memo(function Row({
         onPress={() => onDelete(meta)}
         className="h-8 w-8 items-center justify-center rounded-lg active:bg-rose-500/10"
       >
-        <Delete01Icon size={16} className="text-muted" />
+        {({ pressed }) => (
+          <Delete01Icon size={16} className={pressed ? 'text-rose-500' : 'text-muted'} />
+        )}
       </Pressable>
     </Pressable>
   )
@@ -106,6 +117,10 @@ export default function HistoryScreen(): React.JSX.Element {
   const [deleting, setDeleting] = useState(false)
 
   const rows = useMemo(() => data ?? [], [data])
+  // Sliced into the same recency buckets the desktop's History page and rail
+  // use. Recomputed with the rows, which refetch on every conversation change,
+  // so the day boundary is never more stale than the list itself.
+  const groups = useMemo(() => groupConversations(rows), [rows])
   const BackIcon = I18nManager.isRTL ? ArrowRight01Icon : ArrowLeft01Icon
 
   return (
@@ -126,34 +141,47 @@ export default function HistoryScreen(): React.JSX.Element {
       </View>
 
       {isLoading ? (
-        <View className="flex-col gap-2 p-4">
-          {/* Solid bg-border, not bg-border/60 — NativeWind drops `/opacity` on
-              var() colours (see global.css), which left these rows invisible. */}
-          {Array.from({ length: 8 }, (_, index) => (
-            <View key={index} className="bg-border h-16 animate-pulse rounded-xl" />
-          ))}
-        </View>
+        <HistorySkeleton />
       ) : rows.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-muted text-center font-sans text-sm">{t('history.empty')}</Text>
         </View>
       ) : (
-        <FlatList
-          data={rows}
+        <SectionList
+          sections={groups}
           keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => (
+          // Desktop's headers scroll away with their group rather than pinning;
+          // RN sticks them on iOS by default, so turn that off to match.
+          stickySectionHeadersEnabled={false}
+          renderSectionHeader={({ section }) => (
+            <Text
+              className={cn(
+                'text-muted font-sans-medium px-1 pb-1.5 text-left text-[11px] uppercase',
+                // Only the first group starts at rank 1 — every later header
+                // gets the gap that separates it from the rows above it.
+                section.startIndex > 1 && 'pt-5'
+              )}
+            >
+              {t(section.labelKey)}
+            </Text>
+          )}
+          renderItem={({ item, index, section }) => (
             <Row
               meta={item}
-              index={index}
+              // The chip keeps counting across the headers (…7, 8 · "Yesterday"
+              // · 9, 10…) instead of restarting per group.
+              position={section.startIndex + index}
               time={formatRelativeTime(item.updatedAt, t)}
               untitledLabel={t('chat.conversationsUntitled')}
               deleteLabel={t('history.delete')}
               onDelete={setDoomed}
             />
           )}
+          // A contentContainer `gap` would space the headers off their own rows
+          // too — the separator keeps the 8px strictly between sibling rows.
+          ItemSeparatorComponent={RowSeparator}
           contentContainerStyle={{
             padding: 16,
-            gap: 8,
             paddingBottom: insets.bottom + 16
           }}
         />

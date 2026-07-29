@@ -1,0 +1,232 @@
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+)
+
+import {
+  useDemoConfig,
+  type CompactionRunRecord,
+  type ConfigSnapshot,
+  type DemoProvider
+} from '@/state/demoConfig'
+
+/** The minimum a snapshot must carry — every compaction field is optional. */
+function snapshot(compaction?: ConfigSnapshot['compaction']): ConfigSnapshot {
+  return {
+    capabilities: [],
+    mcpServers: [],
+    variables: [],
+    services: {
+      google: { status: 'inactive', projectId: '' },
+      github: [],
+      notion: [],
+      braveEnabled: false,
+      memesEnabled: false,
+      sttModel: 'base',
+      ttsVoice: 'af_bella',
+      ttsSpeed: '1.0',
+      screenshotMaxWidth: '1280',
+      screenshotFormat: 'jpeg'
+    },
+    channels: {
+      telegram: {
+        enabled: false,
+        allowedUserIds: '',
+        autoRefresh: true,
+        staleHours: '3',
+        verbose: false,
+        hideAutomations: true
+      },
+      whatsapp: {
+        enabled: false,
+        allowedNumbers: '',
+        autoRefresh: true,
+        staleHours: '3',
+        verbose: false,
+        hideAutomations: true
+      }
+    },
+    llm: {
+      brainProvider: 'anthropic',
+      brainModel: 'claude-opus-4-8',
+      chatMode: 'single',
+      localOnly: false,
+      restrictPowerfulModels: true,
+      local: { enabled: false, model: null },
+      providers: []
+    },
+    preferences: {
+      launchAtStartup: false,
+      bypassPermissions: false,
+      blockCredentials: false,
+      weekStartsOn: 1,
+      updatesEnabled: true
+    },
+    compaction
+  }
+}
+
+const DAILY_RUN: CompactionRunRecord = {
+  at: 1785070814089,
+  durationMs: 14041,
+  provider: 'deepseek',
+  model: 'deepseek-v4-pro',
+  inputTokens: 10000,
+  outputTokens: 637,
+  output: 'Here are the key long-term facts from today’s log…'
+}
+
+describe('demoConfig compaction', () => {
+  beforeEach(() => {
+    useDemoConfig.setState({
+      compactionDailyHour: 23,
+      compactionWeeklyDay: 0,
+      compactionWeeklyHour: 23,
+      compactionRuns: { daily: null, weekly: null }
+    })
+  })
+
+  it('has no runs until a snapshot brings some', () => {
+    expect(useDemoConfig.getState().compactionRuns).toEqual({ daily: null, weekly: null })
+  })
+
+  it('ingests the schedule and both run records', () => {
+    useDemoConfig.getState().applySnapshot(
+      snapshot({
+        dailyHour: 16,
+        weeklyDay: 5,
+        weeklyHour: 17,
+        runs: {
+          daily: DAILY_RUN,
+          weekly: {
+            at: 1784901600107,
+            durationMs: 21,
+            provider: null,
+            model: null,
+            inputTokens: null,
+            outputTokens: null,
+            output: 'Week in review: 291 logged turns…'
+          }
+        }
+      })
+    )
+    const state = useDemoConfig.getState()
+    expect(state.compactionDailyHour).toBe(16)
+    expect(state.compactionWeeklyDay).toBe(5)
+    expect(state.compactionWeeklyHour).toBe(17)
+    expect(state.compactionRuns.daily).toEqual(DAILY_RUN)
+    expect(state.compactionRuns.weekly?.model).toBeNull()
+  })
+
+  // A bundle published before the cards shipped has no `compaction` key: the
+  // schedule must fall back to the defaults rather than land on NaN.
+  it('falls back to the defaults when the snapshot predates compaction', () => {
+    useDemoConfig.getState().applySnapshot(snapshot())
+    const state = useDemoConfig.getState()
+    expect(state.compactionDailyHour).toBe(23)
+    expect(state.compactionWeeklyDay).toBe(0)
+    expect(state.compactionWeeklyHour).toBe(23)
+    expect(state.compactionRuns).toEqual({ daily: null, weekly: null })
+  })
+
+  it('keeps a job that has never run null while the other has a record', () => {
+    useDemoConfig.getState().applySnapshot(snapshot({ dailyHour: 4, runs: { daily: DAILY_RUN } }))
+    const state = useDemoConfig.getState()
+    expect(state.compactionDailyHour).toBe(4)
+    expect(state.compactionWeeklyHour).toBe(23)
+    expect(state.compactionRuns.daily?.at).toBe(DAILY_RUN.at)
+    expect(state.compactionRuns.weekly).toBeNull()
+  })
+})
+
+describe('demoConfig local engine', () => {
+  it('takes Ollama’s state and models folder from the snapshot', () => {
+    const base = snapshot()
+    useDemoConfig.getState().applySnapshot({
+      ...base,
+      llm: { ...base.llm, local: { enabled: true, model: 'gemma4:e2b', running: true } },
+      preferences: { ...base.preferences, ollamaModelsFolder: '/Users/demo/.ollama/models' }
+    })
+    const state = useDemoConfig.getState()
+    expect(state.ollamaRunning).toBe(true)
+    expect(state.localModel).toBe('gemma4:e2b')
+    expect(state.ollamaModelsFolder).toBe('/Users/demo/.ollama/models')
+  })
+
+  // A bundle published before the local card reported engine state carries no
+  // `running`: "not running" is the only honest reading of a probe nobody ran,
+  // and a stale true from a previous sync must not survive the new snapshot.
+  it('falls back to not running when the bundle predates the flag', () => {
+    useDemoConfig.setState({ ollamaRunning: true })
+    useDemoConfig.getState().applySnapshot(snapshot())
+    const state = useDemoConfig.getState()
+    expect(state.ollamaRunning).toBe(false)
+    expect(state.ollamaModelsFolder).toBe('')
+  })
+
+  it('offers every model the desktop has pulled', () => {
+    const base = snapshot()
+    useDemoConfig.getState().applySnapshot({
+      ...base,
+      llm: {
+        ...base.llm,
+        local: {
+          enabled: true,
+          model: 'gemma4:e2b',
+          running: true,
+          models: ['deepseek-r1:8b', 'gemma4:e2b', 'qwen3.5:9b']
+        }
+      }
+    })
+    expect(useDemoConfig.getState().localModels).toEqual([
+      'deepseek-r1:8b',
+      'gemma4:e2b',
+      'qwen3.5:9b'
+    ])
+  })
+
+  // A bundle from before the tag list shipped still has to open on something:
+  // the chosen model alone, never an empty sheet.
+  it('falls back to the chosen model when the bundle carries no list', () => {
+    const base = snapshot()
+    useDemoConfig.getState().applySnapshot({
+      ...base,
+      llm: { ...base.llm, local: { enabled: true, model: 'gemma4:e2b' } }
+    })
+    expect(useDemoConfig.getState().localModels).toEqual(['gemma4:e2b'])
+  })
+
+  // Engine down, nothing pulled, or a snapshot with neither: the picker has
+  // no options and the card says so instead of rendering an empty control.
+  it('offers nothing when there is no model and no list', () => {
+    useDemoConfig.setState({ localModels: ['stale:7b'] })
+    useDemoConfig.getState().applySnapshot(snapshot())
+    expect(useDemoConfig.getState().localModels).toEqual([])
+  })
+})
+
+/** A snapshot carrying one provider, with whatever key state the case needs. */
+function withProvider(provider: DemoProvider): ConfigSnapshot {
+  const base = snapshot()
+  return { ...base, llm: { ...base.llm, providers: [provider] } }
+}
+
+describe('demoConfig provider keys', () => {
+  it('carries the bundle key through to the Model panel', () => {
+    const apiKey = 'xai-zyThW2ITW8goiJ8sQhDuCfdA0jXk1pGKKEIvl9PnoS5Lsx'
+    useDemoConfig
+      .getState()
+      .applySnapshot(withProvider({ id: 'xai', model: 'grok-5', hasKey: true, apiKey, models: [] }))
+    expect(useDemoConfig.getState().providers[0]?.apiKey).toBe(apiKey)
+  })
+
+  // Bundles published before keys shipped carry hasKey but no apiKey — the
+  // field must render empty rather than the string "undefined".
+  it('leaves the key unset when the bundle predates it', () => {
+    useDemoConfig
+      .getState()
+      .applySnapshot(withProvider({ id: 'zai', model: 'glm-5', hasKey: true, models: [] }))
+    const [provider] = useDemoConfig.getState().providers
+    expect(provider?.hasKey).toBe(true)
+    expect(provider?.apiKey ?? '').toBe('')
+  })
+})

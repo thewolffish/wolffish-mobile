@@ -18,13 +18,26 @@ export type LiveStream = {
 
 export type ChatRuntimeState = {
   streams: Record<string, LiveStream>
+  /**
+   * Project a new chat will be filed under. A conversation does not exist
+   * until its first message, so a project picked before then has nothing to
+   * be stamped on yet — it waits here and the agent applies it at creation,
+   * the desktop's "new chat in this project" without the extra screen.
+   */
+  pendingProjectId: string | null
+  setPendingProject: (projectId: string | null) => void
   startStream: (conversationId: string, message: ConversationMessage) => void
   updateStream: (conversationId: string, message: ConversationMessage) => void
   endStream: (conversationId: string) => void
+  /** Drop every stream and pending binding — a demo refresh replaces the
+   *  conversations these point at (lib/demo/reset). */
+  reset: () => void
 }
 
 export const useChatRuntime = create<ChatRuntimeState>()((set) => ({
   streams: {},
+  pendingProjectId: null,
+  setPendingProject: (pendingProjectId) => set({ pendingProjectId }),
   startStream: (conversationId, message) =>
     set((state) => ({
       streams: { ...state.streams, [conversationId]: { message, status: 'streaming' } }
@@ -41,5 +54,6 @@ export const useChatRuntime = create<ChatRuntimeState>()((set) => ({
     set((state) => {
       const { [conversationId]: _gone, ...rest } = state.streams
       return { streams: rest }
-    })
+    }),
+  reset: () => set({ streams: {}, pendingProjectId: null })
 }))

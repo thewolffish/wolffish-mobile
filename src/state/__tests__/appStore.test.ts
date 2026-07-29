@@ -47,15 +47,40 @@ describe('appStore', () => {
       locale: null,
       demoMode: false,
       demoVersion: null,
-      verboseFeed: false
+      otaEnabled: true
     })
     // Functions (setters) must never be serialized.
     expect(Object.keys(lastPayload.state).sort()).toEqual([
       'demoMode',
       'demoVersion',
       'locale',
-      'theme',
-      'verboseFeed'
+      'otaEnabled',
+      'theme'
     ])
+  })
+
+  it('turns OTA updates off and on', () => {
+    expect(useAppStore.getState().otaEnabled).toBe(true)
+    useAppStore.getState().setOtaEnabled(false)
+    expect(useAppStore.getState().otaEnabled).toBe(false)
+    useAppStore.getState().setOtaEnabled(true)
+    expect(useAppStore.getState().otaEnabled).toBe(true)
+  })
+
+  it('migrates a v3 blob without re-running the v2 demo reset', () => {
+    const migrate = useAppStore.persist.getOptions().migrate
+    const stored = {
+      theme: 'dark',
+      locale: 'ar',
+      demoMode: true,
+      demoVersion: 'abc123'
+    }
+    // v4 only added otaEnabled. Falling through to the v3 branch here would
+    // null demoVersion and send a device that already holds the dataset back
+    // through the whole download.
+    expect(migrate?.({ ...stored }, 3)).toMatchObject({ demoVersion: 'abc123', demoMode: true })
+    // A pre-v3 blob still loses the retired flag and re-imports.
+    expect(migrate?.({ ...stored, demoImported: true }, 2)).toMatchObject({ demoVersion: null })
+    expect(migrate?.({ ...stored, demoImported: true }, 2)).not.toHaveProperty('demoImported')
   })
 })

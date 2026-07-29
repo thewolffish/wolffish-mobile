@@ -10,7 +10,7 @@ import { Image } from 'expo-image'
 import { useVideoPlayer, VideoView } from 'expo-video'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ActivityIndicator, Pressable, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, Text, useWindowDimensions, View } from 'react-native'
 import { IconAction, MissingCard, shareFile, type Align } from './FileChrome'
 
 /**
@@ -25,6 +25,11 @@ import { IconAction, MissingCard, shareFile, type Align } from './FileChrome'
 
 const THUMB_WIDTH = 260
 const THUMB_HEIGHT = 200
+
+/** Shape of the video card until the track's natural size lands — desktop's loading aspect. */
+const DEFAULT_VIDEO_ASPECT = 16 / 9
+/** The mobile reading of the desktop player's `max-height: 60vh`. */
+const VIDEO_MAX_HEIGHT_FRACTION = 0.6
 
 export function ImageBlock({
   relPath,
@@ -129,15 +134,24 @@ export function VideoBlock({
   // time, not at classify time — the only honest signal is the player's own
   // status, so a dead black box degrades to the openable file card.
   const { status } = useEvent(player, 'statusChange', { status: player.status })
+  // The natural size arrives with the track, not with the source, so the card
+  // holds a 16/9 shape until then and re-lays out once the decoder reports in.
+  const { videoTrack } = useEvent(player, 'videoTrackChange', { videoTrack: player.videoTrack })
+  const size = videoTrack?.size
+  const aspectRatio = size?.width && size?.height ? size.width / size.height : DEFAULT_VIDEO_ASPECT
+  const { height: windowHeight } = useWindowDimensions()
   const name = displayName ?? fileName(relPath)
 
   if (loading) {
     return (
       <View
         className={cn(
-          'bg-surface border-border h-44 w-64 items-center justify-center rounded-2xl border',
+          'bg-surface border-border w-[85%] items-center justify-center rounded-2xl border',
           align === 'end' ? 'self-end' : 'self-start'
         )}
+        // Same footprint the loaded card starts at, so resolving the cache
+        // doesn't jog the transcript sideways.
+        style={{ aspectRatio: DEFAULT_VIDEO_ASPECT }}
       >
         <ActivityIndicator />
       </View>
@@ -154,10 +168,21 @@ export function VideoBlock({
       )}
     >
       {/* Native controls carry play/scrub/fullscreen — the platform's own
-          video affordances, and the mobile answer to the desktop <video>. */}
+          video affordances, and the mobile answer to the desktop <video>.
+          The card's width is the constraint; the video's own ratio sets the
+          height, so a landscape clip carries no letterbox bars. */}
       <VideoView
         player={player}
-        style={{ width: '100%', height: 200, backgroundColor: 'black' }}
+        style={{
+          width: '100%',
+          aspectRatio,
+          maxHeight: windowHeight * VIDEO_MAX_HEIGHT_FRACTION,
+          // A portrait clip hits the height cap, and Yoga then narrows the view
+          // to keep the ratio — centred, so the leftover sits evenly either side
+          // instead of pushing the video against the card's leading edge.
+          alignSelf: 'center',
+          backgroundColor: 'black'
+        }}
         contentFit="contain"
         nativeControls
         fullscreenOptions={{ enable: true }}

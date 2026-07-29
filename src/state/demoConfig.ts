@@ -24,16 +24,63 @@ export type DemoProvider = {
   id: string
   model: string | null
   hasKey: boolean
+  /**
+   * The key the Model panel renders. Always synthetic — the snapshot builder
+   * throws the workspace's real key away and mints a same-shaped fake
+   * (scripts/demo/provider-keys.mjs). Null when the provider has no key, and
+   * absent in bundles published before keys shipped.
+   */
+  apiKey?: string | null
   models: string[]
 }
 
 export type ServiceConnection = { label: string; detail: string }
+
+/**
+ * A project — the desktop's Project (main/projects.ts) minus the file bytes:
+ * a maintained set of instructions conversations are spawned from. Carried in
+ * the config snapshot because it is workspace state, not conversation state;
+ * conversations bind to one by the `projectId` stamped on their file.
+ */
+export type DemoProject = {
+  id: string
+  title: string
+  /** Emoji icon, exactly as the desktop stores it. */
+  icon: string
+  instructions: string
+  files: Array<{ path: string; name: string }>
+  createdAt: number
+  updatedAt: number
+}
 
 export type ServiceStatus = {
   /** i18n key suffix under settings.services.items */
   key: string
   connected: boolean
   connections: ServiceConnection[]
+}
+
+/**
+ * Last completed run of a compaction job — the desktop's CompactionRunRecord
+ * (main/runtime/brainstem.ts) verbatim. Skipped fires never overwrite it, so
+ * the card always describes a run that actually produced output.
+ */
+export type CompactionRunRecord = {
+  /** Epoch ms when the run finished. */
+  at: number
+  durationMs: number
+  /** Null for the weekly digest — that pass makes no LLM call. */
+  provider: string | null
+  model: string | null
+  inputTokens: number | null
+  outputTokens: number | null
+  /** The run's raw output: daily summary text / weekly digest line. */
+  output: string
+}
+
+export type CompactionRuns = {
+  daily: CompactionRunRecord | null
+  weekly: CompactionRunRecord | null
 }
 
 /** Model catalog for the demo — the models actually seen in the imported data. */
@@ -50,6 +97,38 @@ export const DEMO_MODELS: Array<{ provider: string; model: string }> = [
 ]
 
 export const THINKING_LEVELS: ThinkingLevel[] = ['off', 'on', 'high', 'max']
+
+/** Model-name prefixes → provider, for readings that predate provider stamps. */
+const MODEL_PREFIXES: Array<[string, string]> = [
+  ['claude', 'anthropic'],
+  ['gpt', 'openai'],
+  ['o1', 'openai'],
+  ['deepseek', 'deepseek'],
+  ['kimi', 'kimi'],
+  ['glm', 'zai'],
+  ['grok', 'xai'],
+  ['qwen', 'qwen'],
+  ['step', 'stepfun'],
+  ['minimax', 'minimax'],
+  ['mimo', 'mimo'],
+  ['gemma', 'ollama'],
+  ['llama', 'ollama'],
+  ['mistral', 'ollama'],
+  ['phi', 'ollama']
+]
+
+/**
+ * Best-effort provider for a model name. The demo catalog answers first; the
+ * imported dataset also carries models it never listed (kimi-k3, glm-5.2), so
+ * the prefix table catches those rather than dropping the brand mark.
+ */
+export function providerForModel(model: string | null | undefined): string | null {
+  if (!model) return null
+  const known = DEMO_MODELS.find((entry) => entry.model === model)
+  if (known) return known.provider === 'local' ? 'ollama' : known.provider
+  const lower = model.toLowerCase()
+  return MODEL_PREFIXES.find(([prefix]) => lower.startsWith(prefix))?.[1] ?? null
+}
 
 const READ_ONLY_SERVICES: ServiceStatus[] = [
   {
@@ -70,7 +149,7 @@ const READ_ONLY_SERVICES: ServiceStatus[] = [
   {
     key: 'browserExtension',
     connected: false,
-    connections: [{ label: 'Chrome extension', detail: 'port 8477' }]
+    connections: [{ label: 'Chrome extension', detail: 'port 23151' }]
   },
   {
     key: 'computerUse',
@@ -107,17 +186,31 @@ export type DemoConfigValues = {
   localOnly: boolean
   localEnabled: boolean
   localModel: string
+  /**
+   * Every model pulled on the desktop, from its own /api/tags at snapshot
+   * time — the options `localModel` may be set to. Pulling a new one is the
+   * desktop's act (it holds the blobs), so this device picks from the list
+   * and never adds to it.
+   */
+  localModels: string[]
+  /**
+   * Where Ollama keeps its blobs — the desktop's top-level field. Display
+   * only: the folder is the desktop's to pick, so this device reports the
+   * path it scans and never edits it.
+   */
+  ollamaModelsFolder: string
   providers: DemoProvider[]
   thinkingMode: ThinkingLevel
-  restrictPowerfulModels: boolean
-  contextOptimization: boolean
   // --- preferences ---
   launchAtStartup: boolean
+  restrictPowerfulModels: boolean
   bypassPermissions: boolean
   blockCredentials: boolean
   weekStartsOn: 0 | 1
   updatesEnabled: boolean
   // --- channels ---
+  /** inapp.verbose — what the DESKTOP feed displays, not this device's. */
+  inappVerbose: boolean
   telegramEnabled: boolean
   telegramAllowedUserIds: string
   telegramVerbose: boolean
@@ -138,7 +231,12 @@ export type DemoConfigValues = {
   ttsSpeed: string
   screenshotMaxWidth: string
   screenshotFormat: 'jpeg' | 'png'
-  // --- hippocampus ---
+  /** browserExtension.* — the pairing port and its own screenshot settings. */
+  browserExtensionPort: string
+  browserScreenshotMaxWidth: string
+  browserScreenshotFormat: 'jpeg' | 'png'
+  browserScreenshotQuality: string
+  // --- knowledge ---
   compactionDailyHour: number
   compactionWeeklyDay: number
   compactionWeeklyHour: number
@@ -146,6 +244,22 @@ export type DemoConfigValues = {
   capabilities: Record<string, boolean>
   mcpServers: Record<string, boolean>
   variables: DemoVariable[]
+  projects: DemoProject[]
+}
+
+/**
+ * Keys for the pre-snapshot fallback providers, minted by
+ * scripts/demo/provider-keys.mjs so they match the bundle's own values byte
+ * for byte. Fake keys for a fake workspace — they authenticate nothing.
+ */
+const FALLBACK_API_KEYS: Record<string, string> = {
+  anthropic: 'sk-ant-api03-0oxuf8dlc1MWVMZUn1in',
+  openai: 'sk-proj-eEQ9Qy-tUHqdly572C7wmxwbAq',
+  deepseek: 'sk-qwir4ejiom8tcj0inl7rp88vi9xmb1ib',
+  kimi: 'sk-oNFw9yjIg8hiBbrEjFvr0ODfLNCnCp',
+  zai: '7e701db771ed41f7919b.qLDZdestBoEj',
+  xai: 'xai-zyThW2ITW8goiJ8sQhDuCfdA0jXk1p',
+  qwen: 'sk-53409f3702e74ff16b4cce5d2eba8bc3'
 }
 
 const DEFAULTS: DemoConfigValues = {
@@ -155,20 +269,23 @@ const DEFAULTS: DemoConfigValues = {
   localOnly: false,
   localEnabled: true,
   localModel: 'gemma4:e2b',
+  localModels: ['gemma4:e2b'],
+  ollamaModelsFolder: '',
   providers: DEMO_MODELS.filter((entry) => entry.provider !== 'local').map((entry) => ({
     id: entry.provider,
     model: entry.model,
     hasKey: true,
+    apiKey: FALLBACK_API_KEYS[entry.provider] ?? null,
     models: [entry.model]
   })),
   thinkingMode: 'high',
-  restrictPowerfulModels: true,
-  contextOptimization: true,
   launchAtStartup: false,
+  restrictPowerfulModels: true,
   bypassPermissions: true,
   blockCredentials: false,
   weekStartsOn: 1,
   updatesEnabled: true,
+  inappVerbose: false,
   telegramEnabled: true,
   telegramAllowedUserIds: '429753549',
   telegramVerbose: false,
@@ -188,6 +305,10 @@ const DEFAULTS: DemoConfigValues = {
   ttsSpeed: '1.0',
   screenshotMaxWidth: '1280',
   screenshotFormat: 'jpeg',
+  browserExtensionPort: '23151',
+  browserScreenshotMaxWidth: '1280',
+  browserScreenshotFormat: 'jpeg',
+  browserScreenshotQuality: '80',
   compactionDailyHour: 23,
   compactionWeeklyDay: 0,
   compactionWeeklyHour: 23,
@@ -197,14 +318,41 @@ const DEFAULTS: DemoConfigValues = {
     { name: 'HOME_CITY', value: 'Riyadh', sensitive: false },
     { name: 'WORK_HOURS', value: '9:00-18:00', sensitive: false },
     { name: 'NOTION_FINANCE_DB', value: 'a1b2c3d4-…', sensitive: true }
-  ]
+  ],
+  // Filled by the config snapshot on demo entry; empty until then.
+  projects: []
+}
+
+/**
+ * The paired desktop app itself — what is running Wolffish on the other end.
+ * Every field is null until a snapshot lands: this device knows nothing about
+ * a desktop it has never synced with, and a plausible-looking placeholder
+ * version would be worse than an em dash.
+ */
+export type DesktopInfo = {
+  /** The desktop app's version, e.g. '1.0.232'. */
+  version: string | null
+  /** Where it runs — 'macOS', 'Windows', 'Linux'. */
+  platform: string | null
+  /** ISO timestamp the snapshot was taken: how fresh this mirror is. */
+  syncedAt: string | null
 }
 
 /** The real-workspace snapshot the demo pipeline emits (secrets excluded). */
 export type ConfigSnapshot = {
-  capabilities: Array<{ name: string; description: string; enabled: boolean; official: boolean }>
+  capabilities: Array<{
+    name: string
+    description: string
+    enabled: boolean
+    official: boolean
+    /** Locked built-in (desktop's LOCKED_CAPABILITIES). Absent in bundles
+     *  published before the capability badges shipped. */
+    core?: boolean
+  }>
   mcpServers: Array<{ name: string; enabled: boolean }>
   variables: DemoVariable[]
+  /** Absent in bundles published before projects shipped. */
+  projects?: DemoProject[]
   services: {
     google: { status: string; projectId: string }
     github: ServiceConnection[]
@@ -216,8 +364,17 @@ export type ConfigSnapshot = {
     ttsSpeed: string
     screenshotMaxWidth: string
     screenshotFormat: string
+    /** Absent in bundles published before the extension settings shipped. */
+    browserExtension?: {
+      port?: number
+      screenshotMaxWidth?: number
+      screenshotFormat?: string
+      screenshotQuality?: number
+    }
   }
   channels: {
+    /** Absent in bundles published before the in-app feed setting shipped. */
+    inapp?: { verbose?: boolean }
     telegram: {
       enabled: boolean
       allowedUserIds: string
@@ -241,7 +398,22 @@ export type ConfigSnapshot = {
     chatMode: ChatMode
     localOnly: boolean
     restrictPowerfulModels: boolean
-    local: { enabled: boolean; model: string | null }
+    local: {
+      enabled: boolean
+      model: string | null
+      /**
+       * Did Ollama answer when the desktop took this snapshot? Absent in
+       * bundles published before the local card showed engine state — those
+       * fall back to "not running" rather than claiming a link nobody probed.
+       */
+      running?: boolean
+      /**
+       * The engine's installed models. Absent in bundles published before the
+       * local picker shipped — those fall back to the chosen model alone,
+       * never to an empty sheet.
+       */
+      models?: string[]
+    }
     providers: DemoProvider[]
   }
   preferences: {
@@ -250,6 +422,27 @@ export type ConfigSnapshot = {
     blockCredentials: boolean
     weekStartsOn: 0 | 1
     updatesEnabled: boolean
+    /** Absent in bundles published before the advanced controls shipped. */
+    ollamaModelsFolder?: string
+  }
+  /**
+   * The desktop app on the other end. Absent in bundles published before the
+   * Updates screen's desktop card shipped.
+   */
+  desktop?: {
+    version?: string | null
+    platform?: string | null
+    syncedAt?: string | null
+  }
+  /**
+   * Compaction schedule + the brainstem's last-run records. Absent in bundles
+   * published before the last-run cards shipped, so every field falls back.
+   */
+  compaction?: {
+    dailyHour?: number
+    weeklyDay?: number
+    weeklyHour?: number
+    runs?: { daily?: CompactionRunRecord | null; weekly?: CompactionRunRecord | null }
   }
 }
 
@@ -257,51 +450,114 @@ export type DemoConfigState = DemoConfigValues & {
   /** Read-only service surface state (desktop-managed). */
   services: ServiceStatus[]
   /** Capability descriptions from the real workspace's SKILL.md files. */
-  capabilityInfo: Record<string, { description: string; official: boolean }>
+  capabilityInfo: Record<string, { description: string; official: boolean; core: boolean }>
+  /**
+   * Last completed daily/weekly compaction — desktop-managed, display only.
+   * Not part of DemoConfigValues: nothing here is editable on this device.
+   */
+  compactionRuns: CompactionRuns
+  /** The paired desktop app's own version and platform — display only. */
+  desktop: DesktopInfo
+  /**
+   * Was Ollama answering on the desktop at last sync? Desktop-managed like
+   * `desktop`: this device cannot reach that machine's localhost, so the
+   * engine's state travels in the snapshot instead of being probed here.
+   */
+  ollamaRunning: boolean
   /** The one write path — updates a single flat key. */
   setValue: <K extends keyof DemoConfigValues>(key: K, value: DemoConfigValues[K]) => void
   /** Toggle one entry inside a Record<string, boolean> collection. */
   setMapEntry: (key: 'capabilities' | 'mcpServers', name: string, enabled: boolean) => void
   /** Ingest the real-workspace snapshot — the demo's "sync" moment. */
   applySnapshot: (snapshot: ConfigSnapshot) => void
+  /**
+   * Back to factory defaults, including this device's own edits. Used when a
+   * republished bundle replaces the dataset (lib/demo/reset): applySnapshot
+   * only writes the keys a snapshot carries, so without this a value the new
+   * bundle dropped — a capability, a project, a variable, a toggle flipped on
+   * this phone — would survive the refresh and describe a workspace that no
+   * longer exists.
+   */
+  reset: () => void
+}
+
+/** The store's initial, pre-snapshot shape — DEFAULTS plus what a snapshot fills. */
+const INITIAL_STATE = {
+  ...DEFAULTS,
+  services: READ_ONLY_SERVICES,
+  capabilityInfo: {} as DemoConfigState['capabilityInfo'],
+  compactionRuns: { daily: null, weekly: null } as CompactionRuns,
+  desktop: { version: null, platform: null, syncedAt: null } as DesktopInfo,
+  ollamaRunning: false
 }
 
 export const useDemoConfig = create<DemoConfigState>()(
   persist(
     (set) => ({
-      ...DEFAULTS,
-      services: READ_ONLY_SERVICES,
-      capabilityInfo: {},
+      ...INITIAL_STATE,
+      reset: () => set(() => INITIAL_STATE),
       setValue: (key, value) => set({ [key]: value } as Partial<DemoConfigState>),
       setMapEntry: (key, name, enabled) =>
         set((state) => ({ [key]: { ...state[key], [name]: enabled } }) as Partial<DemoConfigState>),
       applySnapshot: (snapshot) =>
         set(() => {
           const capabilities: Record<string, boolean> = {}
-          const capabilityInfo: Record<string, { description: string; official: boolean }> = {}
+          const capabilityInfo: DemoConfigState['capabilityInfo'] = {}
           for (const capability of snapshot.capabilities) {
-            capabilities[capability.name] = capability.enabled
+            const core = capability.core === true
+            // A locked capability is on by definition upstream — never let a
+            // stale snapshot entry render one as inactive with no way back.
+            capabilities[capability.name] = core || capability.enabled
             capabilityInfo[capability.name] = {
               description: capability.description,
-              official: capability.official
+              official: capability.official,
+              core
             }
           }
           const mcpServers: Record<string, boolean> = {}
           for (const server of snapshot.mcpServers) mcpServers[server.name] = server.enabled
           const { services } = snapshot
+          const compaction = snapshot.compaction
+          // The picker's options. A bundle from before the tag list shipped
+          // has only the chosen model to offer, and one option beats a sheet
+          // that opens on nothing.
+          const localModel = snapshot.llm.local?.model ?? ''
+          const localModels = snapshot.llm.local?.models?.length
+            ? snapshot.llm.local.models
+            : localModel
+              ? [localModel]
+              : []
           return {
             capabilities,
             capabilityInfo,
             mcpServers,
+            compactionDailyHour: compaction?.dailyHour ?? DEFAULTS.compactionDailyHour,
+            compactionWeeklyDay: compaction?.weeklyDay ?? DEFAULTS.compactionWeeklyDay,
+            compactionWeeklyHour: compaction?.weeklyHour ?? DEFAULTS.compactionWeeklyHour,
+            compactionRuns: {
+              daily: compaction?.runs?.daily ?? null,
+              weekly: compaction?.runs?.weekly ?? null
+            },
+            desktop: {
+              version: snapshot.desktop?.version ?? null,
+              platform: snapshot.desktop?.platform ?? null,
+              syncedAt: snapshot.desktop?.syncedAt ?? null
+            },
             variables: snapshot.variables,
+            projects: snapshot.projects ?? [],
             brainProvider: snapshot.llm.brainProvider,
             brainModel: snapshot.llm.brainModel,
             chatMode: snapshot.llm.chatMode,
             localOnly: snapshot.llm.localOnly,
             localEnabled: snapshot.llm.local?.enabled ?? false,
-            localModel: snapshot.llm.local?.model ?? '',
+            localModel,
+            localModels,
+            ollamaRunning: snapshot.llm.local?.running === true,
+            ollamaModelsFolder:
+              snapshot.preferences.ollamaModelsFolder ?? DEFAULTS.ollamaModelsFolder,
             providers: snapshot.llm.providers ?? [],
             restrictPowerfulModels: snapshot.llm.restrictPowerfulModels,
+            inappVerbose: snapshot.channels.inapp?.verbose ?? DEFAULTS.inappVerbose,
             launchAtStartup: snapshot.preferences.launchAtStartup,
             bypassPermissions: snapshot.preferences.bypassPermissions,
             blockCredentials: snapshot.preferences.blockCredentials,
@@ -326,6 +582,11 @@ export const useDemoConfig = create<DemoConfigState>()(
             ttsSpeed: services.ttsSpeed,
             screenshotMaxWidth: services.screenshotMaxWidth,
             screenshotFormat: services.screenshotFormat === 'png' ? 'png' : 'jpeg',
+            browserExtensionPort: `${services.browserExtension?.port ?? DEFAULTS.browserExtensionPort}`,
+            browserScreenshotMaxWidth: `${services.browserExtension?.screenshotMaxWidth ?? DEFAULTS.browserScreenshotMaxWidth}`,
+            browserScreenshotFormat:
+              services.browserExtension?.screenshotFormat === 'png' ? 'png' : 'jpeg',
+            browserScreenshotQuality: `${services.browserExtension?.screenshotQuality ?? DEFAULTS.browserScreenshotQuality}`,
             services: [
               {
                 key: 'google',
@@ -347,7 +608,12 @@ export const useDemoConfig = create<DemoConfigState>()(
               {
                 key: 'browserExtension',
                 connected: false,
-                connections: [{ label: 'Chrome extension', detail: '' }]
+                connections: [
+                  {
+                    label: 'Chrome extension',
+                    detail: `port ${services.browserExtension?.port ?? DEFAULTS.browserExtensionPort}`
+                  }
+                ]
               },
               { key: 'computerUse', connected: true, connections: [] }
             ]
@@ -362,7 +628,12 @@ export const useDemoConfig = create<DemoConfigState>()(
       // Editable values + snapshot-derived metadata persist; functions and
       // the rebuilt-on-apply services array do not.
       partialize: (state) => {
-        const persisted: Record<string, unknown> = { capabilityInfo: state.capabilityInfo }
+        const persisted: Record<string, unknown> = {
+          capabilityInfo: state.capabilityInfo,
+          compactionRuns: state.compactionRuns,
+          desktop: state.desktop,
+          ollamaRunning: state.ollamaRunning
+        }
         for (const key of Object.keys(DEFAULTS) as Array<keyof DemoConfigValues>) {
           persisted[key] = state[key]
         }
@@ -382,4 +653,25 @@ export function setConfigValue<K extends keyof DemoConfigValues>(
   value: DemoConfigValues[K]
 ): void {
   useDemoConfig.getState().setValue(key, value)
+}
+
+/** The last daily/weekly compaction runs — null until one has actually run. */
+export function useCompactionRuns(): CompactionRuns {
+  return useDemoConfig((state) => state.compactionRuns)
+}
+
+/** The paired desktop app — all-null until a config snapshot has landed. */
+export function useDesktopInfo(): DesktopInfo {
+  return useDemoConfig((state) => state.desktop)
+}
+
+/**
+ * Resolve a conversation's `projectId` to the project it belongs to. Returns
+ * null for an unbound conversation, and for an id whose project the snapshot
+ * no longer carries (deleted upstream) — callers fall back to the raw id.
+ */
+export function useProject(projectId: string | null | undefined): DemoProject | null {
+  return useDemoConfig((state) =>
+    projectId ? (state.projects.find((project) => project.id === projectId) ?? null) : null
+  )
 }

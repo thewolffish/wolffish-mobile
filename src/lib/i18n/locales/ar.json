@@ -30,32 +30,28 @@
     "title": "الإعدادات",
     "verbose": {
       "label": "نتائج المهام المفصّلة",
-      "description": "عرض كل استدعاء أداة وكل خطوة في المحادثة، إضافةً إلى شارة النموذج/المزوّد. عند الإيقاف (الافتراضي) تبقى التغذية نظيفة — ردود الوكيل والملفات التي يرسلها فقط."
+      "description": "عرض كل استدعاء أداة وكل خطوة."
     },
     "tabs": {
       "model": "النموذج",
       "channels": "القنوات",
       "services": "الخدمات",
       "variables": "المتغيرات",
-      "hippocampus": "الحُصين",
+      "knowledge": "المعرفة",
       "usage": "الاستخدام",
       "data": "البيانات",
       "updates": "التحديثات",
       "appearance": "المظهر",
       "preferences": "التفضيلات",
       "mcp": "MCP",
-      "cellebrum": "المخيخ"
+      "capabilities": "القدرات"
     },
-    "appearanceSubtitle": "شكل وولف فيش — السمة واللغة.",
-    "verboseState": {
-      "on": "التفصيل مفعّل",
-      "off": "تغذية نظيفة"
-    },
+    "appearanceSubtitle": "السمة واللغة.",
     "chatModes": {
       "single": "فردي",
       "workflow": "سير عمل",
-      "singleDescription": "نموذج واحد يجيب مباشرة — للأسئلة اليومية.",
-      "workflowDescription": "وكلاء متعددون يخططون ويتحققون — للمهام المعقدة."
+      "singleDescription": "نموذج واحد يجيب مباشرة.",
+      "workflowDescription": "وكلاء متعددون يخططون ويتحققون."
     },
     "thinking": {
       "off": "إيقاف",
@@ -64,18 +60,14 @@
       "max": "أقصى"
     },
     "model": {
-      "subtitle": "الدماغ — أي نموذج يجيب، وكم يفكر.",
+      "subtitle": "أي نموذج يجيب، وكم يفكر.",
       "brainTitle": "الدماغ",
       "brainLabel": "النموذج",
       "localOnly": "محلي فقط",
-      "localOnlyDescription": "تجاوز مزودي السحابة والإجابة بالنموذج المحلي.",
+      "localOnlyDescription": "الإجابة بالنموذج المحلي.",
       "behaviorTitle": "السلوك",
       "modeLabel": "وضع المحادثة",
       "thinkingLabel": "التفكير",
-      "restrictPowerful": "تقييد النماذج القوية",
-      "restrictPowerfulDescription": "إخفاء النماذج المحلية التي تتطلب ذاكرة أكبر من المتاح.",
-      "contextOptimization": "تحسين السياق",
-      "contextOptimizationDescription": "تخزين المطالبات مؤقتاً واقتطاع نتائج الأدوات لتوسيع نافذة السياق.",
       "localTitle": "محلي",
       "cloudTitle": "سحابي",
       "noModel": "لا يوجد نموذج",
@@ -85,28 +77,34 @@
       "noKey": "لا يوجد مفتاح",
       "testConnection": "اختبار الاتصال",
       "testSuccess": "تم التحقق من الاتصال",
-      "desktopNote": "تغيير المفاتيح واختبارات الاتصال تُنفذ على الحاسوب — التطبيق يرسل الأمر فقط.",
-      "modelsCount": "{{count}} نموذجاً"
+      "desktopNote": "المفاتيح والاختبارات على الحاسوب.",
+      "modelsCount": "{{count}} نموذجاً",
+      "ollamaRunning": "يعمل",
+      "ollamaNotRunning": "غير مُشغَّل",
+      "ollamaModelsFolder": "مجلد النماذج",
+      "localNote": "أولاما هو المشغّل الذي تُجيب منه النماذج المحلية. يعمل على الحاسوب، وتختار مما هو مثبّت عليه.",
+      "installedModel": "النموذج المثبّت",
+      "noModelsInstalled": "لا توجد نماذج مثبّتة على الحاسوب."
     },
     "channels": {
-      "subtitle": "أين يتحدث وولف فيش معك. خدمات القنوات تعمل على الحاسوب.",
+      "subtitle": "أين يتحدث وولفيش معك.",
       "inapp": "داخل التطبيق",
       "enabled": "مفعّل",
-      "telegramDescription": "جسر بوت تيليجرام — يعمل على حاسوبك.",
-      "whatsappDescription": "جسر واتساب — يعمل على حاسوبك.",
+      "telegramDescription": "الجسر يعمل على حاسوبك.",
+      "whatsappDescription": "الجسر يعمل على حاسوبك.",
       "allowedUserIds": "معرّفات المستخدمين المسموح بهم",
       "allowedNumbers": "أرقام الهواتف المسموح بها",
       "autoRefresh": "تحديث تلقائي",
-      "autoRefreshDescription": "استئناف محادثات القناة الراكدة تلقائياً.",
+      "autoRefreshDescription": "استئناف المحادثات الراكدة.",
       "staleHours": "تعتبر راكدة بعد (ساعات)",
       "hideAutomations": "إخفاء الأتمتة",
-      "hideAutomationsDescription": "إبقاء التشغيلات المجدولة خارج استئناف القناة."
+      "hideAutomationsDescription": "تجاهل التشغيلات المجدولة."
     },
     "services": {
-      "subtitle": "الاتصالات التي يستخدمها الوكيل. تُدار على الحاسوب — تُعرض هنا للقراءة فقط.",
+      "subtitle": "الاتصالات التي يستخدمها الوكيل.",
       "connected": "متصل",
       "notConnected": "غير متصل",
-      "desktopOnly": "الاتصال والاختبار وبيانات الاعتماد في تطبيق سطح المكتب.",
+      "desktopOnly": "تُدار من تطبيق سطح المكتب.",
       "desktopOnlyShort": "يُدار من الحاسوب",
       "items": {
         "google": "Google Workspace",
@@ -130,27 +128,62 @@
         "normal": "عادي",
         "fast": "سريع",
         "veryFast": "سريع جداً"
+      },
+      "secretPlaceholder": "يُضبط من الحاسوب",
+      "secretNote": "بيانات الاعتماد تبقى في حافظة مفاتيح الحاسوب — الكتابة هنا لا تُرسلها.",
+      "voiceLang": {
+        "us": "إنجليزية (أمريكية)",
+        "uk": "إنجليزية (بريطانية)"
+      },
+      "brave": {
+        "description": "البحث عبر Brave أولاً، وDuckDuckGo احتياطاً.",
+        "apiKey": "مفتاح Brave"
+      },
+      "memes": {
+        "description": "memegen.link لا يحتاج شيئاً؛ Imgflip وGiphy يحتاجان بيانات اعتماد.",
+        "imgflipUsername": "اسم مستخدم Imgflip",
+        "imgflipPassword": "كلمة مرور Imgflip",
+        "giphyKey": "مفتاح Giphy"
+      },
+      "stt": {
+        "hint": "النماذج الأكبر أدق في النسخ وأبطأ في التشغيل."
+      },
+      "tts": {
+        "hint": "Kokoro يعمل محلياً — الأصوات بالإنجليزية فقط."
+      },
+      "browserExtension": {
+        "port": "منفذ الاقتران",
+        "quality": "جودة JPEG (1-100)",
+        "pairingNote": "تثبيت الامتداد واقترانه يتمّان على الحاسوب."
       }
     },
     "variables": {
-      "subtitle": "قيم مسماة يستخدمها الوكيل في المطالبات. الحساسة تبقى مخفية.",
+      "subtitle": "قيم مسماة للمطالبات.",
       "add": "إضافة متغير",
       "delete": "حذف المتغير",
       "sensitive": "حساس",
+      "plaintext": "مكشوف",
       "namePlaceholder": "الاسم",
       "valuePlaceholder": "القيمة",
       "empty": "لا توجد متغيرات بعد."
     },
-    "hippocampus": {
-      "subtitle": "صيانة الذاكرة — متى يعمل الضغط والدمج.",
+    "knowledge": {
+      "subtitle": "متى تعمل صيانة الذاكرة.",
       "dailyTitle": "الضغط اليومي",
       "dailyHour": "الساعة",
       "weeklyTitle": "الدمج الأسبوعي",
       "weeklyDay": "اليوم",
-      "weeklyHour": "الساعة"
+      "weeklyHour": "الساعة",
+      "lastRun": {
+        "dailyTitle": "آخر تشغيل يومي",
+        "weeklyTitle": "آخر تشغيل أسبوعي",
+        "ranAt": "تم التشغيل {{time}}",
+        "took": "استغرق {{duration}}",
+        "tokens": "{{input}} توكن إدخال · {{output}} توكن إخراج"
+      }
     },
     "usage": {
-      "subtitle": "محسوب محلياً من المحادثات المستوردة.",
+      "subtitle": "محسوب من محادثاتك محلياً.",
       "conversations": "المحادثات",
       "messages": "الرسائل",
       "turns": "الجولات",
@@ -169,7 +202,7 @@
       }
     },
     "data": {
-      "subtitle": "ما يخزنه وولف فيش على هذا الجهاز.",
+      "subtitle": "ما يُخزَّن على هذا الجهاز.",
       "storageTitle": "التخزين",
       "cachedMedia": "الوسائط المخزنة",
       "cachedFiles": "الملفات المخزنة",
@@ -180,17 +213,36 @@
       "released": "حُرر {{count}} ملفاً — تُنزّل مجدداً عند الفتح"
     },
     "updates": {
-      "subtitle": "كيف يحدّث هذا التطبيق نفسه.",
+      "subtitle": "كيف يبقى هذا التطبيق وسطح مكتبك محدَّثين.",
+      "thisAppTitle": "هذا التطبيق",
+      "thisAppDescription": "تطبيق وولفيش الذي يعمل على هذا الجهاز.",
       "autoLabel": "التحديثات التلقائية",
-      "autoDescription": "تنزيل تحديثات OTA في الخلفية وتطبيقها عند الإقلاع التالي.",
-      "aboutTitle": "هذا الإصدار",
+      "autoDescription": "البحث عن تحديثات لهذا التطبيق وتنزيلها، ثم عرض إعادة التشغيل عليها. وإطفاؤها يعني ألّا يتغيّر هذا التطبيق إلا حين تحدّثه من App Store.",
+      "checkManual": "التحقّق من التحديثات",
+      "checkManualDescription": "ابحث عن نسخة جديدة الآن، حتى مع إطفاء التحديثات التلقائية.",
+      "check": "تحقّق",
+      "checking": "جارٍ التحقّق…",
+      "upToDate": "محدَّث",
+      "checkFailed": "تعذّر التحقّق من التحديثات",
+      "checkUnavailable": "هذه النسخة لا تتلقّى تحديثات عبر الهواء.",
       "version": "الإصدار",
       "channel": "الحزمة",
       "embedded": "إصدار المتجر",
       "ota": "تحديث OTA",
       "runtime": "بيئة التشغيل",
       "updateId": "معرّف التحديث",
-      "publishedAt": "تاريخ النشر"
+      "publishedAt": "تاريخ النشر",
+      "desktopTitle": "تطبيق سطح المكتب",
+      "desktopDescription": "جهاز سطح المكتب المقترن بهذا الجهاز.",
+      "platform": "النظام",
+      "syncedAt": "آخر مزامنة",
+      "desktopAutoLabel": "التحديثات التلقائية",
+      "desktopAutoDescription": "هل يحدّث تطبيقُ سطح المكتب نفسَه. وتغييرها هنا يغيّرها هناك."
+    },
+    "changelog": {
+      "title": "ما الجديد",
+      "subtitle": "ما الذي تغيّر، إصداراً بإصدار.",
+      "empty": "لا توجد ملاحظات إصدار بعد."
     },
     "days": {
       "sunday": "الأحد",
@@ -206,27 +258,38 @@
       "off": "إيقاف"
     },
     "preferences": {
-      "subtitle": "التفضيلات العامة ومفاتيح أمان الوكيل.",
+      "subtitle": "إعدادات عامة وأمان.",
       "generalTitle": "عام",
       "launchAtStartup": "التشغيل عند بدء النظام",
-      "launchAtStartupDescription": "تشغيل وولف فيش على الحاسوب عند تسجيل الدخول.",
+      "launchAtStartupDescription": "فتح وولفيش عند تسجيل الدخول.",
+      "restrictPowerfulModels": "تقييد النماذج المحلية القوية",
+      "restrictPowerfulModelsDescription": "منع النماذج المحلية الأكبر من ذاكرتك.",
       "weekStartsOn": "يبدأ الأسبوع يوم",
       "safetyTitle": "الأمان",
       "bypassPermissions": "تجاوز الأذونات",
-      "bypassPermissionsDescription": "السماح للوكيل بالعمل دون طلب موافقة لكل أداة.",
+      "bypassPermissionsDescription": "العمل دون طلب موافقة.",
       "blockCredentials": "حظر بيانات الاعتماد",
-      "blockCredentialsDescription": "رفض كتابة أو قراءة كلمات المرور ومفاتيح API."
+      "blockCredentialsDescription": "حظر كلمات المرور والمفاتيح."
     },
-    "cellebrum": {
-      "subtitle": "قدرات الوكيل ({{count}}) — المهارات والإضافات من مساحة عملك. الاستيراد والحذف يبقيان على الحاسوب."
+    "capabilities": {
+      "subtitle": "قدرات الوكيل ({{count}}).",
+      "active": "نشط",
+      "inactive": "معطّل",
+      "core": "أساسي",
+      "official": "رسمي",
+      "unknown": "غير معروف",
+      "alwaysOn": "مُفعّل دائمًا",
+      "lockedHint": "قدرة أساسية — مُفعّلة دائمًا ولا يمكن تعطيلها."
     },
     "mcp": {
       "subtitle": "خوادم MCP المهيأة.",
-      "desktopNote": "إضافة الخوادم والترويسات وتسجيل الدخول في تطبيق سطح المكتب."
+      "desktopNote": "تُضاف الخوادم من الحاسوب."
     }
   },
   "updates": {
-    "ready": "نسخة جديدة جاهزة — اضغط لإعادة التشغيل.",
+    "ready": "تحديث جاهز",
+    "readyHint": "اضغط لإعادة التشغيل عليه",
+    "install": "تحديث",
     "embedded": "نسخة المتجر"
   },
   "showcase": {
@@ -243,7 +306,7 @@
       "large": "كبير",
       "disabled": "معطّل",
       "withIcon": "مع أيقونة",
-      "loadingState": "جارٍ التحميل"
+      "loadingState": "حفظ"
     },
     "inputs": {
       "title": "حقل إدخال",
@@ -304,11 +367,12 @@
   },
   "home": {
     "demoMode": "وضع العرض",
-    "demoHint": "كل ميزة، وكل نوع ملف — مع ثلاثة أشهر من المحادثات الحقيقية."
+    "demoHint": "كل ميزة، وكل نوع ملف — مع ثلاثة أشهر من المحادثات الحقيقية على وولفيش."
   },
   "demo": {
-    "importing": "جارٍ تجهيز بيانات العرض…",
+    "importing": "جارٍ تجهيز بيانات العرض",
     "downloading": "جارٍ تنزيل بيانات العرض…",
+    "resetting": "جارٍ مسح بيانات العرض السابقة…",
     "progress": "{{done}} من {{total}} محادثة",
     "imported": "تم استيراد {{count}} محادثة",
     "failed": "تعذّر تنزيل بيانات العرض. تحقّق من اتصالك وحاول مرة أخرى.",
@@ -452,6 +516,29 @@
       "placeholder": "اكتب بصيغة ماركداون…",
       "done": "تم",
       "close": "إغلاق"
+    },
+    "contextCard": {
+      "noModel": "لا يوجد نموذج",
+      "empty": "لا يوجد استهلاك بعد — أرسل رسالة لبدء القياس.",
+      "context": "نافذة السياق",
+      "usage": "{{used}} / {{max}} ({{percent}}٪)",
+      "compactAt": "يُضغط تلقائياً عند {{value}}",
+      "cacheRead": "قراءة كاش",
+      "cacheWrite": "كتابة كاش",
+      "measuredUnder": "قيست تحت {{model}}",
+      "lastTurn": "الجولة الأخيرة",
+      "input": "إدخال",
+      "output": "إخراج",
+      "calls": "نداءات API",
+      "tools": "{{count}} أدوات",
+      "cost": "التكلفة",
+      "workflow": "سير العمل",
+      "workflowTotals": "{{tools}} استدعاء أداة · {{tokens}} رمز",
+      "allTime": "الإجمالي الكلي",
+      "turns": "الجولات",
+      "apiCalls": "نداءات API",
+      "toolCalls": "نداءات الأدوات",
+      "cachedShare": "{{percent}}٪ من السياق المُستوعَب جاء من الكاش"
     }
   },
   "history": {
@@ -463,7 +550,17 @@
     "deleteConfirm": "حذف",
     "deleteCancel": "إلغاء",
     "newChat": "محادثة جديدة",
-    "processing": "قيد المعالجة…"
+    "processing": "قيد المعالجة…",
+    "groups": {
+      "today": "اليوم",
+      "yesterday": "أمس",
+      "last7": "آخر 7 أيام",
+      "last30": "آخر 30 يوماً",
+      "last3m": "آخر 3 أشهر",
+      "last6m": "آخر 6 أشهر",
+      "lastYear": "آخر سنة",
+      "older": "أقدم"
+    }
   },
   "units": {
     "bytes": "{{value}} بايت",

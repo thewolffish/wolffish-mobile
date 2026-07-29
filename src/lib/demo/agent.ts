@@ -1,9 +1,16 @@
 import { invalidateConversation } from '@/lib/conversations/hooks'
-import { appendMessage, createConversation } from '@/lib/conversations/repo'
+import {
+  appendMessage,
+  createConversation,
+  getConversationStats,
+  updateConversationStats
+} from '@/lib/conversations/repo'
 import { coalesceTextSegments } from '@/lib/conversations/segments'
 import type { ConversationMessage, MessageAttachment, Segment } from '@/lib/conversations/types'
 import { mintConversationId, mintMessageId } from '@/lib/conversations/types'
+import { foldDemoTurn } from '@/lib/demo/turnStats'
 import { useChatRuntime } from '@/state/chatRuntime'
+import { useDemoConfig } from '@/state/demoConfig'
 import i18n from '@/lib/i18n'
 
 /**
@@ -18,6 +25,32 @@ import i18n from '@/lib/i18n'
 const DEMO_THINKING_MS = 3000
 const DEMO_PROVIDER = 'wolffish'
 const DEMO_MODEL = 'wolffish-demo'
+
+/**
+ * The brain the demo turn is attributed to — whichever side of the model
+ * switch is active. Nothing is called, but the turn is stamped and priced
+ * under it, so switching models moves the context meter's window exactly as
+ * it does on the desktop.
+ */
+function activeBrain(): { provider: string; model: string } {
+  const config = useDemoConfig.getState()
+  if (config.localOnly && config.localEnabled && config.localModel) {
+    return { provider: 'local', model: config.localModel }
+  }
+  if (config.brainModel) return { provider: config.brainProvider, model: config.brainModel }
+  return { provider: DEMO_PROVIDER, model: DEMO_MODEL }
+}
+
+/**
+ * The project a chat about to be created belongs to. Consumed once: the
+ * pending pick is for the NEXT new conversation, not every later one.
+ */
+function takePendingProject(): string | undefined {
+  const { pendingProjectId, setPendingProject } = useChatRuntime.getState()
+  if (!pendingProjectId) return undefined
+  setPendingProject(null)
+  return pendingProjectId
+}
 
 type ActiveTurn = { timer: ReturnType<typeof setTimeout> | null }
 const activeTurns = new Map<string, ActiveTurn>()
@@ -46,13 +79,15 @@ function buildDemoReply(): string {
 export async function ensureDemoConversation(title: string): Promise<string> {
   const now = Date.now()
   const id = mintConversationId(new Date(now))
+  const projectId = takePendingProject()
   await createConversation({
     id,
     title,
-    model: DEMO_MODEL,
+    model: activeBrain().model,
     messages: [],
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
+    ...(projectId ? { projectId } : {})
   })
   return id
 }
@@ -74,14 +109,16 @@ export async function sendDemoPrompt(input: SendDemoPromptInput): Promise<string
   let conversationId = input.conversationId
 
   if (!conversationId) {
+    const projectId = takePendingProject()
     conversationId = mintConversationId(new Date(now))
     await createConversation({
       id: conversationId,
       title: deriveTitle(input.text, input.attachments),
-      model: DEMO_MODEL,
+      model: activeBrain().model,
       messages: [],
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      ...(projectId ? { projectId } : {})
     })
   }
 
@@ -99,18 +136,27 @@ export async function sendDemoPrompt(input: SendDemoPromptInput): Promise<string
   await appendMessage(conversationId, userMessage)
   invalidateConversation(conversationId)
 
-  startAssistantTurn(conversationId)
+  startAssistantTurn(conversationId, {
+    text: input.text,
+    attachmentCount: input.attachments?.length ?? 0
+  })
   return conversationId
 }
 
 /**
  * The demo turn: the feed shows the typed thinking indicator for a few
  * seconds, then a demo-mode card lands explaining that no new messages are
- * processed offline.
+ * processed offline. The prompt comes along because the turn is also priced
+ * and folded into the conversation's stats — see turnStats.ts.
  */
-function startAssistantTurn(conversationId: string): void {
+function startAssistantTurn(
+  conversationId: string,
+  prompt: { text: string; attachmentCount: number }
+): void {
   const runtime = useChatRuntime.getState()
-  const turnId = `turn_${Date.now()}`
+  const brain = activeBrain()
+  const startedAt = Date.now()
+  const turnId = `turn_${startedAt}`
   const messageId = mintMessageId()
 
   runtime.startStream(conversationId, {
@@ -132,8 +178,8 @@ function startAssistantTurn(conversationId: string): void {
         kind: 'active_model',
         turnId,
         segmentId: 'seg_0',
-        provider: DEMO_PROVIDER,
-        model: DEMO_MODEL
+        provider: brain.provider,
+        model: brain.model
       },
       { kind: 'text', turnId, segmentId: 'seg_1', delta: reply },
       {
@@ -153,6 +199,29 @@ function startAssistantTurn(conversationId: string): void {
       stopReason: 'end_turn'
     }
     await appendMessage(conversationId, finalMessage)
+
+    // Fold the turn into the conversation's stats the way the desktop does at
+    // turn end, so the context meter has something real to draw. Stats are
+    // decoration: a failure here must never cost the message.
+    try {
+      const endedAt = Date.now()
+      const previous = await getConversationStats(conversationId)
+      await updateConversationStats(
+        conversationId,
+        foldDemoTurn(previous, {
+          promptText: prompt.text,
+          attachmentCount: prompt.attachmentCount,
+          replyText: reply,
+          provider: brain.provider,
+          model: brain.model,
+          elapsedMs: Math.max(1, endedAt - startedAt),
+          endedAt
+        })
+      )
+    } catch {
+      /* meter stays at its last reading */
+    }
+
     useChatRuntime.getState().endStream(conversationId)
     invalidateConversation(conversationId)
   }

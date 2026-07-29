@@ -8,6 +8,7 @@ import {
   type CacheUsage
 } from '@/lib/files/fileCache'
 import { useToast } from '@/providers/toast/useToast'
+import { useTokens } from '@/providers/theme/useTheme'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -30,6 +31,7 @@ export default function DataScreen(): React.JSX.Element {
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const tokens = useTokens()
   const [releasing, setReleasing] = useState(false)
 
   const { data } = useQuery<{ cache: CacheUsage; conversations: number }>({
@@ -75,8 +77,11 @@ export default function DataScreen(): React.JSX.Element {
         <InfoRow label={t('settings.data.conversations')} value={`${data.conversations}`} />
       </Section>
       <Section title={t('settings.data.releaseTitle')}>
+        {/* The label never swaps for a loading string — the spinner carries the
+            busy state so the button keeps its identity mid-action. */}
         <Button variant="outline" disabled={releasing} onPress={() => void release()}>
-          {releasing ? t('common.loading') : t('settings.data.releaseNow')}
+          {releasing && <ActivityIndicator size="small" color={tokens.fg} />}
+          {t('settings.data.releaseNow')}
         </Button>
       </Section>
     </PanelScreen>

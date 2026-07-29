@@ -40,11 +40,7 @@ export function Modal({
         if (dismissable) onClose()
       }}
     >
-      <Pressable
-        accessibilityRole="none"
-        onPress={dismissable ? onClose : undefined}
-        className="flex-1 items-center justify-center p-4"
-      >
+      <View className="flex-1 items-center justify-center p-4">
         {/* Same glass backdrop as the Select modal — the mobile equivalent of
             the desktop Modal's bg-black/40 backdrop-blur-sm. */}
         <BlurView
@@ -55,10 +51,15 @@ export function Modal({
           style={StyleSheet.absoluteFill}
         />
         <View pointerEvents="none" className="absolute inset-0 bg-black/40" />
-        {/* Pressable card swallows taps so they don't reach the backdrop. */}
+        {/* The dismiss target is a sibling BEHIND the card, not an ancestor of
+            it: as an ancestor it competed with the card's own content for the
+            touch responder, and a scrolling body inside a dialog never moved. */}
         <Pressable
           accessibilityRole="none"
-          onPress={() => {}}
+          onPress={dismissable ? onClose : undefined}
+          style={StyleSheet.absoluteFill}
+        />
+        <View
           className={cn(
             'bg-surface border-border w-full max-w-md flex-col gap-4 rounded-2xl border p-6 shadow-lg',
             className
@@ -67,8 +68,8 @@ export function Modal({
           {title && <Text className="text-fg font-sans-semibold text-left text-lg">{title}</Text>}
           <View className="flex-col gap-3">{children}</View>
           {footer && <View className="pt-2">{footer}</View>}
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </RNModal>
   )
 }
