@@ -279,73 +279,19 @@ export async function renameConversation(id: string, title: string): Promise<voi
   await db.runAsync('UPDATE conversations SET title = ? WHERE id = ?', title, id)
 }
 
-export type UsageSummary = {
-  conversations: number
-  messages: number
-  turns: number
-  toolCalls: number
-  inputTokens: number
-  outputTokens: number
-  cost: number
-  topModel: string | null
-  byChannel: Record<string, number>
-}
-
 /**
- * Aggregate the persisted per-conversation stats — real numbers from the
- * imported desktop usage, computed locally (the desktop's UsagePanel reads
- * markdown ledgers; here the conversation stats blocks are the source).
+ * Conversations created at or after a cutoff — the desktop's
+ * countConversationsSince, answered from the same column the list sorts on.
+ * The Usage screen pairs this with the ledger rows the config snapshot
+ * carries; everything else on that screen comes from those rows.
  */
-export async function getUsageSummary(): Promise<UsageSummary> {
+export async function countConversationsSince(cutoffMs: number): Promise<number> {
   const db = await getDb()
-  const rows = await db.getAllAsync<{
-    channel: string | null
-    message_count: number
-    stats_json: string | null
-    model: string | null
-  }>('SELECT channel, message_count, stats_json, model FROM conversations')
-
-  const summary: UsageSummary = {
-    conversations: rows.length,
-    messages: 0,
-    turns: 0,
-    toolCalls: 0,
-    inputTokens: 0,
-    outputTokens: 0,
-    cost: 0,
-    topModel: null,
-    byChannel: {}
-  }
-  const modelCounts = new Map<string, number>()
-  for (const row of rows) {
-    summary.messages += row.message_count
-    const channel = row.channel ?? 'inapp'
-    summary.byChannel[channel] = (summary.byChannel[channel] ?? 0) + 1
-    if (row.stats_json) {
-      try {
-        const stats = JSON.parse(row.stats_json) as ConversationStats
-        summary.turns += stats.allTime?.turns ?? 0
-        summary.toolCalls += stats.allTime?.toolCalls ?? 0
-        summary.inputTokens += stats.allTime?.inputTokens ?? 0
-        summary.outputTokens += stats.allTime?.outputTokens ?? 0
-        summary.cost += stats.allTime?.cost ?? 0
-        const model = stats.lastTurn?.model ?? stats.meter?.model
-        if (model) modelCounts.set(model, (modelCounts.get(model) ?? 0) + 1)
-      } catch {
-        // Malformed stats never break the roll-up.
-      }
-    }
-  }
-  let best: string | null = null
-  let bestCount = 0
-  for (const [model, count] of modelCounts) {
-    if (count > bestCount) {
-      best = model
-      bestCount = count
-    }
-  }
-  summary.topModel = best
-  return summary
+  const row = await db.getFirstAsync<{ n: number }>(
+    'SELECT COUNT(*) AS n FROM conversations WHERE created_at >= ?',
+    cutoffMs
+  )
+  return row?.n ?? 0
 }
 
 export async function deleteConversation(id: string): Promise<void> {

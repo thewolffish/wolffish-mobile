@@ -230,3 +230,56 @@ describe('demoConfig provider keys', () => {
     expect(provider?.apiKey ?? '').toBe('')
   })
 })
+
+describe('demoConfig desktop data', () => {
+  const FULL_DATA = {
+    freeDiskBytes: 549673246720,
+    totalDiskBytes: 994662584320,
+    workspaceBytes: 4704356511,
+    hippocampusBytes: 2557774,
+    corpusBytes: 10337812,
+    prefrontalBytes: 87647713,
+    ramBytes: 185303040,
+    totalRamBytes: 17179869184,
+    // 0 is a real reading (an idle app), not a missing one — it must survive.
+    cpuPercent: 0,
+    cpuCount: 12
+  }
+
+  it('ingests the desktop Data-panel numbers', () => {
+    useDemoConfig.getState().applySnapshot({ ...snapshot(), data: FULL_DATA })
+    expect(useDemoConfig.getState().desktopData).toEqual(FULL_DATA)
+  })
+
+  // A bundle published before the Data screen's desktop card shipped has no
+  // `data` key — and a stale figure from a previous sync must not survive the
+  // refresh either.
+  it('goes back to all-null when the bundle predates the block', () => {
+    useDemoConfig.getState().applySnapshot({ ...snapshot(), data: FULL_DATA })
+    useDemoConfig.getState().applySnapshot(snapshot())
+    const data = useDemoConfig.getState().desktopData
+    expect(data.workspaceBytes).toBeNull()
+    expect(data.freeDiskBytes).toBeNull()
+    expect(data.cpuCount).toBeNull()
+  })
+
+  // Hand-edited or truncated bundle: one corrupt field costs itself alone,
+  // never the whole desktop card.
+  it('drops a malformed figure without costing the rest', () => {
+    useDemoConfig.getState().applySnapshot({
+      ...snapshot(),
+      data: {
+        ...FULL_DATA,
+        workspaceBytes: Number.NaN,
+        ramBytes: -5,
+        totalRamBytes: 'lots' as unknown as number
+      }
+    })
+    const data = useDemoConfig.getState().desktopData
+    expect(data.workspaceBytes).toBeNull()
+    expect(data.ramBytes).toBeNull()
+    expect(data.totalRamBytes).toBeNull()
+    expect(data.corpusBytes).toBe(FULL_DATA.corpusBytes)
+    expect(data.cpuPercent).toBe(0)
+  })
+})

@@ -91,7 +91,16 @@ describe('demo state purge', () => {
     useDemoConfig.setState({
       brainModel: 'edited-by-hand',
       thinkingMode: 'max',
-      capabilityInfo: { gone: { description: 'from the old bundle', official: true, core: false } },
+      capabilityInfo: {
+        gone: {
+          description: 'from the old bundle',
+          official: true,
+          core: false,
+          hasPlugin: false,
+          toolCount: 0,
+          requires: []
+        }
+      },
       projects: [
         {
           id: 'p1',

@@ -99,10 +99,10 @@ export default function UpdatesScreen(): React.JSX.Element {
         <Text className="text-muted text-left font-sans text-xs leading-5">
           {t('settings.updates.thisAppDescription')}
         </Text>
-        <InfoRow label={t('settings.updates.version')} value={`v${version} (${build})`} />
-        <InfoRow label={t('settings.updates.channel')} value={channel} />
-        <InfoRow label={t('settings.updates.runtime')} value={runtime} mono />
-        <InfoRow label={t('settings.updates.updateId')} value={updateId} mono />
+        <InfoRow label={t('settings.updates.version')} value={`v${version} (${build})`} code mono />
+        <InfoRow label={t('settings.updates.channel')} value={channel} code />
+        <InfoRow label={t('settings.updates.runtime')} value={runtime} code mono />
+        <InfoRow label={t('settings.updates.updateId')} value={updateId} code mono />
         <InfoRow label={t('settings.updates.publishedAt')} value={publishedAt} />
         <SwitchRow
           label={t('settings.updates.autoLabel')}
@@ -122,7 +122,7 @@ export default function UpdatesScreen(): React.JSX.Element {
             </Text>
           </View>
           <Button variant="outline" size="sm" disabled={checking} onPress={() => void onCheck()}>
-            {checking ? t('settings.updates.checking') : t('settings.updates.check')}
+            {t('settings.updates.check')}
           </Button>
         </View>
       </Section>
@@ -134,9 +134,11 @@ export default function UpdatesScreen(): React.JSX.Element {
         <InfoRow
           label={t('settings.updates.version')}
           value={desktop.version ? `v${desktop.version}` : '—'}
+          code
+          mono
         />
-        <InfoRow label={t('settings.updates.platform')} value={desktop.platform ?? '—'} />
-        <InfoRow label={t('settings.updates.syncedAt')} value={syncedAt} />
+        <InfoRow label={t('settings.updates.platform')} value={desktop.platform ?? '—'} code mono />
+        <InfoRow label={t('settings.updates.syncedAt')} value={syncedAt} code />
         <ConfigSwitchRow
           field="updatesEnabled"
           label={t('settings.updates.desktopAutoLabel')}

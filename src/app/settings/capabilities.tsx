@@ -16,7 +16,8 @@ import { Text, View } from 'react-native'
 /**
  * Capabilities — every capability from the real workspace's cerebellum, with
  * the name and description from its SKILL.md and the desktop's badge row:
- * active/inactive state, then core/official/unknown provenance. Toggles are
+ * active/inactive state, then core/official/unknown provenance, plus its
+ * under-description chips (plugin, tool count, requires). Toggles are
  * fully controllable except for core capabilities, which the desktop locks on
  * (LOCKED_CAPABILITIES); import/delete stay on the desktop.
  */
@@ -24,7 +25,10 @@ export default function CapabilitiesScreen(): React.JSX.Element {
   const { t } = useTranslation()
   // Metadata is snapshot-static; each row's TOGGLE subscribes on its own.
   const capabilityInfo = useDemoConfig((state) => state.capabilityInfo)
-  const names = Object.keys(capabilityInfo).sort()
+  // Alphabetical, but always-on (core) capabilities sink to the bottom.
+  const names = Object.keys(capabilityInfo).sort(
+    (a, b) => Number(capabilityInfo[a].core) - Number(capabilityInfo[b].core) || a.localeCompare(b)
+  )
 
   return (
     <PanelScreen
@@ -39,6 +43,9 @@ export default function CapabilitiesScreen(): React.JSX.Element {
             description={capabilityInfo[name].description}
             official={capabilityInfo[name].official}
             core={capabilityInfo[name].core}
+            hasPlugin={capabilityInfo[name].hasPlugin}
+            toolCount={capabilityInfo[name].toolCount}
+            requires={capabilityInfo[name].requires}
           />
         ))}
       </View>
@@ -56,12 +63,18 @@ const CapabilityRow = memo(function CapabilityRow({
   name,
   description,
   official,
-  core
+  core,
+  hasPlugin,
+  toolCount,
+  requires
 }: {
   name: string
   description: string
   official: boolean
   core: boolean
+  hasPlugin: boolean
+  toolCount: number
+  requires: string[]
 }): React.JSX.Element {
   const { t } = useTranslation()
   const setMapEntry = useDemoConfig((state) => state.setMapEntry)
@@ -123,6 +136,29 @@ const CapabilityRow = memo(function CapabilityRow({
       {description ? (
         <Text className="text-muted text-left font-sans text-xs leading-5">{description}</Text>
       ) : null}
+
+      {(hasPlugin || toolCount > 0 || requires.length > 0) && (
+        <View className="flex-row flex-wrap items-center gap-1.5">
+          {hasPlugin && <Chip label={t('settings.capabilities.plugin')} />}
+          {toolCount > 0 && <Chip label={t('settings.capabilities.tools', { count: toolCount })} />}
+          {requires.length > 0 && (
+            <Chip label={t('settings.capabilities.requires', { deps: requires.join(', ') })} />
+          )}
+        </View>
+      )}
     </Section>
   )
 })
+
+/**
+ * The desktop's under-description capability chip (`bg-border/30` there) — a
+ * borderless mini-tag, one notch quieter than Badge. Solid `surface-soft`
+ * stands in for the desktop's alpha fill, which RN drops over var() colors.
+ */
+function Chip({ label }: { label: string }): React.JSX.Element {
+  return (
+    <View className="bg-surface-soft rounded px-1.5 py-0.5">
+      <Text className="text-muted font-sans-medium text-left text-[10px]">{label}</Text>
+    </View>
+  )
+}

@@ -82,7 +82,7 @@
       "ollamaRunning": "Running",
       "ollamaNotRunning": "Not running",
       "ollamaModelsFolder": "Models folder",
-      "localNote": "Ollama is the runtime local models answer from. It runs on the desktop, and you pick from what it has installed.",
+      "localNote": "Ollama runs on the desktop.",
       "installedModel": "Installed model",
       "noModelsInstalled": "No models installed on the desktop."
     },
@@ -183,34 +183,100 @@
       }
     },
     "usage": {
-      "subtitle": "Computed from your conversations.",
-      "conversations": "Conversations",
-      "messages": "Messages",
-      "turns": "Turns",
-      "toolCalls": "Tool calls",
-      "inputTokens": "Input tokens",
-      "outputTokens": "Output tokens",
-      "cost": "Total cost",
-      "topModel": "Favourite model",
-      "byChannel": "By channel",
-      "channels": {
-        "inapp": "In-App",
-        "telegram": "Telegram",
-        "whatsapp": "WhatsApp",
-        "heartbeat": "Automations",
-        "procedure": "Procedures"
+      "subtitle": "Token usage and cost across providers.",
+      "range": {
+        "today": "Today",
+        "this_month": "This Month",
+        "3_months": "3 Months",
+        "6_months": "6 Months",
+        "ytd": "YTD",
+        "all_time": "All Time"
+      },
+      "activity": "Activity",
+      "overview": "Overview",
+      "stats": {
+        "conversations": "Conversations",
+        "messages": "Messages",
+        "totalTokens": "Total Tokens",
+        "activeDays": "Active Days",
+        "longestStreak": "Longest Streak",
+        "favouriteModel": "Favourite Model",
+        "streakDays": "{{count}} days",
+        "streakDay": "{{count}} day",
+        "noModel": "Unknown"
+      },
+      "costs": {
+        "title": "Costs",
+        "totalSpend": "Total Spend",
+        "topDaySpend": "Top Day Spend",
+        "dailyAverage": "Daily Average"
+      },
+      "providers": {
+        "local": "Ollama",
+        "anthropic": "Anthropic",
+        "openai": "OpenAI",
+        "openrouter": "OpenRouter",
+        "deepseek": "DeepSeek",
+        "mimo": "Xiaomi Mimo",
+        "kimi": "Kimi",
+        "minimax": "MiniMax",
+        "xai": "xAI",
+        "qwen": "Qwen",
+        "stepfun": "Stepfun",
+        "zai": "Z.ai",
+        "brave": "Brave Search"
+      },
+      "tokens": "tokens",
+      "queries": "queries",
+      "noUsage": "No usage",
+      "day": {
+        "tokens": "Tokens",
+        "cost": "Cost",
+        "messages": "Messages"
       }
     },
     "data": {
-      "subtitle": "What's stored on this device.",
-      "storageTitle": "Storage",
+      "subtitle": "How much space Wolffish is using — on the desktop and on this phone — and how to start this device over.",
+      "desktopTitle": "Desktop",
+      "desktopDescription": "The Wolffish workspace on the paired desktop, as of the last sync.",
+      "diskUsage": "{{free}} free of {{total}}",
+      "syncedAt": "Last synced",
+      "metrics": {
+        "workspace": "Workspace",
+        "knowledge": "Knowledge",
+        "corpus": "Corpus",
+        "prefrontal": "Prefrontal",
+        "ram": "RAM",
+        "cpu": "CPU",
+        "cpuValue": "{{percent}}%",
+        "cpuValueLow": "Less than 0.1%"
+      },
+      "deviceTitle": "This device",
+      "deviceDescription": "The app on this phone: what it runs on and what it has downloaded.",
+      "deviceModel": "Model",
+      "deviceSystem": "System",
+      "appVersion": "App version",
       "cachedMedia": "Cached media",
       "cachedFiles": "Cached files",
       "budget": "Release threshold",
       "conversations": "Conversations",
-      "releaseTitle": "Release storage",
-      "releaseNow": "Release cached media now",
-      "released": "{{count}} files released — they re-download on next open"
+      "releaseNow": "Release cached media",
+      "releaseDescription": "Frees the cache; files re-download next time they open.",
+      "release": "Release",
+      "released": "{{count}} files released — they re-download on next open",
+      "factoryReset": {
+        "label": "Factory reset this device",
+        "description": "Clears everything Wolffish stores on this phone — imported conversations, cached media, and the settings mirrored from the desktop. Language and theme are kept. The desktop itself is untouched: to factory reset Wolffish everywhere, run it from the desktop app's Data panel.",
+        "button": "Factory reset",
+        "title": "Factory reset this device?",
+        "warning": "This wipes every conversation, cached file, and setting on this phone, then returns to the welcome screen. Language and theme are kept. The desktop is not affected. This cannot be undone.",
+        "typePrompt": "Type {{phrase}} to confirm.",
+        "confirmPhrase": "FACTORY RESET",
+        "confirm": "Reset this device",
+        "cancel": "Cancel",
+        "doneToast": "This device has been reset",
+        "errorToast": "Reset failed. Try again."
+      }
     },
     "updates": {
       "subtitle": "How this app and your desktop stay current.",
@@ -221,7 +287,6 @@
       "checkManual": "Check for updates",
       "checkManualDescription": "Look for a new version now, even with automatic updates off.",
       "check": "Check",
-      "checking": "Checking…",
       "upToDate": "Up to date",
       "checkFailed": "Could not check for updates",
       "checkUnavailable": "This build does not receive over-the-air updates.",
@@ -258,7 +323,7 @@
       "off": "Off"
     },
     "preferences": {
-      "subtitle": "General and safety settings.",
+      "subtitle": "General and safety settings. Managed in the desktop app.",
       "generalTitle": "General",
       "launchAtStartup": "Launch at startup",
       "launchAtStartupDescription": "Open Wolffish when you log in.",
@@ -279,7 +344,10 @@
       "official": "Official",
       "unknown": "Unknown",
       "alwaysOn": "Always on",
-      "lockedHint": "Core capability — always on and can't be disabled."
+      "lockedHint": "Core capability — always on and can't be disabled.",
+      "plugin": "Plugin",
+      "tools": "{{count}} tools",
+      "requires": "Requires {{deps}}"
     },
     "mcp": {
       "subtitle": "Configured MCP servers.",

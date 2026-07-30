@@ -35,9 +35,11 @@
  * every device, including a fresh App Store install.
  * Never commit demo-data/ — it derives from personal usage data.
  */
+import { execFile } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { promisify } from 'node:util'
 import { SAMPLE_BASE_URL, sampleExtFor } from './sample-exts.mjs'
 import { demoApiKey } from './provider-keys.mjs'
 
@@ -77,13 +79,14 @@ const RUN_OUTPUT_CAP = 8 * 1024
  *
  * Same contract as DEMO_PROJECTS: real `config.variables` win the moment the
  * workspace has any, so this is a floor, not an override. The sensitive one
- * carries the mask rather than a plausible-looking fake — the panel renders it
- * behind an eye toggle either way, and a secret that never existed cannot leak.
+ * carries a minted database id (same spirit as the fallback provider keys) so
+ * the panel's eye toggle reveals something Notion-shaped instead of a literal
+ * mask — it identifies nothing, so there is nothing to leak.
  */
 const DEMO_VARIABLES = [
   { name: 'HOME_CITY', value: 'Riyadh', sensitive: false },
   { name: 'WORK_HOURS', value: '9:00-18:00', sensitive: false },
-  { name: 'NOTION_FINANCE_DB', value: '••••••', sensitive: true }
+  { name: 'NOTION_FINANCE_DB', value: 'a1b2c3d4e5f647899abcdef012345678', sensitive: true }
 ]
 
 const DEMO_PROJECTS = [
@@ -591,6 +594,100 @@ async function compactionRuns() {
   return runs
 }
 
+/**
+ * The workspace usage ledger, folded per (day × provider × model) for the
+ * mobile Usage screen — the same files the desktop's main/runtime/usage.ts
+ * parses (usage/providers/*.md plus brave.md), same line regex, same
+ * 12-provider roster (tinker.md and any other stray file is ignored there
+ * too). Day-level rows lose nothing: every desktop range cutoff is
+ * midnight-aligned, so the phone's aggregation (src/lib/usage/stats.ts)
+ * answers each range exactly as the desktop's per-line cache does. Costs are
+ * rounded to the ledger's own 6-decimal precision so rebuilds on unchanged
+ * data stay byte-stable for the bundle's content hash.
+ */
+const USAGE_PROVIDER_FILES = [
+  ['ollama.md', 'local'],
+  ['anthropic.md', 'anthropic'],
+  ['openai.md', 'openai'],
+  ['deepseek.md', 'deepseek'],
+  ['mimo.md', 'mimo'],
+  ['kimi.md', 'kimi'],
+  ['minimax.md', 'minimax'],
+  ['xai.md', 'xai'],
+  ['qwen.md', 'qwen'],
+  ['stepfun.md', 'stepfun'],
+  ['zai.md', 'zai'],
+  ['openrouter.md', 'openrouter']
+]
+
+const USAGE_LINE_RE =
+  /^-\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\s+\|\s+(\S+)\s+\|\s+in:(\d+)\s+out:(\d+)(?:\s+cw:(\d+)\s+cr:(\d+))?\s+\|\s+\$(\d+(?:\.\d+)?)/
+
+const BRAVE_LINE_RE = /^-\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\s+\|/
+
+async function buildUsageLedger() {
+  const providerDir = path.join(WORKSPACE, 'usage', 'providers')
+  const byDay = new Map()
+  const dayOf = (date) => {
+    let day = byDay.get(date)
+    if (!day) {
+      day = { date, models: new Map(), braveQueries: 0 }
+      byDay.set(date, day)
+    }
+    return day
+  }
+
+  for (const [file, provider] of USAGE_PROVIDER_FILES) {
+    let raw
+    try {
+      raw = await fs.readFile(path.join(providerDir, file), 'utf8')
+    } catch {
+      continue
+    }
+    for (const line of raw.split(/\r?\n/)) {
+      const m = USAGE_LINE_RE.exec(line)
+      if (!m) continue
+      const day = dayOf(m[1])
+      const key = `${provider} ${m[3]}`
+      const row = day.models.get(key) ?? {
+        provider,
+        model: m[3],
+        inputTokens: 0,
+        outputTokens: 0,
+        cost: 0,
+        entries: 0
+      }
+      row.inputTokens += Number(m[4])
+      row.outputTokens += Number(m[5])
+      row.cost += Number(m[8])
+      row.entries += 1
+      day.models.set(key, row)
+    }
+  }
+
+  try {
+    const raw = await fs.readFile(path.join(providerDir, 'brave.md'), 'utf8')
+    for (const line of raw.split(/\r?\n/)) {
+      const m = BRAVE_LINE_RE.exec(line)
+      if (m) dayOf(m[1]).braveQueries += 1
+    }
+  } catch {
+    // No brave ledger — the card reads "No usage", as on a fresh desktop.
+  }
+
+  const days = [...byDay.values()]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((day) => ({
+      date: day.date,
+      models: [...day.models.values()].map((row) => ({
+        ...row,
+        cost: Number(row.cost.toFixed(6))
+      })),
+      braveQueries: day.braveQueries
+    }))
+  return { days }
+}
+
 /** Ollama's endpoint and probe budget — the desktop's own (main/ollama.ts). */
 const DEFAULT_LOCAL_ENDPOINT = 'http://localhost:11434'
 const DETECT_TIMEOUT_MS = 1500
@@ -630,16 +727,56 @@ async function probeOllama(endpoint) {
   }
 }
 
-/** Parse the YAML frontmatter name/description out of a SKILL.md. */
+/**
+ * Parse the YAML frontmatter name/description out of a SKILL.md, plus the
+ * chip data the desktop's capability panel shows under the description:
+ * `tools:` entry count, the `requires:` list, and whether a plugin/ entry
+ * file exists (the desktop's PLUGIN_FILES probe in main/runtime/cerebellum).
+ */
 async function skillMeta(dir) {
   try {
     const raw = await fs.readFile(path.join(dir, 'SKILL.md'), 'utf8')
     const name = raw.match(/^name:\s*(.+)$/m)?.[1]?.trim()
     const description = raw.match(/^description:\s*(.+)$/m)?.[1]?.trim()
-    return name ? { name, description: description ?? '' } : null
+    if (!name) return null
+    const toolCount = (frontmatterBlock(raw, 'tools').match(/^\s*-\s+name:/gm) ?? []).length
+    const requires = (frontmatterBlock(raw, 'requires').match(/^\s*-\s*\S.*$/gm) ?? []).map(
+      (line) => line.replace(/^\s*-\s*/, '').trim()
+    )
+    const hasPlugin = await hasPluginEntry(dir)
+    return { name, description: description ?? '', toolCount, requires, hasPlugin }
   } catch {
     return null
   }
+}
+
+/**
+ * Slice one top-level `key:` list block out of SKILL.md frontmatter — the
+ * lines from `key:` down to the next column-zero key. Inline forms
+ * (`requires: []`) don't match and correctly yield the empty block. Regex
+ * instead of a YAML parser for the same reason skillMeta regexes name: the
+ * script carries no dependencies.
+ */
+function frontmatterBlock(raw, key) {
+  const fm = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? ''
+  const start = fm.match(new RegExp(`^${key}:[^\\S\\r\\n]*\\r?\\n`, 'm'))
+  if (!start) return ''
+  const rest = fm.slice(start.index + start[0].length)
+  const end = rest.match(/^\S/m)
+  return end ? rest.slice(0, end.index) : rest
+}
+
+/** The desktop's plugin probe: plugin/index.mjs|js|cjs makes hasPlugin true. */
+async function hasPluginEntry(dir) {
+  for (const file of ['index.mjs', 'index.js', 'index.cjs']) {
+    try {
+      const stat = await fs.stat(path.join(dir, 'plugin', file))
+      if (stat.isFile()) return true
+    } catch {
+      // try the next candidate
+    }
+  }
+  return false
 }
 
 /**
@@ -686,6 +823,97 @@ async function desktopInfo() {
 }
 
 /**
+ * Walk a directory tree and sum every regular file's size — the desktop's
+ * dirSize (main/data.ts) verbatim. 0 for a missing directory, so a region
+ * that has never been written shows as 0 B instead of failing the build.
+ */
+async function dirSize(dir) {
+  let total = 0
+  let entries
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true })
+  } catch {
+    return 0
+  }
+  for (const entry of entries) {
+    const child = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      total += await dirSize(child)
+    } else if (entry.isFile()) {
+      try {
+        total += (await fs.stat(child)).size
+      } catch {
+        // skip unreadable entries
+      }
+    }
+  }
+  return total
+}
+
+/**
+ * RAM and CPU of the desktop app itself, read from ps when Wolffish is
+ * running on this machine — the main binary only, because that is the
+ * process the desktop's own panel samples (helpers report their own
+ * numbers). Falls back to this builder's process when the app is closed: a
+ * real reading from a real Node process beats a figure nobody measured.
+ */
+async function desktopProcessLoad() {
+  try {
+    const { stdout } = await promisify(execFile)('ps', ['-axo', 'rss=,pcpu=,comm='])
+    for (const line of stdout.split('\n')) {
+      const match = line.match(/^\s*(\d+)\s+([\d.]+)\s+(.*)$/)
+      if (!match) continue
+      if (!match[3].endsWith('.app/Contents/MacOS/Wolffish')) continue
+      // ps reports rss in KB and pcpu as a share of one core — the same
+      // per-core semantics as the desktop's process.cpuUsage sample.
+      return { ramBytes: Number(match[1]) * 1024, cpuPercent: Number(match[2]) }
+    }
+  } catch {
+    // ps missing or flags unsupported — fall through to the builder itself.
+  }
+  return { ramBytes: process.memoryUsage().rss, cpuPercent: 0 }
+}
+
+/**
+ * The desktop Data panel's numbers at snapshot time, for the mobile Data
+ * screen's desktop card: disk free/total (system.ts detectDisk), the
+ * workspace region sizes (data.ts getDataAnalytics), and the app process's
+ * RAM/CPU. Sampled from this machine because the snapshot IS this desktop's
+ * state — these are its real figures the moment it was taken.
+ */
+async function desktopData() {
+  let freeDiskBytes = null
+  let totalDiskBytes = null
+  try {
+    const stats = await fs.statfs(os.homedir())
+    freeDiskBytes = stats.bavail * stats.bsize
+    totalDiskBytes = stats.blocks * stats.bsize
+  } catch {
+    // Nulls render as the desktop's own unknown-disk state.
+  }
+  const brainDir = path.join(WORKSPACE, 'brain')
+  const [workspaceBytes, hippocampusBytes, corpusBytes, prefrontalBytes] = await Promise.all([
+    dirSize(WORKSPACE),
+    dirSize(path.join(brainDir, 'hippocampus')),
+    dirSize(path.join(brainDir, 'corpus')),
+    dirSize(path.join(brainDir, 'prefrontal'))
+  ])
+  const load = await desktopProcessLoad()
+  return {
+    freeDiskBytes,
+    totalDiskBytes,
+    workspaceBytes,
+    hippocampusBytes,
+    corpusBytes,
+    prefrontalBytes,
+    ramBytes: load.ramBytes,
+    totalRamBytes: os.totalmem(),
+    cpuPercent: load.cpuPercent,
+    cpuCount: os.cpus().length
+  }
+}
+
+/**
  * Snapshot the real, non-secret config surface: every cerebellum capability
  * (name + description + enabled + core), MCP servers (names only), service
  * connection state, channel settings, and the llm/preferences knobs. No
@@ -709,7 +937,10 @@ async function buildConfigSnapshot(conversations) {
       // Core capabilities can't be disabled upstream, whatever config says.
       enabled: CORE_CAPABILITIES.has(meta.name) || !disabled.has(meta.name),
       official: entry.name.startsWith('.'),
-      core: CORE_CAPABILITIES.has(meta.name)
+      core: CORE_CAPABILITIES.has(meta.name),
+      hasPlugin: meta.hasPlugin,
+      toolCount: meta.toolCount,
+      requires: meta.requires
     })
   }
   capabilities.sort((a, b) => a.name.localeCompare(b.name))
@@ -810,6 +1041,9 @@ async function buildConfigSnapshot(conversations) {
       ollamaModelsFolder: cfg.ollamaModelsFolder || defaultModelsFolder()
     },
     desktop: await desktopInfo(),
+    // The desktop Data panel's numbers — the mobile Data screen's desktop
+    // card renders exactly these.
+    data: await desktopData(),
     // Schedule from config.json, last runs from the brainstem's meta store —
     // the two halves the desktop's compaction panel reads separately.
     compaction: {
@@ -817,7 +1051,10 @@ async function buildConfigSnapshot(conversations) {
       weeklyDay: Number(cfg.compaction?.weeklyDay ?? 0),
       weeklyHour: Number(cfg.compaction?.weeklyHour ?? 23),
       runs: await compactionRuns()
-    }
+    },
+    // The usage ledger folded per day — everything the mobile Usage screen
+    // renders (ranges, activity pixels, provider cards) derives from this.
+    usage: await buildUsageLedger()
   }
 }
 
@@ -870,6 +1107,23 @@ function logSnapshot(snapshot, conversations) {
           return `${kind} ${run ? new Date(run.at).toISOString().slice(0, 16).replace('T', ' ') : 'none'}`
         })
         .join(', ')
+  )
+  const gb = (bytes) => (bytes == null ? '?' : `${(bytes / 1024 ** 3).toFixed(1)} GB`)
+  console.log(
+    `data: workspace ${(snapshot.data.workspaceBytes / 1024 ** 2).toFixed(1)} MB, ` +
+      `disk ${gb(snapshot.data.freeDiskBytes)} free of ${gb(snapshot.data.totalDiskBytes)}, ` +
+      `app ${(snapshot.data.ramBytes / 1024 ** 2).toFixed(0)} MB RSS at ${snapshot.data.cpuPercent}% cpu`
+  )
+  const usageDays = snapshot.usage?.days ?? []
+  const usageCost = usageDays.reduce(
+    (sum, day) => sum + day.models.reduce((s, row) => s + row.cost, 0) + day.braveQueries * 0.005,
+    0
+  )
+  console.log(
+    `usage: ${usageDays.length} ledger days` +
+      (usageDays.length
+        ? ` (${usageDays[0].date} → ${usageDays[usageDays.length - 1].date}), $${usageCost.toFixed(2)} total`
+        : '')
   )
   const counts = new Map()
   for (const conv of conversations) {

@@ -1,3 +1,4 @@
+import type { UsageDay } from '@/lib/usage/stats'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
@@ -317,7 +318,7 @@ const DEFAULTS: DemoConfigValues = {
   variables: [
     { name: 'HOME_CITY', value: 'Riyadh', sensitive: false },
     { name: 'WORK_HOURS', value: '9:00-18:00', sensitive: false },
-    { name: 'NOTION_FINANCE_DB', value: 'a1b2c3d4-…', sensitive: true }
+    { name: 'NOTION_FINANCE_DB', value: 'a1b2c3d4e5f647899abcdef012345678', sensitive: true }
   ],
   // Filled by the config snapshot on demo entry; empty until then.
   projects: []
@@ -338,6 +339,26 @@ export type DesktopInfo = {
   syncedAt: string | null
 }
 
+/**
+ * The desktop Data panel's numbers as of the last snapshot — disk free/total,
+ * the workspace region sizes, and the app process's RAM/CPU. All null until a
+ * snapshot lands, and each field renders as an em dash until then: these are
+ * that machine's real figures or nothing.
+ */
+export type DesktopData = {
+  freeDiskBytes: number | null
+  totalDiskBytes: number | null
+  workspaceBytes: number | null
+  hippocampusBytes: number | null
+  corpusBytes: number | null
+  prefrontalBytes: number | null
+  ramBytes: number | null
+  totalRamBytes: number | null
+  /** Share of ONE core, as the desktop samples it — divide by cpuCount. */
+  cpuPercent: number | null
+  cpuCount: number | null
+}
+
 /** The real-workspace snapshot the demo pipeline emits (secrets excluded). */
 export type ConfigSnapshot = {
   capabilities: Array<{
@@ -348,6 +369,13 @@ export type ConfigSnapshot = {
     /** Locked built-in (desktop's LOCKED_CAPABILITIES). Absent in bundles
      *  published before the capability badges shipped. */
     core?: boolean
+    /** Ships a plugin/ runtime. Absent in bundles published before the
+     *  tools/plugin chips shipped, as are the two fields below. */
+    hasPlugin?: boolean
+    /** How many tools the SKILL.md frontmatter declares. */
+    toolCount?: number
+    /** Capability names this one depends on (frontmatter `requires`). */
+    requires?: string[]
   }>
   mcpServers: Array<{ name: string; enabled: boolean }>
   variables: DemoVariable[]
@@ -435,6 +463,23 @@ export type ConfigSnapshot = {
     syncedAt?: string | null
   }
   /**
+   * The desktop Data panel's numbers at snapshot time. Absent in bundles
+   * published before the Data screen's desktop card shipped — those render
+   * em dashes rather than inventing a machine.
+   */
+  data?: {
+    freeDiskBytes?: number | null
+    totalDiskBytes?: number | null
+    workspaceBytes?: number
+    hippocampusBytes?: number
+    corpusBytes?: number
+    prefrontalBytes?: number
+    ramBytes?: number
+    totalRamBytes?: number
+    cpuPercent?: number
+    cpuCount?: number
+  }
+  /**
    * Compaction schedule + the brainstem's last-run records. Absent in bundles
    * published before the last-run cards shipped, so every field falls back.
    */
@@ -444,20 +489,48 @@ export type ConfigSnapshot = {
     weeklyHour?: number
     runs?: { daily?: CompactionRunRecord | null; weekly?: CompactionRunRecord | null }
   }
+  /**
+   * The workspace usage ledger folded per (day × provider × model) — what the
+   * Usage screen aggregates on device (lib/usage/stats). Absent in bundles
+   * published before the desktop-parity Usage screen shipped; those render
+   * zeros and an empty activity grid rather than inventing spend.
+   */
+  usage?: { days?: UsageDay[] }
 }
 
 export type DemoConfigState = DemoConfigValues & {
   /** Read-only service surface state (desktop-managed). */
   services: ServiceStatus[]
   /** Capability descriptions from the real workspace's SKILL.md files. */
-  capabilityInfo: Record<string, { description: string; official: boolean; core: boolean }>
+  capabilityInfo: Record<
+    string,
+    {
+      description: string
+      official: boolean
+      core: boolean
+      hasPlugin: boolean
+      toolCount: number
+      requires: string[]
+    }
+  >
   /**
    * Last completed daily/weekly compaction — desktop-managed, display only.
    * Not part of DemoConfigValues: nothing here is editable on this device.
    */
   compactionRuns: CompactionRuns
+  /**
+   * The usage ledger rows from the snapshot — desktop-managed, display only,
+   * same contract as compactionRuns. Empty until a snapshot lands.
+   */
+  usage: UsageDay[]
   /** The paired desktop app's own version and platform — display only. */
   desktop: DesktopInfo
+  /**
+   * The desktop Data panel's numbers — desktop-managed, display only, same
+   * contract as `desktop`: this device cannot measure that machine, so the
+   * figures travel in the snapshot instead of being probed here.
+   */
+  desktopData: DesktopData
   /**
    * Was Ollama answering on the desktop at last sync? Desktop-managed like
    * `desktop`: this device cannot reach that machine's localhost, so the
@@ -481,13 +554,66 @@ export type DemoConfigState = DemoConfigValues & {
   reset: () => void
 }
 
+/**
+ * Keep only well-formed ledger rows, sorted by date. The builder controls the
+ * data, so this is belt-and-braces against a hand-edited or truncated bundle —
+ * a malformed row must cost itself, not the whole Usage screen.
+ */
+function sanitizeUsageDays(days: unknown): UsageDay[] {
+  if (!Array.isArray(days)) return []
+  const clean: UsageDay[] = []
+  for (const day of days as Array<Partial<UsageDay>>) {
+    if (typeof day?.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day.date)) continue
+    const models = Array.isArray(day.models)
+      ? day.models.filter(
+          (row) =>
+            typeof row?.provider === 'string' &&
+            typeof row?.model === 'string' &&
+            Number.isFinite(row?.inputTokens) &&
+            Number.isFinite(row?.outputTokens) &&
+            Number.isFinite(row?.cost) &&
+            Number.isFinite(row?.entries)
+        )
+      : []
+    const braveQueries = Number.isFinite(day.braveQueries) ? (day.braveQueries as number) : 0
+    if (models.length === 0 && braveQueries === 0) continue
+    clean.push({ date: day.date, models, braveQueries })
+  }
+  return clean.sort((a, b) => a.date.localeCompare(b.date))
+}
+
+/**
+ * Keep a DesktopData field only when it is a real, non-negative number. The
+ * builder controls the data, so this is the same belt-and-braces as
+ * sanitizeUsageDays: a hand-edited bundle must cost the one figure it
+ * corrupted, not the whole desktop card.
+ */
+function sanitizeDesktopData(data: ConfigSnapshot['data']): DesktopData {
+  const num = (value: number | null | undefined): number | null =>
+    typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
+  return {
+    freeDiskBytes: num(data?.freeDiskBytes),
+    totalDiskBytes: num(data?.totalDiskBytes),
+    workspaceBytes: num(data?.workspaceBytes),
+    hippocampusBytes: num(data?.hippocampusBytes),
+    corpusBytes: num(data?.corpusBytes),
+    prefrontalBytes: num(data?.prefrontalBytes),
+    ramBytes: num(data?.ramBytes),
+    totalRamBytes: num(data?.totalRamBytes),
+    cpuPercent: num(data?.cpuPercent),
+    cpuCount: num(data?.cpuCount)
+  }
+}
+
 /** The store's initial, pre-snapshot shape — DEFAULTS plus what a snapshot fills. */
 const INITIAL_STATE = {
   ...DEFAULTS,
   services: READ_ONLY_SERVICES,
   capabilityInfo: {} as DemoConfigState['capabilityInfo'],
   compactionRuns: { daily: null, weekly: null } as CompactionRuns,
+  usage: [] as UsageDay[],
   desktop: { version: null, platform: null, syncedAt: null } as DesktopInfo,
+  desktopData: sanitizeDesktopData(undefined),
   ollamaRunning: false
 }
 
@@ -511,7 +637,10 @@ export const useDemoConfig = create<DemoConfigState>()(
             capabilityInfo[capability.name] = {
               description: capability.description,
               official: capability.official,
-              core
+              core,
+              hasPlugin: capability.hasPlugin === true,
+              toolCount: capability.toolCount ?? 0,
+              requires: capability.requires ?? []
             }
           }
           const mcpServers: Record<string, boolean> = {}
@@ -538,11 +667,13 @@ export const useDemoConfig = create<DemoConfigState>()(
               daily: compaction?.runs?.daily ?? null,
               weekly: compaction?.runs?.weekly ?? null
             },
+            usage: sanitizeUsageDays(snapshot.usage?.days),
             desktop: {
               version: snapshot.desktop?.version ?? null,
               platform: snapshot.desktop?.platform ?? null,
               syncedAt: snapshot.desktop?.syncedAt ?? null
             },
+            desktopData: sanitizeDesktopData(snapshot.data),
             variables: snapshot.variables,
             projects: snapshot.projects ?? [],
             brainProvider: snapshot.llm.brainProvider,
@@ -631,7 +762,9 @@ export const useDemoConfig = create<DemoConfigState>()(
         const persisted: Record<string, unknown> = {
           capabilityInfo: state.capabilityInfo,
           compactionRuns: state.compactionRuns,
+          usage: state.usage,
           desktop: state.desktop,
+          desktopData: state.desktopData,
           ollamaRunning: state.ollamaRunning
         }
         for (const key of Object.keys(DEFAULTS) as Array<keyof DemoConfigValues>) {
@@ -660,9 +793,19 @@ export function useCompactionRuns(): CompactionRuns {
   return useDemoConfig((state) => state.compactionRuns)
 }
 
+/** The snapshot's usage ledger rows — empty until a snapshot has landed. */
+export function useUsageDays(): UsageDay[] {
+  return useDemoConfig((state) => state.usage)
+}
+
 /** The paired desktop app — all-null until a config snapshot has landed. */
 export function useDesktopInfo(): DesktopInfo {
   return useDemoConfig((state) => state.desktop)
+}
+
+/** The desktop's Data-panel numbers — all-null until a snapshot has landed. */
+export function useDesktopData(): DesktopData {
+  return useDemoConfig((state) => state.desktopData)
 }
 
 /**

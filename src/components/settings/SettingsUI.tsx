@@ -111,15 +111,41 @@ export function SwitchRow({
   )
 }
 
+/**
+ * `code` renders the value as an inline-code chip. The chip background is
+ * bg-bg because these rows live inside bg-surface cards — same contrast trick
+ * as MarkdownView's code_inline. `mono` still means "this is an LTR technical
+ * value"; code chips holding localized text (a translated channel name, a
+ * relative time) omit it so Arabic keeps its direction.
+ */
 export function InfoRow({
   label,
   value,
-  mono
+  mono,
+  code
 }: {
   label: string
   value: string
   mono?: boolean
+  code?: boolean
 }): React.JSX.Element {
+  if (code) {
+    return (
+      <View className="flex-row items-center justify-between gap-3">
+        <Text className="text-muted text-left font-sans text-sm">{label}</Text>
+        <View className="bg-bg flex-shrink rounded px-1.5 py-0.5">
+          <Text
+            numberOfLines={1}
+            selectable
+            style={mono ? { writingDirection: 'ltr' } : undefined}
+            className="text-fg text-left font-mono text-xs"
+          >
+            {value}
+          </Text>
+        </View>
+      </View>
+    )
+  }
   return (
     <View className="flex-row items-center justify-between gap-3">
       <Text className="text-muted text-left font-sans text-sm">{label}</Text>
