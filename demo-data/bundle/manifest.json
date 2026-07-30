@@ -1,0 +1,67 @@
+{
+  "version": "a4a36b51c19d",
+  "builtAt": "2026-07-29T23:48:25.808Z",
+  "conversations": 168,
+  "totalBytes": 18649745,
+  "config": {
+    "file": "config-snapshot.json",
+    "bytes": 57421
+  },
+  "shards": [
+    {
+      "file": "conversations-000.json",
+      "bytes": 3122755,
+      "conversations": 1
+    },
+    {
+      "file": "conversations-001.json",
+      "bytes": 2558287,
+      "conversations": 1
+    },
+    {
+      "file": "conversations-002.json",
+      "bytes": 1572868,
+      "conversations": 4
+    },
+    {
+      "file": "conversations-003.json",
+      "bytes": 1571656,
+      "conversations": 4
+    },
+    {
+      "file": "conversations-004.json",
+      "bytes": 1572862,
+      "conversations": 6
+    },
+    {
+      "file": "conversations-005.json",
+      "bytes": 1572839,
+      "conversations": 8
+    },
+    {
+      "file": "conversations-006.json",
+      "bytes": 1572890,
+      "conversations": 9
+    },
+    {
+      "file": "conversations-007.json",
+      "bytes": 1572811,
+      "conversations": 12
+    },
+    {
+      "file": "conversations-008.json",
+      "bytes": 1572807,
+      "conversations": 17
+    },
+    {
+      "file": "conversations-009.json",
+      "bytes": 1572034,
+      "conversations": 35
+    },
+    {
+      "file": "conversations-010.json",
+      "bytes": 387936,
+      "conversations": 71
+    }
+  ]
+}

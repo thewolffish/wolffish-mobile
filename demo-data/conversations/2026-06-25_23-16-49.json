@@ -1,0 +1,76 @@
+{
+  "id": "2026-06-25_23-16-49",
+  "title": "Add a dark mode toggle",
+  "model": "qwen3.5:9b",
+  "createdAt": 1782418609348,
+  "updatedAt": 1782418623760,
+  "messages": [
+    {
+      "id": "m_1782418623760_fdc727",
+      "role": "user",
+      "content": "I want to add a dark mode toggle. Give me a few approaches as options and let me pick one before you write any code.",
+      "timestamp": 1782418623760
+    },
+    {
+      "id": "m_1782418623760_fc3491",
+      "role": "assistant",
+      "content": "",
+      "segments": [
+        {
+          "kind": "active_model",
+          "turnId": "turn_1782418609359_uoguj5",
+          "segmentId": "seg_1",
+          "provider": "deepseek",
+          "model": "deepseek-v4-pro"
+        },
+        {
+          "kind": "turn_end",
+          "turnId": "turn_1782418609359_uoguj5",
+          "segmentId": "seg_2",
+          "stopReason": "end_turn",
+          "iterationCount": 1
+        }
+      ],
+      "stopReason": "end_turn",
+      "timestamp": 1782418623760
+    }
+  ],
+  "stats": {
+    "allTime": {
+      "turns": 1,
+      "apiCalls": 1,
+      "toolCalls": 0,
+      "inputTokens": 29,
+      "outputTokens": 1,
+      "cacheReadTokens": 0,
+      "cacheCreationTokens": 12400,
+      "cost": 0.0046598,
+      "processingMs": 1000,
+      "elapsedMs": 1000,
+      "apiMs": 820,
+      "endedAt": 1782418623760,
+      "provider": "local",
+      "model": "qwen3.5:9b"
+    },
+    "lastTurn": {
+      "endedAt": 1782418623760,
+      "elapsedMs": 1000,
+      "apiMs": 820,
+      "apiCalls": 1,
+      "toolCalls": 0,
+      "inputTokens": 29,
+      "outputTokens": 1,
+      "cacheReadTokens": 0,
+      "cacheCreationTokens": 12400,
+      "provider": "local",
+      "model": "qwen3.5:9b",
+      "cost": 0.0046598
+    },
+    "meter": {
+      "contextTokens": 12430,
+      "contextBudget": 1000000,
+      "compactionAt": 725424,
+      "model": "qwen3.5:9b"
+    }
+  }
+}

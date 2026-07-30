@@ -3,24 +3,34 @@
  * Pack the built demo dataset into the bundle published at cdn.wolffi.sh/demo.
  *
  * Demo mode downloads this bundle on first entry — nothing is pushed to a
- * device and nothing is bundled into the app. Input is demo-data/ (produced by
- * build-demo-data.mjs); output is demo-data/bundle/ — a flat directory whose
- * CONTENTS upload to cdn.wolffi.sh/demo as-is:
+ * device and nothing is bundled into the app. Input is demo-data/ — committed
+ * in this repo as the source of truth for demo content, edited in place and
+ * never derived from a live workspace. Output is demo-data/bundle/ — a flat
+ * directory whose CONTENTS upload to cdn.wolffi.sh/demo as-is:
  *
  *   demo-data/bundle/manifest.json            index: version, totals, shards
  *   demo-data/bundle/config-snapshot.json     the config surface, verbatim
  *   demo-data/bundle/conversations-000.json   { conversations: [...] }
  *   …
  *
- * The 168 conversation files are packed into ~1.5 MB shards rather than served
- * individually (168 round trips) or as one 18 MB blob (one 18 MB string and
- * one 18 MB JSON.parse on a phone). A shard is downloaded, parsed, imported
+ * The conversation files are packed into ~1.5 MB shards rather than served
+ * individually (a round trip each) or as one ~18 MB blob (one giant string and
+ * one giant JSON.parse on a phone). A shard is downloaded, parsed, imported
  * and released before the next one starts, so peak memory is one shard and the
  * progress bar has real granularity. Files are left uncompressed on purpose:
  * Cloudflare brotli/gzips application/json in transit, so 18.6 MB ships as
  * ~4 MB with no decompression code on the client.
  *
  *   node scripts/demo/build-demo-bundle.mjs [--out DIR]
+ *
+ * demo-data/bundle/ is committed: after editing demo-data/, rebuild and commit
+ * both. The version is a content hash and builtAt carries over when the
+ * version is unchanged, so an untouched dataset rebuilds byte-identically —
+ * a stale or hand-edited bundle shows up as a git diff. Publishing is
+ * uploading this directory's contents to cdn.wolffi.sh/demo straight from the
+ * checkout; nothing outside the repo is read or written.
+ * scripts/demo/unpack-demo-bundle.mjs is the inverse, re-deriving the
+ * editable per-conversation files from a bundle.
  */
 import { createHash } from 'node:crypto'
 import { promises as fs } from 'node:fs'
@@ -47,7 +57,10 @@ async function main() {
   const convDir = path.join(SRC_DIR, 'conversations')
   const names = (await fs.readdir(convDir)).filter((name) => name.endsWith('.json')).sort()
   if (names.length === 0) {
-    throw new Error(`no conversations in ${convDir} — run: node scripts/demo/build-demo-data.mjs`)
+    throw new Error(
+      `no conversations in ${convDir} — demo-data/ is committed; restore it from git ` +
+        `or import a published bundle: node scripts/demo/unpack-demo-bundle.mjs`
+    )
   }
 
   // Parse once, keep the compact re-serialization: the shard's bytes are what
@@ -79,6 +92,15 @@ async function main() {
   // leaves the most recognisable conversations on screen.
   for (const group of groups) group.items.sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
 
+  // The committed bundle must rebuild byte-identically when the dataset is
+  // unchanged, so remember the previous manifest's builtAt before wiping.
+  let prior = null
+  try {
+    prior = JSON.parse(await fs.readFile(path.join(OUT_DIR, 'manifest.json'), 'utf8'))
+  } catch {
+    // no previous bundle in this directory
+  }
+
   await fs.rm(OUT_DIR, { recursive: true, force: true })
   await fs.mkdir(OUT_DIR, { recursive: true })
 
@@ -97,11 +119,12 @@ async function main() {
   await fs.writeFile(path.join(OUT_DIR, 'config-snapshot.json'), configBody)
 
   const totalBytes = shards.reduce((sum, shard) => sum + shard.bytes, 0)
+  // Content hash, not a timestamp: re-running the build on unchanged data
+  // must not look like a new dataset to a device that already imported it.
+  const version = hash.digest('hex').slice(0, 12)
   const manifest = {
-    // Content hash, not a timestamp: re-running the build on unchanged data
-    // must not look like a new dataset to a device that already imported it.
-    version: hash.digest('hex').slice(0, 12),
-    builtAt: new Date().toISOString(),
+    version,
+    builtAt: prior?.version === version && prior.builtAt ? prior.builtAt : new Date().toISOString(),
     conversations: conversations.length,
     totalBytes,
     config: { file: 'config-snapshot.json', bytes: configBody.length },

@@ -5,7 +5,7 @@
  * The desktop derives every UsagePanel figure from per-turn ledger lines
  * (usage/providers/*.md). Those lines never leave the workspace; what travels
  * in the demo config snapshot is the same ledger pre-aggregated per
- * (day × provider × model) by scripts/demo/build-demo-data.mjs. Nothing is
+ * (day × provider × model), carried in demo-data/config-snapshot.json. Nothing is
  * lost in the fold: every desktop range cutoff is midnight-aligned, so
  * day-level rows answer the exact same queries the per-line cache does.
  * Everything here is pure and synchronous — the screen recomputes on the fly

@@ -23,7 +23,6 @@ import {
 import { cn } from '@/lib/utils/cn'
 import { formatRelativeTime } from '@/lib/utils/relativeTime'
 import { useToast } from '@/providers/toast/useToast'
-import { useTokens } from '@/providers/theme/useTheme'
 import { useDesktopData, useDesktopInfo } from '@/state/demoConfig'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import Constants from 'expo-constants'
@@ -262,7 +261,6 @@ function DeviceSection({
   onRelease: () => void
 }): React.JSX.Element {
   const { t } = useTranslation()
-  const tokens = useTokens()
   const version = Constants.expoConfig?.version ?? '?'
   const build =
     Constants.expoConfig?.ios?.buildNumber ?? Constants.expoConfig?.android?.versionCode ?? '?'
@@ -299,10 +297,9 @@ function DeviceSection({
             {t('settings.data.releaseDescription')}
           </Text>
         </View>
-        {/* The label never swaps for a loading string — the spinner carries the
-            busy state so the button keeps its identity mid-action. */}
+        {/* No spinner and no label swap — the disabled dim alone carries the
+            busy moment, so the button keeps its identity mid-action. */}
         <Button variant="outline" size="sm" disabled={releasing} onPress={onRelease}>
-          {releasing && <ActivityIndicator size="small" color={tokens.fg} />}
           {t('settings.data.release')}
         </Button>
       </View>

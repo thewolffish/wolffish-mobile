@@ -1,16 +1,20 @@
 /**
  * Synthetic API keys for the demo dataset.
  *
- * The workspace's real keys never leave the machine: the snapshot builder
- * drops `provider.apiKey` on the floor and calls demoApiKey(id) for a fake one
+ * Every key in demo-data/config-snapshot.json came from demoApiKey(id): fake,
  * shaped like that provider's public key format. The only input is the
  * provider id — a public string — so no real secret is ever an ingredient, and
- * rebuilds produce byte-identical keys instead of churning the snapshot.
+ * re-minting produces byte-identical keys instead of churning the snapshot.
+ * When hand-adding a provider to the snapshot, mint its key with:
+ *
+ *   node scripts/demo/provider-keys.mjs <provider-id>
  *
  * Formats are modelled on each vendor's documented prefix/length. They are
  * cosmetic: nothing validates them, they authenticate nothing, and the demo
  * never sends them anywhere.
  */
+
+import { pathToFileURL } from 'node:url'
 
 const HEX = '0123456789abcdef'
 const LOWER36 = 'abcdefghijklmnopqrstuvwxyz0123456789'
@@ -88,4 +92,13 @@ export function demoApiKey(providerId) {
   const pick = drawer(seedOf(`wolffish-demo-key:${id}`))
   const format = FORMATS[id] ?? ((draw) => `sk-${draw(B62, 40)}`)
   return format(pick)
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const id = process.argv[2]
+  if (!id) {
+    console.error('usage: node scripts/demo/provider-keys.mjs <provider-id>')
+    process.exit(1)
+  }
+  console.log(demoApiKey(id))
 }

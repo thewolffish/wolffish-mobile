@@ -1,0 +1,70 @@
+{
+  "id": "2026-07-14_03-06-02_350-096ea6",
+  "title": "Generate more proven successful ideas that is perfect for cold outreach on Linke",
+  "model": null,
+  "createdAt": 1783987562350,
+  "updatedAt": 1783987572526,
+  "messages": [
+    {
+      "id": "m_1783987562949_115696",
+      "role": "user",
+      "content": "Generate more proven successful ideas that is perfect for cold outreach on LinkedIn. Avoid all you already used in first pdf.",
+      "timestamp": 1783987562949
+    },
+    {
+      "id": "m_1783987572526_ffaec0",
+      "role": "assistant",
+      "content": "",
+      "timestamp": 1783987572526,
+      "segments": [
+        {
+          "kind": "turn_end",
+          "turnId": "turn_1783987562962_8o2xw6",
+          "segmentId": "seg_1",
+          "stopReason": "end_turn",
+          "iterationCount": 0
+        }
+      ],
+      "stopReason": "end_turn"
+    }
+  ],
+  "channel": "telegram",
+  "stats": {
+    "allTime": {
+      "turns": 1,
+      "apiCalls": 1,
+      "toolCalls": 0,
+      "inputTokens": 31,
+      "outputTokens": 1,
+      "cacheReadTokens": 0,
+      "cacheCreationTokens": 12400,
+      "cost": 0.0046603999999999994,
+      "processingMs": 9577,
+      "elapsedMs": 9577,
+      "apiMs": 7853,
+      "endedAt": 1783987572526,
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro"
+    },
+    "lastTurn": {
+      "endedAt": 1783987572526,
+      "elapsedMs": 9577,
+      "apiMs": 7853,
+      "apiCalls": 1,
+      "toolCalls": 0,
+      "inputTokens": 31,
+      "outputTokens": 1,
+      "cacheReadTokens": 0,
+      "cacheCreationTokens": 12400,
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro",
+      "cost": 0.0046603999999999994
+    },
+    "meter": {
+      "contextTokens": 12432,
+      "contextBudget": 1000000,
+      "compactionAt": 725424,
+      "model": "deepseek-v4-pro"
+    }
+  }
+}

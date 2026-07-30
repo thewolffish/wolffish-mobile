@@ -5,8 +5,8 @@ import { useDemoConfig, type ConfigSnapshot } from '@/state/demoConfig'
 import { Directory, File, Paths } from 'expo-file-system'
 
 /**
- * Demo mode ingestion. The demo dataset — three months of real desktop usage,
- * built by scripts/demo/build-demo-data.mjs and packed by
+ * Demo mode ingestion. The demo dataset — curated in the repo's demo-data/
+ * directory and packed by
  * scripts/demo/build-demo-bundle.mjs — is published at cdn.wolffi.sh/demo and
  * downloaded on first entry. Nothing ships in the app and nothing is pushed to
  * a device: tapping Demo Mode on a fresh install off the App Store is the only
@@ -27,10 +27,10 @@ import { Directory, File, Paths } from 'expo-file-system'
  * Where the published demo bundle lives. Peer of SAMPLE_BASE_URL.
  *
  * EXPO_PUBLIC_DEMO_BASE_URL points a development run at a bundle that has not
- * been uploaded yet — `npx serve ~/Desktop/wolffish-demo-bundle` and start the
- * app with the variable set — which is the only way to see a freshly built
- * dataset before publishing it. Expo inlines EXPO_PUBLIC_* at bundle time, so
- * leave it unset for any build that ships.
+ * been uploaded yet — `npx serve demo-data/bundle` and start the app with the
+ * variable set — which is the only way to see a freshly built dataset before
+ * publishing it. Expo inlines EXPO_PUBLIC_* at bundle time, so leave it unset
+ * for any build that ships.
  */
 export const DEMO_BASE_URL = process.env.EXPO_PUBLIC_DEMO_BASE_URL ?? 'https://cdn.wolffi.sh/demo'
 

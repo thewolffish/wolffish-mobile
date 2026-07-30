@@ -1,0 +1,1953 @@
+{
+  "capabilities": [
+    {
+      "name": "ask",
+      "description": "Ask the user one or more multiple-choice questions with an interactive in-app card — pause for their decisions, then continue with the options they pick or the custom instructions they type. Also the delivery mechanism for quizzes and knowledge checks.",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 1,
+      "requires": []
+    },
+    {
+      "name": "automations",
+      "description": "Manage Wolffish's scheduled automations (the heartbeat) — list, create, edit, delete, check status, and run jobs that fire on a schedule and run autonomously",
+      "enabled": true,
+      "official": true,
+      "core": true,
+      "hasPlugin": true,
+      "toolCount": 6,
+      "requires": []
+    },
+    {
+      "name": "browser",
+      "description": "Automate web browsers — navigate sites, fill forms, click buttons, extract data, take screenshots, and run multi-step web workflows",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 25,
+      "requires": [
+        "node"
+      ]
+    },
+    {
+      "name": "browser-extension",
+      "description": "Control the user's connected Chrome/Brave browser via the Wolffish extension — navigate pages, click elements, fill forms, take screenshots, read content, manage tabs, and execute JavaScript in the user's real browser session.",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 58,
+      "requires": [
+        "node"
+      ]
+    },
+    {
+      "name": "cloudflared",
+      "description": "Cloudflare Tunnel CLI for exposing local services",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 4,
+      "requires": []
+    },
+    {
+      "name": "computer-use",
+      "description": "Desktop automation — take screenshots, move/click mouse, type text, press keys. Used for visual tasks where the agent needs to see and interact with the user's screen.",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 8,
+      "requires": [
+        "node"
+      ]
+    },
+    {
+      "name": "document",
+      "description": "Read, create, modify, convert, and merge documents (docx, html, markdown, plain text)",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 10,
+      "requires": [
+        "pdf",
+        "node"
+      ]
+    },
+    {
+      "name": "ffmpeg",
+      "description": "FFmpeg multimedia framework for video/audio processing",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 4,
+      "requires": []
+    },
+    {
+      "name": "filesystem",
+      "description": "Read, write, and edit files on the local system",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 4,
+      "requires": [
+        "node"
+      ]
+    },
+    {
+      "name": "git",
+      "description": "Git operations and conventions, layered on top of the shell capability.",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": false,
+      "toolCount": 0,
+      "requires": [
+        "shell"
+      ]
+    },
+    {
+      "name": "github",
+      "description": "GitHub integration — repos, issues, pull requests, branches, CI/Actions, code search, releases, gists, collaborators, labels, milestones, reviews, notifications, stars, forks, and more via the GitHub API",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 54,
+      "requires": [
+        "shell",
+        "node"
+      ]
+    },
+    {
+      "name": "google",
+      "description": "Google Workspace integration — Gmail, Drive, Calendar, Contacts, Tasks, and Sheets via gogcli",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 29,
+      "requires": []
+    },
+    {
+      "name": "introspect",
+      "description": "Check Wolffish's own status, performance, and memory",
+      "enabled": true,
+      "official": true,
+      "core": true,
+      "hasPlugin": true,
+      "toolCount": 12,
+      "requires": []
+    },
+    {
+      "name": "mcp",
+      "description": "Manage Wolffish's MCP (Model Context Protocol) server connections — list, add, test, enable, disable, remove, and sign in to the external tool servers whose tools become available to you. Changes reflect live in Settings → MCP.",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 7,
+      "requires": []
+    },
+    {
+      "name": "memes",
+      "description": "Find, generate, and share memes and GIFs. Can create custom captioned memes from popular templates or search for reaction GIFs.",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 5,
+      "requires": []
+    },
+    {
+      "name": "node",
+      "description": "Node.js runtime and npm package manager",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 3,
+      "requires": []
+    },
+    {
+      "name": "notion",
+      "description": "Read, create, update, and manage Notion pages, databases, and blocks",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 18,
+      "requires": [
+        "node"
+      ]
+    },
+    {
+      "name": "operating-manual",
+      "description": "Your full working discipline for any real task. The operating_manual tool loads it — call that FIRST on anything complex, high-stakes, multi-step, or ambiguous, before any other tool.",
+      "enabled": true,
+      "official": true,
+      "core": true,
+      "hasPlugin": true,
+      "toolCount": 1,
+      "requires": []
+    },
+    {
+      "name": "package-manager",
+      "description": "Cross-platform system package manager. Uses Homebrew on macOS (auto-installs if missing), winget on Windows (pre-installed), apt on Debian/Ubuntu, dnf on Fedora/RHEL.",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 3,
+      "requires": []
+    },
+    {
+      "name": "pdf",
+      "description": "Read, create, modify, merge, split, secure, and compress PDF documents",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 12,
+      "requires": [
+        "node"
+      ]
+    },
+    {
+      "name": "procedures",
+      "description": "Manage Wolffish's saved procedures — reusable prompts the user runs on demand from the Procedures page. List, view, create, edit, delete, and run them.",
+      "enabled": true,
+      "official": true,
+      "core": true,
+      "hasPlugin": true,
+      "toolCount": 6,
+      "requires": []
+    },
+    {
+      "name": "projects",
+      "description": "Manage the user's projects — shared instructions and file lists that fresh conversations start from — and see each project's conversations",
+      "enabled": true,
+      "official": true,
+      "core": true,
+      "hasPlugin": true,
+      "toolCount": 8,
+      "requires": []
+    },
+    {
+      "name": "python",
+      "description": "Hermetic Python runtime (uv-managed CPython) for native Python plugins",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 2,
+      "requires": []
+    },
+    {
+      "name": "secrets",
+      "description": "Save and list the user's secrets and variables (Settings > Variables) — API keys, tokens, base URLs, and other reusable values",
+      "enabled": true,
+      "official": true,
+      "core": true,
+      "hasPlugin": true,
+      "toolCount": 2,
+      "requires": []
+    },
+    {
+      "name": "shell",
+      "description": "Execute shell commands on the local system",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 1,
+      "requires": []
+    },
+    {
+      "name": "skills",
+      "description": "Manage and create Wolffish's own skills (capabilities) — list, search, enable, disable, delete, and author brand-new skills at runtime",
+      "enabled": true,
+      "official": true,
+      "core": true,
+      "hasPlugin": true,
+      "toolCount": 8,
+      "requires": []
+    },
+    {
+      "name": "speech-to-text",
+      "description": "Transcribe audio files into text using faster-whisper (CTranslate2). Supports 99+ languages with automatic detection. Runs entirely locally — no API keys, no cloud, fully offline after setup.",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 4,
+      "requires": [
+        "python"
+      ]
+    },
+    {
+      "name": "spreadsheet",
+      "description": "Read, create, modify, analyze, and convert spreadsheet files (xlsx, csv, tsv)",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 10,
+      "requires": [
+        "node"
+      ]
+    },
+    {
+      "name": "system",
+      "description": "Open and close applications, open files/folders/URLs, and control machine power (restart, shutdown, sleep, lock, logout)",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 5,
+      "requires": []
+    },
+    {
+      "name": "text-to-speech",
+      "description": "Generate voice memos from text using a fully local neural TTS engine (Kokoro). Convert any text to spoken audio, respond with voice memos, or create voice summaries — entirely on-device, no cloud.",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 3,
+      "requires": [
+        "python",
+        "ffmpeg"
+      ]
+    },
+    {
+      "name": "utilities",
+      "description": "Small built-in utility tools that don't belong to a bigger capability — delivering files to the user as attachments, and pushing openable folder/file location cards.",
+      "enabled": true,
+      "official": true,
+      "core": true,
+      "hasPlugin": true,
+      "toolCount": 2,
+      "requires": []
+    },
+    {
+      "name": "web-search",
+      "description": "Search the web and read web pages for current information, documentation, news, and research",
+      "enabled": true,
+      "official": true,
+      "core": false,
+      "hasPlugin": true,
+      "toolCount": 2,
+      "requires": [
+        "node"
+      ]
+    },
+    {
+      "name": "workflow",
+      "description": "Design and drive a model-led workflow — declare phases, spawn live parallel agents on models you choose, collect each result as it lands, and steer or cancel agents. Available only to the workflow master; agents never get these tools.",
+      "enabled": true,
+      "official": true,
+      "core": true,
+      "hasPlugin": true,
+      "toolCount": 5,
+      "requires": []
+    }
+  ],
+  "mcpServers": [
+    {
+      "name": "mcp.zapier.com",
+      "enabled": true
+    },
+    {
+      "name": "mcp.tafsir.net",
+      "enabled": true
+    }
+  ],
+  "variables": [
+    {
+      "name": "HOME_CITY",
+      "value": "Riyadh",
+      "sensitive": false
+    },
+    {
+      "name": "WORK_HOURS",
+      "value": "9:00-18:00",
+      "sensitive": false
+    },
+    {
+      "name": "NOTION_FINANCE_DB",
+      "value": "a1b2c3d4e5f647899abcdef012345678",
+      "sensitive": true
+    }
+  ],
+  "projects": [
+    {
+      "id": "a3f1c07e-5b42-4d19-9c8e-2d7a6f0b1e54",
+      "title": "Younes AI Daily",
+      "icon": "📰",
+      "instructions": "The daily AI briefing. Sweep the last 24 hours of AI news, keep what actually ships or changes a decision, and cut the funding-round noise. Deliver a magazine-style PDF plus a short Telegram summary, in that order, every day.",
+      "files": [
+        {
+          "path": "uploads/project-a3f1c07e/daily-brief-template.md",
+          "name": "daily-brief-template.md"
+        },
+        {
+          "path": "uploads/project-a3f1c07e/sources.csv",
+          "name": "sources.csv"
+        }
+      ],
+      "createdAt": 1781686606664,
+      "updatedAt": 1785155222012
+    },
+    {
+      "id": "c8b25d61-9e07-4a3f-8b14-6f9c2e5a7d03",
+      "title": "World Cup 2026 Desk",
+      "icon": "🏆",
+      "instructions": "Tournament analyst. Track fixtures, form and injuries for the 2026 World Cup; answer with the table first and the reasoning under it. Always name the kickoff time in the local timezone as well as UTC.",
+      "files": [
+        {
+          "path": "uploads/project-c8b25d61/fixtures.csv",
+          "name": "fixtures.csv"
+        }
+      ],
+      "createdAt": 1781734508493,
+      "updatedAt": 1783334035755
+    },
+    {
+      "id": "e04a7b93-1c58-4e6d-a2f7-3b8d5c1e9407",
+      "title": "Mac Hardening",
+      "icon": "🛡️",
+      "instructions": "Read-only security work on this machine. Audit, report, and propose — never change system state without asking first. Every finding needs the command that produced it so it can be re-run.",
+      "files": [
+        {
+          "path": "uploads/project-e04a7b93/audit-checklist.md",
+          "name": "audit-checklist.md"
+        },
+        {
+          "path": "uploads/project-e04a7b93/baseline-ports.log",
+          "name": "baseline-ports.log"
+        }
+      ],
+      "createdAt": 1783787522383,
+      "updatedAt": 1784469454908
+    },
+    {
+      "id": "f76e3a28-4d90-4b51-8c37-1e5a9d2c6b80",
+      "title": "X Growth Lab",
+      "icon": "🚀",
+      "instructions": "Audience growth for a solo founder. Everything is a testable claim: pick the angle, name the metric it moves, and give the smallest experiment that proves or kills it within a week.",
+      "files": [
+        {
+          "path": "uploads/project-f76e3a28/growth-experiments.csv",
+          "name": "growth-experiments.csv"
+        }
+      ],
+      "createdAt": 1781682189294,
+      "updatedAt": 1784752169651
+    },
+    {
+      "id": "b52d9f14-7a63-4c08-9e1b-8f4c3a7d5e26",
+      "title": "Meme Studio",
+      "icon": "🎨",
+      "instructions": "The meme pipeline. One image per run, caption in the voice of the person it is going to, and never reuse a template two days running.",
+      "files": [
+        {
+          "path": "uploads/project-b52d9f14/voice-notes.md",
+          "name": "voice-notes.md"
+        }
+      ],
+      "createdAt": 1781415684449,
+      "updatedAt": 1785140983723
+    }
+  ],
+  "services": {
+    "google": {
+      "status": "active",
+      "projectId": "the-wolffish"
+    },
+    "github": [
+      {
+        "label": "Wolffish",
+        "detail": "younesbites · Younes Alturkey"
+      },
+      {
+        "label": "Personal",
+        "detail": "younes-alturkey · Younes Alturkey"
+      }
+    ],
+    "notion": [
+      {
+        "label": "Personal",
+        "detail": "Wolffish"
+      }
+    ],
+    "braveEnabled": true,
+    "memesEnabled": true,
+    "sttModel": "base",
+    "ttsVoice": "af_bella",
+    "ttsSpeed": "1.0",
+    "screenshotMaxWidth": "1280",
+    "screenshotFormat": "jpeg"
+  },
+  "channels": {
+    "inapp": {
+      "verbose": false
+    },
+    "telegram": {
+      "enabled": true,
+      "allowedUserIds": "8692209949",
+      "autoRefresh": true,
+      "staleHours": "3",
+      "verbose": false,
+      "hideAutomations": true
+    },
+    "whatsapp": {
+      "enabled": true,
+      "allowedNumbers": "+966538654514",
+      "autoRefresh": true,
+      "staleHours": "3",
+      "verbose": false,
+      "hideAutomations": true
+    }
+  },
+  "llm": {
+    "brainProvider": "deepseek",
+    "brainModel": "deepseek-v4-pro",
+    "chatMode": "workflow",
+    "localOnly": false,
+    "restrictPowerfulModels": true,
+    "local": {
+      "enabled": true,
+      "model": "gemma4:e2b",
+      "running": true,
+      "models": [
+        "deepseek-r1:8b",
+        "gemma4:e2b",
+        "qwen3.5:9b"
+      ]
+    },
+    "providers": [
+      {
+        "id": "mimo",
+        "model": "mimo-v2.5-pro",
+        "hasKey": true,
+        "apiKey": "sk-OrbhaVxufphxtVOmqlQQvCCKjVxl6WPM",
+        "models": [
+          "mimo-v2.5",
+          "mimo-v2.5-pro"
+        ]
+      },
+      {
+        "id": "minimax",
+        "model": "MiniMax-M3",
+        "hasKey": true,
+        "apiKey": "sk-SJpw6byCKJ76cCZ6KLKBZXUdySgWYE",
+        "models": [
+          "MiniMax-M3",
+          "MiniMax-M2.7",
+          "MiniMax-M2.7-highspeed",
+          "MiniMax-M2.5",
+          "MiniMax-M2.5-highspeed",
+          "MiniMax-M2.1",
+          "MiniMax-M2.1-highspeed",
+          "MiniMax-M2"
+        ]
+      },
+      {
+        "id": "xai",
+        "model": "grok-4.5",
+        "hasKey": true,
+        "apiKey": "xai-zyThW2ITW8goiJ8sQhDuCfdA0jXk1p",
+        "models": [
+          "grok-4.5",
+          "grok-4.3",
+          "grok-build-0.1",
+          "grok-4.20-0309-non-reasoning",
+          "grok-4.20-0309-reasoning"
+        ]
+      },
+      {
+        "id": "openrouter",
+        "model": "anthropic/claude-haiku-4.5",
+        "hasKey": true,
+        "apiKey": "sk-or-v1-a00c213d1398b332bb20f340",
+        "models": [
+          "qwen/qwen3.7-flash",
+          "anthropic/claude-opus-5-fast",
+          "anthropic/claude-opus-5",
+          "google/gemini-3.6-flash",
+          "google/gemini-3.5-flash-lite",
+          "moonshotai/kimi-k3",
+          "openai/gpt-5.6-luna-pro",
+          "openai/gpt-5.6-luna",
+          "openai/gpt-5.6-terra-pro",
+          "openai/gpt-5.6-terra",
+          "openai/gpt-5.6-sol-pro",
+          "openai/gpt-5.6-sol",
+          "x-ai/grok-4.5",
+          "anthropic/claude-sonnet-5",
+          "google/gemini-3.1-flash-lite-image",
+          "google/gemini-3.1-flash-image",
+          "google/gemini-3-pro-image",
+          "cohere/north-mini-code:free",
+          "z-ai/glm-5.2",
+          "moonshotai/kimi-k2.7-code",
+          "anthropic/claude-fable-5",
+          "qwen/qwen3.7-plus",
+          "minimax/minimax-m3",
+          "stepfun/step-3.7-flash",
+          "anthropic/claude-opus-4.8-fast",
+          "anthropic/claude-opus-4.8",
+          "qwen/qwen3.7-max",
+          "x-ai/grok-build-0.1",
+          "google/gemini-3.5-flash",
+          "anthropic/claude-opus-4.7-fast",
+          "google/gemini-3.1-flash-lite",
+          "openai/gpt-chat-latest",
+          "x-ai/grok-4.3",
+          "mistralai/mistral-medium-3-5",
+          "qwen/qwen3.5-plus-20260420",
+          "qwen/qwen3.6-flash",
+          "qwen/qwen3.6-35b-a3b",
+          "qwen/qwen3.6-max-preview",
+          "qwen/qwen3.6-27b",
+          "openai/gpt-5.5-pro",
+          "openai/gpt-5.5",
+          "deepseek/deepseek-v4-pro",
+          "deepseek/deepseek-v4-flash",
+          "xiaomi/mimo-v2.5-pro",
+          "xiaomi/mimo-v2.5",
+          "openai/gpt-5.4-image-2",
+          "moonshotai/kimi-k2.6",
+          "anthropic/claude-opus-4.7",
+          "z-ai/glm-5.1",
+          "google/gemma-4-26b-a4b-it",
+          "google/gemma-4-26b-a4b-it:free",
+          "google/gemma-4-31b-it",
+          "google/gemma-4-31b-it:free",
+          "qwen/qwen3.6-plus",
+          "z-ai/glm-5v-turbo",
+          "x-ai/grok-4.20-multi-agent",
+          "x-ai/grok-4.20",
+          "google/lyria-3-pro-preview",
+          "google/lyria-3-clip-preview",
+          "minimax/minimax-m2.7",
+          "openai/gpt-5.4-nano",
+          "openai/gpt-5.4-mini",
+          "mistralai/mistral-small-2603",
+          "z-ai/glm-5-turbo",
+          "qwen/qwen3.5-9b",
+          "openai/gpt-5.4-pro",
+          "openai/gpt-5.4",
+          "openai/gpt-5.3-chat",
+          "google/gemini-3.1-flash-lite-preview",
+          "google/gemini-3.1-flash-image-preview",
+          "qwen/qwen3.5-35b-a3b",
+          "qwen/qwen3.5-27b",
+          "qwen/qwen3.5-122b-a10b",
+          "qwen/qwen3.5-flash-02-23",
+          "google/gemini-3.1-pro-preview-customtools",
+          "openai/gpt-5.3-codex",
+          "google/gemini-3.1-pro-preview",
+          "anthropic/claude-sonnet-4.6",
+          "qwen/qwen3.5-plus-02-15",
+          "qwen/qwen3.5-397b-a17b",
+          "minimax/minimax-m2.5",
+          "z-ai/glm-5",
+          "qwen/qwen3-max-thinking",
+          "anthropic/claude-opus-4.6",
+          "qwen/qwen3-coder-next",
+          "stepfun/step-3.5-flash",
+          "moonshotai/kimi-k2.5",
+          "minimax/minimax-m2-her",
+          "openai/gpt-audio",
+          "openai/gpt-audio-mini",
+          "z-ai/glm-4.7-flash",
+          "openai/gpt-5.2-codex",
+          "minimax/minimax-m2.1",
+          "z-ai/glm-4.7",
+          "google/gemini-3-flash-preview",
+          "openai/gpt-5.2-chat",
+          "openai/gpt-5.2-pro",
+          "openai/gpt-5.2",
+          "mistralai/devstral-2512",
+          "z-ai/glm-4.6v",
+          "openai/gpt-5.1-codex-max",
+          "amazon/nova-2-lite-v1",
+          "mistralai/ministral-14b-2512",
+          "mistralai/ministral-8b-2512",
+          "mistralai/ministral-3b-2512",
+          "mistralai/mistral-large-2512",
+          "deepseek/deepseek-v3.2",
+          "anthropic/claude-opus-4.5",
+          "google/gemini-3-pro-image-preview",
+          "openai/gpt-5.1",
+          "openai/gpt-5.1-chat",
+          "openai/gpt-5.1-codex",
+          "openai/gpt-5.1-codex-mini",
+          "moonshotai/kimi-k2-thinking",
+          "amazon/nova-premier-v1",
+          "perplexity/sonar-pro-search",
+          "mistralai/voxtral-small-24b-2507",
+          "openai/gpt-oss-safeguard-20b",
+          "minimax/minimax-m2",
+          "qwen/qwen3-vl-32b-instruct",
+          "openai/gpt-5-image-mini",
+          "anthropic/claude-haiku-4.5",
+          "qwen/qwen3-vl-8b-thinking",
+          "qwen/qwen3-vl-8b-instruct",
+          "openai/gpt-5-image",
+          "openai/o3-deep-research",
+          "openai/o4-mini-deep-research",
+          "google/gemini-2.5-flash-image",
+          "qwen/qwen3-vl-30b-a3b-thinking",
+          "qwen/qwen3-vl-30b-a3b-instruct",
+          "openai/gpt-5-pro",
+          "z-ai/glm-4.6",
+          "anthropic/claude-sonnet-4.5",
+          "deepseek/deepseek-v3.2-exp",
+          "qwen/qwen3-vl-235b-a22b-thinking",
+          "qwen/qwen3-vl-235b-a22b-instruct",
+          "qwen/qwen3-max",
+          "qwen/qwen3-coder-plus",
+          "openai/gpt-5-codex",
+          "deepseek/deepseek-v3.1-terminus",
+          "qwen/qwen3-coder-flash",
+          "qwen/qwen3-next-80b-a3b-thinking",
+          "qwen/qwen3-next-80b-a3b-instruct",
+          "qwen/qwen-plus-2025-07-28",
+          "qwen/qwen-plus-2025-07-28:thinking",
+          "moonshotai/kimi-k2-0905",
+          "qwen/qwen3-30b-a3b-thinking-2507",
+          "nousresearch/hermes-4-70b",
+          "nousresearch/hermes-4-405b",
+          "deepseek/deepseek-chat-v3.1",
+          "mistralai/mistral-medium-3.1",
+          "z-ai/glm-4.5v",
+          "openai/gpt-5",
+          "openai/gpt-5-mini",
+          "openai/gpt-5-nano",
+          "openai/gpt-oss-120b",
+          "openai/gpt-oss-20b",
+          "openai/gpt-oss-20b:free",
+          "anthropic/claude-opus-4.1",
+          "mistralai/codestral-2508",
+          "qwen/qwen3-coder-30b-a3b-instruct",
+          "qwen/qwen3-30b-a3b-instruct-2507",
+          "z-ai/glm-4.5",
+          "z-ai/glm-4.5-air",
+          "qwen/qwen3-235b-a22b-thinking-2507",
+          "qwen/qwen3-coder",
+          "google/gemini-2.5-flash-lite",
+          "qwen/qwen3-235b-a22b-2507",
+          "moonshotai/kimi-k2",
+          "mistralai/mistral-small-3.2-24b-instruct",
+          "minimax/minimax-m1",
+          "google/gemini-2.5-flash",
+          "google/gemini-2.5-pro",
+          "openai/o3-pro",
+          "google/gemini-2.5-pro-preview",
+          "deepseek/deepseek-r1-0528",
+          "anthropic/claude-opus-4",
+          "anthropic/claude-sonnet-4",
+          "google/gemma-3n-e4b-it",
+          "mistralai/mistral-medium-3",
+          "google/gemini-2.5-pro-preview-05-06",
+          "meta-llama/llama-guard-4-12b",
+          "qwen/qwen3-30b-a3b",
+          "qwen/qwen3-8b",
+          "qwen/qwen3-14b",
+          "qwen/qwen3-32b",
+          "qwen/qwen3-235b-a22b",
+          "openai/o4-mini-high",
+          "openai/o3",
+          "openai/o4-mini",
+          "openai/gpt-4.1",
+          "openai/gpt-4.1-mini",
+          "openai/gpt-4.1-nano",
+          "meta-llama/llama-4-maverick",
+          "meta-llama/llama-4-scout",
+          "deepseek/deepseek-chat-v3-0324",
+          "openai/o1-pro",
+          "mistralai/mistral-small-3.1-24b-instruct",
+          "google/gemma-3-4b-it",
+          "google/gemma-3-12b-it",
+          "cohere/command-a",
+          "google/gemma-3-27b-it",
+          "perplexity/sonar-reasoning-pro",
+          "perplexity/sonar-pro",
+          "perplexity/sonar-deep-research",
+          "mistralai/mistral-saba",
+          "openai/o3-mini-high",
+          "qwen/qwen2.5-vl-72b-instruct",
+          "qwen/qwen-plus",
+          "openai/o3-mini",
+          "mistralai/mistral-small-24b-instruct-2501",
+          "perplexity/sonar",
+          "deepseek/deepseek-r1-distill-llama-70b",
+          "deepseek/deepseek-r1",
+          "minimax/minimax-01",
+          "microsoft/phi-4",
+          "deepseek/deepseek-chat",
+          "openai/o1",
+          "cohere/command-r7b-12-2024",
+          "meta-llama/llama-3.3-70b-instruct",
+          "amazon/nova-lite-v1",
+          "amazon/nova-micro-v1",
+          "amazon/nova-pro-v1",
+          "openai/gpt-4o-2024-11-20",
+          "mistralai/mistral-large-2407",
+          "qwen/qwen-2.5-coder-32b-instruct",
+          "qwen/qwen-2.5-7b-instruct",
+          "meta-llama/llama-3.2-1b-instruct",
+          "meta-llama/llama-3.2-3b-instruct",
+          "qwen/qwen-2.5-72b-instruct",
+          "cohere/command-r-08-2024",
+          "cohere/command-r-plus-08-2024",
+          "nousresearch/hermes-3-llama-3.1-70b",
+          "nousresearch/hermes-3-llama-3.1-405b",
+          "openai/gpt-4o-2024-08-06",
+          "meta-llama/llama-3.1-70b-instruct",
+          "meta-llama/llama-3.1-8b-instruct",
+          "mistralai/mistral-nemo",
+          "openai/gpt-4o-mini",
+          "openai/gpt-4o-mini-2024-07-18",
+          "google/gemma-2-27b-it",
+          "openai/gpt-4o",
+          "openai/gpt-4o-2024-05-13",
+          "mistralai/mixtral-8x22b-instruct",
+          "microsoft/wizardlm-2-8x22b",
+          "openai/gpt-4-turbo",
+          "anthropic/claude-3-haiku",
+          "mistralai/mistral-large",
+          "openai/gpt-3.5-turbo-0613",
+          "openai/gpt-4-turbo-preview",
+          "openai/gpt-3.5-turbo-instruct",
+          "openai/gpt-3.5-turbo-16k",
+          "openai/gpt-3.5-turbo",
+          "openai/gpt-4"
+        ]
+      },
+      {
+        "id": "stepfun",
+        "model": "step-3.7-flash",
+        "hasKey": true,
+        "apiKey": "sk-6LgBckB3VmKvJUNpGjN8TUSkcY8kGd",
+        "models": [
+          "step-3.7-flash",
+          "step-3.5-flash"
+        ]
+      },
+      {
+        "id": "kimi",
+        "model": "kimi-k3",
+        "hasKey": true,
+        "apiKey": "sk-oNFw9yjIg8hiBbrEjFvr0ODfLNCnCp",
+        "models": [
+          "kimi-k3",
+          "kimi-k2.7-code-highspeed",
+          "kimi-k2.7-code",
+          "kimi-k2.6",
+          "kimi-k2.5",
+          "moonshot-v1-auto",
+          "moonshot-v1-128k",
+          "moonshot-v1-32k",
+          "moonshot-v1-8k"
+        ]
+      },
+      {
+        "id": "deepseek",
+        "model": "deepseek-v4-pro",
+        "hasKey": true,
+        "apiKey": "sk-qwir4ejiom8tcj0inl7rp88vi9xmb1ib",
+        "models": [
+          "deepseek-v4-flash",
+          "deepseek-v4-pro"
+        ]
+      },
+      {
+        "id": "zai",
+        "model": "glm-5.2",
+        "hasKey": true,
+        "apiKey": "7e701db771ed41f7919b.qLDZdestBoEj",
+        "models": [
+          "glm-5.2",
+          "glm-5.1",
+          "glm-5-turbo",
+          "glm-5",
+          "glm-4.7",
+          "glm-4.6",
+          "glm-4.5",
+          "glm-4.5-air"
+        ]
+      },
+      {
+        "id": "qwen",
+        "model": "qwen3.7-max",
+        "hasKey": true,
+        "apiKey": "sk-53409f3702e74ff16b4cce5d2eba8bc3",
+        "models": [
+          "qwen3.7-flash",
+          "qwen3.7-max",
+          "qwen3-max",
+          "qwen3.7-plus",
+          "qwen3.6-plus",
+          "qwen3.5-plus",
+          "qwen3.6-flash",
+          "qwen3.5-flash",
+          "qwen-max",
+          "qwen3-coder-plus",
+          "qwen3-coder-flash",
+          "qwen-turbo",
+          "qwen-plus",
+          "qwen-flash",
+          "qwq-plus",
+          "qvq-max"
+        ]
+      }
+    ]
+  },
+  "preferences": {
+    "launchAtStartup": true,
+    "bypassPermissions": true,
+    "blockCredentials": false,
+    "weekStartsOn": 1,
+    "updatesEnabled": true,
+    "ollamaModelsFolder": "/Users/younes/.ollama/models"
+  },
+  "desktop": {
+    "version": "1.0.232",
+    "platform": "macOS",
+    "syncedAt": "2026-07-29T23:40:03.014Z"
+  },
+  "data": {
+    "freeDiskBytes": 549673246720,
+    "totalDiskBytes": 994662584320,
+    "workspaceBytes": 4704356511,
+    "hippocampusBytes": 2557774,
+    "corpusBytes": 10337812,
+    "prefrontalBytes": 87647713,
+    "ramBytes": 185303040,
+    "totalRamBytes": 17179869184,
+    "cpuPercent": 0,
+    "cpuCount": 12
+  },
+  "compaction": {
+    "dailyHour": 16,
+    "weeklyDay": 5,
+    "weeklyHour": 17,
+    "runs": {
+      "daily": {
+        "at": 1785330014048,
+        "durationMs": 14023,
+        "provider": "deepseek",
+        "model": "deepseek-v4-pro",
+        "inputTokens": 3754,
+        "outputTokens": 683,
+        "output": "Here are the long-term facts worth promoting from today's log:\n\n---\n\n## projects.md\n```markdown\n## Younes AI Daily\n- A daily Arabic PDF digest covering AI news, trends, and interesting developments.\n- Purpose: Created for Younes to post on LinkedIn.\n- Publication rhythm appears to be daily (editions confirmed for July 26–29, 2026).\n- Format: Approximately 8-page PDF, light/fun/bite-sized tone, designed for social sharing.\n- Avoids repeating topics covered in previous editions.\n```\n\n---\n\n## people.md\n```markdown\n## Sana\n- Phone number: +966505349989 (WhatsApp).\n- Receives funny-romantic memes from Younes.\n- WhatsApp connection to this number has been problematic (reconnection needed as of 2026-07-29).\n\n## Mom (SMS Forwarder)\n- Bank transaction alerts forwarded to Younes's alturkeyy@gmail.com.\n- References Mada card *2448 and a credit card (dorman account).\n```\n\n---\n\n## preferences.md\n```markdown\n## Communication preferences\n- Prefers email summaries delivered via Telegram (not in-app).\n- All emails should be marked as read after summarization.\n- Recurring scheduled task: email check at 00:00, 06:00, and 12:00 daily.\n\n## Content preferences\n- Enjoys original, frog-themed startup/entrepreneurship memes.\n- Prefers dark-humor-relatable tone in memes.\n- Memes should never repeat previously sent formats, images, or captions.\n```\n\n---\n\n## technical.md\n```markdown\n## Email accounts connected\n- alturkeyy@gmail.com (primary personal) — OAuth token has expired repeatedly (invalid_grant). Needs reauthorization.\n- younes@wolffi.sh (secondary/work) — reliably connected, usually zero unread.\n\n## WhatsApp connectivity\n- WhatsApp channel disconnected as of 2026-07-29. Failed maximum reconnection attempts.\n- Requires user intervention to reconnect (Settings → re-link device).\n\n## Meme creation capability\n- Can source memes from Giphy, local uploads, and past conversation artifacts.\n- Frog meme format history tracked (Michigan J. Frog GIF used on 2026-07-29 as Vol. 11).\n\n## PDF generation workflow\n- PDFs built from HTML templates using Python scripts, rendered headlessly via browser, and delivered in-app.\n- Assets stored in ~/.wolffish/workspace/files/.\n- Arabic fonts (IBM Plex Sans Arabic) downloaded from GitHub and embedded via base64.\n```\n\n---\n\n## decisions.md\n```markdown\n## 2026-07-29\n- Michigan J. Frog (top hat dancing GIF) selected as frog meme format for the day. Labeled \"Founder Life, Vol. 11\" with dark-humor caption about founder cycles.\n- Younes AI Daily edition #4 (July 29) curated with lead story: Sam Altman's call to decelerate AI development. Additional topics: Meta + BlackRock $14B data center, FCC ban on Chinese humanoid robots, Together AI $800M round, Nvidia Cosmos 3 Edge in Japan, and more.\n```"
+      },
+      "weekly": {
+        "at": 1784901600107,
+        "durationMs": 21,
+        "provider": null,
+        "model": null,
+        "inputTokens": null,
+        "outputTokens": null,
+        "output": "Week in review: 291 logged turns across 7 active days (2026-07-18 → 2026-07-24). Daily summaries above; full logs in episodes/."
+      }
+    }
+  },
+  "usage": {
+    "days": [
+      {
+        "date": "2026-06-15",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 200690,
+            "outputTokens": 24171,
+            "cost": 0.119771,
+            "entries": 2
+          }
+        ],
+        "braveQueries": 20
+      },
+      {
+        "date": "2026-06-17",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 161784,
+            "outputTokens": 20881,
+            "cost": 0.099426,
+            "entries": 1
+          }
+        ],
+        "braveQueries": 0
+      },
+      {
+        "date": "2026-06-18",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 5031447,
+            "outputTokens": 172247,
+            "cost": 2.952448,
+            "entries": 23
+          }
+        ],
+        "braveQueries": 5
+      },
+      {
+        "date": "2026-06-19",
+        "models": [
+          {
+            "provider": "local",
+            "model": "gemma4:e2b",
+            "inputTokens": 28665,
+            "outputTokens": 7,
+            "cost": 0,
+            "entries": 1
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 2266586,
+            "outputTokens": 32721,
+            "cost": 1.070071,
+            "entries": 15
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 1074936,
+            "outputTokens": 7832,
+            "cost": 0.164337,
+            "entries": 8
+          }
+        ],
+        "braveQueries": 16
+      },
+      {
+        "date": "2026-06-20",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 1236657,
+            "outputTokens": 9764,
+            "cost": 0.183398,
+            "entries": 7
+          }
+        ],
+        "braveQueries": 7
+      },
+      {
+        "date": "2026-06-21",
+        "models": [
+          {
+            "provider": "zai",
+            "model": "glm-5.2",
+            "inputTokens": 167537,
+            "outputTokens": 3638,
+            "cost": 0.373612,
+            "entries": 1
+          }
+        ],
+        "braveQueries": 8
+      },
+      {
+        "date": "2026-06-22",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 960165,
+            "outputTokens": 3054,
+            "cost": 0.137133,
+            "entries": 6
+          }
+        ],
+        "braveQueries": 9
+      },
+      {
+        "date": "2026-06-23",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 878474,
+            "outputTokens": 166966,
+            "cost": 0.667241,
+            "entries": 8
+          }
+        ],
+        "braveQueries": 40
+      },
+      {
+        "date": "2026-06-24",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1456192,
+            "outputTokens": 94105,
+            "cost": 0.776183,
+            "entries": 18
+          }
+        ],
+        "braveQueries": 0
+      },
+      {
+        "date": "2026-06-25",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 2286406,
+            "outputTokens": 49182,
+            "cost": 1.149388,
+            "entries": 32
+          }
+        ],
+        "braveQueries": 7
+      },
+      {
+        "date": "2026-06-26",
+        "models": [
+          {
+            "provider": "anthropic",
+            "model": "claude-opus-4-8",
+            "inputTokens": 419,
+            "outputTokens": 442,
+            "cost": 0.863899,
+            "entries": 1
+          },
+          {
+            "provider": "openai",
+            "model": "gpt-5.5",
+            "inputTokens": 47536,
+            "outputTokens": 526,
+            "cost": 0.322004,
+            "entries": 1
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 2739315,
+            "outputTokens": 35521,
+            "cost": 1.32213,
+            "entries": 33
+          },
+          {
+            "provider": "mimo",
+            "model": "mimo-v2.5-pro",
+            "inputTokens": 238057,
+            "outputTokens": 983,
+            "cost": 2.133929,
+            "entries": 2
+          },
+          {
+            "provider": "stepfun",
+            "model": "step-3.7-flash",
+            "inputTokens": 216416,
+            "outputTokens": 910,
+            "cost": 0.223338,
+            "entries": 1
+          },
+          {
+            "provider": "openrouter",
+            "model": "anthropic/claude-sonnet-4.5",
+            "inputTokens": 74683,
+            "outputTokens": 233,
+            "cost": 0.227544,
+            "entries": 1
+          }
+        ],
+        "braveQueries": 0
+      },
+      {
+        "date": "2026-06-27",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1553447,
+            "outputTokens": 22261,
+            "cost": 0.780021,
+            "entries": 28
+          }
+        ],
+        "braveQueries": 9
+      },
+      {
+        "date": "2026-06-28",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 882038,
+            "outputTokens": 13387,
+            "cost": 0.443431,
+            "entries": 22
+          },
+          {
+            "provider": "qwen",
+            "model": "qwen3-max",
+            "inputTokens": 271414,
+            "outputTokens": 1151,
+            "cost": 0.513225,
+            "entries": 3
+          }
+        ],
+        "braveQueries": 0
+      },
+      {
+        "date": "2026-06-29",
+        "models": [
+          {
+            "provider": "local",
+            "model": "gemma4:e2b",
+            "inputTokens": 225239,
+            "outputTokens": 41,
+            "cost": 0,
+            "entries": 4
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 2291279,
+            "outputTokens": 29989,
+            "cost": 1.106467,
+            "entries": 43
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 2376174,
+            "outputTokens": 23891,
+            "cost": 0.34597,
+            "entries": 45
+          },
+          {
+            "provider": "zai",
+            "model": "glm-5.2",
+            "inputTokens": 161895,
+            "outputTokens": 1276,
+            "cost": 0.356485,
+            "entries": 2
+          }
+        ],
+        "braveQueries": 0
+      },
+      {
+        "date": "2026-06-30",
+        "models": [
+          {
+            "provider": "local",
+            "model": "gemma4:e2b",
+            "inputTokens": 486974,
+            "outputTokens": 1165,
+            "cost": 0,
+            "entries": 21
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 390445,
+            "outputTokens": 40608,
+            "cost": 0.074995,
+            "entries": 11
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1271344,
+            "outputTokens": 38392,
+            "cost": 0.654545,
+            "entries": 19
+          }
+        ],
+        "braveQueries": 50
+      },
+      {
+        "date": "2026-07-01",
+        "models": [
+          {
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+            "inputTokens": 8564,
+            "outputTokens": 21935,
+            "cost": 10.680822,
+            "entries": 25
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 2169522,
+            "outputTokens": 57041,
+            "cost": 1.111298,
+            "entries": 27
+          }
+        ],
+        "braveQueries": 0
+      },
+      {
+        "date": "2026-07-02",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1506385,
+            "outputTokens": 17661,
+            "cost": 0.7299,
+            "entries": 15
+          }
+        ],
+        "braveQueries": 0
+      },
+      {
+        "date": "2026-07-03",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1054169,
+            "outputTokens": 19525,
+            "cost": 0.531451,
+            "entries": 13
+          }
+        ],
+        "braveQueries": 0
+      },
+      {
+        "date": "2026-07-04",
+        "models": [
+          {
+            "provider": "local",
+            "model": "gemma4:e2b",
+            "inputTokens": 326993,
+            "outputTokens": 1691,
+            "cost": 0,
+            "entries": 14
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 422097,
+            "outputTokens": 16965,
+            "cost": 0.210214,
+            "entries": 14
+          }
+        ],
+        "braveQueries": 0
+      },
+      {
+        "date": "2026-07-05",
+        "models": [
+          {
+            "provider": "local",
+            "model": "gemma4:e2b",
+            "inputTokens": 155985,
+            "outputTokens": 1262,
+            "cost": 0,
+            "entries": 5
+          },
+          {
+            "provider": "anthropic",
+            "model": "claude-fable-5",
+            "inputTokens": 2,
+            "outputTokens": 526,
+            "cost": 0.268408,
+            "entries": 1
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1616444,
+            "outputTokens": 106382,
+            "cost": 0.845219,
+            "entries": 38
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 662836,
+            "outputTokens": 68290,
+            "cost": 0.121028,
+            "entries": 7
+          },
+          {
+            "provider": "qwen",
+            "model": "qwen3.7-max",
+            "inputTokens": 192667,
+            "outputTokens": 28665,
+            "cost": 0.795824,
+            "entries": 5
+          },
+          {
+            "provider": "openrouter",
+            "model": "anthropic/claude-haiku-4.5",
+            "inputTokens": 51055,
+            "outputTokens": 1153,
+            "cost": 0.182824,
+            "entries": 1
+          }
+        ],
+        "braveQueries": 275
+      },
+      {
+        "date": "2026-07-06",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 2409572,
+            "outputTokens": 246561,
+            "cost": 1.352537,
+            "entries": 48
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 405575,
+            "outputTokens": 46211,
+            "cost": 0.072568,
+            "entries": 10
+          },
+          {
+            "provider": "qwen",
+            "model": "qwen3.7-plus",
+            "inputTokens": 45526,
+            "outputTokens": 11829,
+            "cost": 0.04514,
+            "entries": 2
+          }
+        ],
+        "braveQueries": 322
+      },
+      {
+        "date": "2026-07-07",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1337541,
+            "outputTokens": 75788,
+            "cost": 0.68195,
+            "entries": 68
+          }
+        ],
+        "braveQueries": 3
+      },
+      {
+        "date": "2026-07-08",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1236853,
+            "outputTokens": 92064,
+            "cost": 0.723007,
+            "entries": 33
+          }
+        ],
+        "braveQueries": 49
+      },
+      {
+        "date": "2026-07-09",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 2495118,
+            "outputTokens": 191534,
+            "cost": 1.326507,
+            "entries": 64
+          },
+          {
+            "provider": "xai",
+            "model": "grok-4.5",
+            "inputTokens": 659909,
+            "outputTokens": 25963,
+            "cost": 2.266828,
+            "entries": 12
+          }
+        ],
+        "braveQueries": 60
+      },
+      {
+        "date": "2026-07-10",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1022200,
+            "outputTokens": 75312,
+            "cost": 0.547907,
+            "entries": 22
+          },
+          {
+            "provider": "zai",
+            "model": "glm-5.2",
+            "inputTokens": 6223386,
+            "outputTokens": 159129,
+            "cost": 12.037022,
+            "entries": 36
+          }
+        ],
+        "braveQueries": 71
+      },
+      {
+        "date": "2026-07-11",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1718713,
+            "outputTokens": 96096,
+            "cost": 0.892698,
+            "entries": 56
+          }
+        ],
+        "braveQueries": 26
+      },
+      {
+        "date": "2026-07-12",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 3285740,
+            "outputTokens": 256833,
+            "cost": 1.786637,
+            "entries": 91
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 399124,
+            "outputTokens": 42535,
+            "cost": 0.0712,
+            "entries": 8
+          }
+        ],
+        "braveQueries": 335
+      },
+      {
+        "date": "2026-07-13",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 3177942,
+            "outputTokens": 232131,
+            "cost": 1.724208,
+            "entries": 78
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 331147,
+            "outputTokens": 54469,
+            "cost": 0.06457,
+            "entries": 9
+          },
+          {
+            "provider": "qwen",
+            "model": "qwen3.6-flash",
+            "inputTokens": 1197483,
+            "outputTokens": 31390,
+            "cost": 0.346454,
+            "entries": 5
+          }
+        ],
+        "braveQueries": 384
+      },
+      {
+        "date": "2026-07-14",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 2558038,
+            "outputTokens": 243338,
+            "cost": 1.437728,
+            "entries": 74
+          }
+        ],
+        "braveQueries": 358
+      },
+      {
+        "date": "2026-07-15",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 3155991,
+            "outputTokens": 244381,
+            "cost": 1.713855,
+            "entries": 78
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 343905,
+            "outputTokens": 37831,
+            "cost": 0.061938,
+            "entries": 8
+          },
+          {
+            "provider": "qwen",
+            "model": "qwen3.7-plus",
+            "inputTokens": 821573,
+            "outputTokens": 80632,
+            "cost": 0.534293,
+            "entries": 5
+          },
+          {
+            "provider": "qwen",
+            "model": "qwen3.6-flash",
+            "inputTokens": 144023,
+            "outputTokens": 5705,
+            "cost": 0.044563,
+            "entries": 1
+          }
+        ],
+        "braveQueries": 452
+      },
+      {
+        "date": "2026-07-16",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 3561709,
+            "outputTokens": 440127,
+            "cost": 2.096372,
+            "entries": 76
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 677390,
+            "outputTokens": 81934,
+            "cost": 0.126974,
+            "entries": 10
+          }
+        ],
+        "braveQueries": 282
+      },
+      {
+        "date": "2026-07-17",
+        "models": [
+          {
+            "provider": "anthropic",
+            "model": "claude-opus-4-8",
+            "inputTokens": 1808,
+            "outputTokens": 106368,
+            "cost": 3.600739,
+            "entries": 2
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1066745,
+            "outputTokens": 62049,
+            "cost": 0.56867,
+            "entries": 26
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 413791,
+            "outputTokens": 57244,
+            "cost": 0.077816,
+            "entries": 8
+          },
+          {
+            "provider": "kimi",
+            "model": "kimi-k3",
+            "inputTokens": 1875437,
+            "outputTokens": 101425,
+            "cost": 8.431734,
+            "entries": 27
+          },
+          {
+            "provider": "qwen",
+            "model": "qwen3.6-flash",
+            "inputTokens": 792455,
+            "outputTokens": 20804,
+            "cost": 0.229321,
+            "entries": 7
+          }
+        ],
+        "braveQueries": 195
+      },
+      {
+        "date": "2026-07-18",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1615968,
+            "outputTokens": 83532,
+            "cost": 0.85405,
+            "entries": 57
+          }
+        ],
+        "braveQueries": 62
+      },
+      {
+        "date": "2026-07-19",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 2135156,
+            "outputTokens": 104111,
+            "cost": 1.1139,
+            "entries": 64
+          }
+        ],
+        "braveQueries": 46
+      },
+      {
+        "date": "2026-07-20",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1314251,
+            "outputTokens": 82203,
+            "cost": 0.711489,
+            "entries": 60
+          },
+          {
+            "provider": "zai",
+            "model": "glm-5-turbo",
+            "inputTokens": 189880,
+            "outputTokens": 19878,
+            "cost": 0.438987,
+            "entries": 5
+          }
+        ],
+        "braveQueries": 155
+      },
+      {
+        "date": "2026-07-21",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 2171700,
+            "outputTokens": 114932,
+            "cost": 1.15147,
+            "entries": 85
+          },
+          {
+            "provider": "zai",
+            "model": "glm-5-turbo",
+            "inputTokens": 407700,
+            "outputTokens": 56550,
+            "cost": 1.111098,
+            "entries": 9
+          }
+        ],
+        "braveQueries": 263
+      },
+      {
+        "date": "2026-07-22",
+        "models": [
+          {
+            "provider": "anthropic",
+            "model": "claude-haiku-4-5-20251001",
+            "inputTokens": 13691,
+            "outputTokens": 80147,
+            "cost": 1.720387,
+            "entries": 18
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 4648445,
+            "outputTokens": 394438,
+            "cost": 2.564865,
+            "entries": 150
+          }
+        ],
+        "braveQueries": 607
+      },
+      {
+        "date": "2026-07-23",
+        "models": [
+          {
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
+            "inputTokens": 59538,
+            "outputTokens": 110062,
+            "cost": 17.119412,
+            "entries": 3
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1229387,
+            "outputTokens": 52482,
+            "cost": 0.63529,
+            "entries": 15
+          }
+        ],
+        "braveQueries": 54
+      },
+      {
+        "date": "2026-07-24",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 2508091,
+            "outputTokens": 167160,
+            "cost": 1.361691,
+            "entries": 38
+          }
+        ],
+        "braveQueries": 69
+      },
+      {
+        "date": "2026-07-25",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1163551,
+            "outputTokens": 45686,
+            "cost": 0.598144,
+            "entries": 15
+          },
+          {
+            "provider": "kimi",
+            "model": "kimi-k3",
+            "inputTokens": 246278,
+            "outputTokens": 29797,
+            "cost": 1.374179,
+            "entries": 7
+          },
+          {
+            "provider": "openrouter",
+            "model": "openai/gpt-5.6-luna",
+            "inputTokens": 2234005,
+            "outputTokens": 45641,
+            "cost": 7.5369,
+            "entries": 5
+          }
+        ],
+        "braveQueries": 318
+      },
+      {
+        "date": "2026-07-26",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1459809,
+            "outputTokens": 90325,
+            "cost": 0.76591,
+            "entries": 23
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 384238,
+            "outputTokens": 53267,
+            "cost": 0.072019,
+            "entries": 6
+          }
+        ],
+        "braveQueries": 271
+      },
+      {
+        "date": "2026-07-27",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1078151,
+            "outputTokens": 52803,
+            "cost": 0.564876,
+            "entries": 16
+          },
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-flash",
+            "inputTokens": 285824,
+            "outputTokens": 30799,
+            "cost": 0.051487,
+            "entries": 5
+          }
+        ],
+        "braveQueries": 111
+      },
+      {
+        "date": "2026-07-28",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1628449,
+            "outputTokens": 98477,
+            "cost": 0.866224,
+            "entries": 21
+          },
+          {
+            "provider": "xai",
+            "model": "grok-4.3",
+            "inputTokens": 590406,
+            "outputTokens": 17661,
+            "cost": 0.973674,
+            "entries": 8
+          }
+        ],
+        "braveQueries": 262
+      },
+      {
+        "date": "2026-07-29",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 1113812,
+            "outputTokens": 49288,
+            "cost": 0.569122,
+            "entries": 18
+          }
+        ],
+        "braveQueries": 56
+      },
+      {
+        "date": "2026-07-30",
+        "models": [
+          {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "inputTokens": 49106,
+            "outputTokens": 831,
+            "cost": 0.022744,
+            "entries": 2
+          }
+        ],
+        "braveQueries": 0
+      }
+    ]
+  }
+}
