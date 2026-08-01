@@ -423,9 +423,7 @@ function DayCard({
   return (
     <View className="bg-surface border-border flex-col gap-3 rounded-2xl border p-4">
       <View className="flex-row items-baseline justify-between gap-3">
-        <Text className="text-fg font-sans-semibold min-w-0 flex-1 text-left text-sm">
-          {title}
-        </Text>
+        <Text className="text-fg font-sans-semibold min-w-0 flex-1 text-left text-sm">{title}</Text>
         <Text className="text-muted font-sans text-xs">{formatDayFromNow(date, now, t)}</Text>
       </View>
       {hasUsage ? (

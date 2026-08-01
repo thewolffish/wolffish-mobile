@@ -757,7 +757,9 @@ export const useDemoConfig = create<DemoConfigState>()(
                       detail:
                         [
                           browser.profileEmail ?? null,
-                          browser.browserVersion ? `v${browser.browserVersion.split('.')[0]}` : null,
+                          browser.browserVersion
+                            ? `v${browser.browserVersion.split('.')[0]}`
+                            : null,
                           browser.os ?? null
                         ]
                           .filter(Boolean)

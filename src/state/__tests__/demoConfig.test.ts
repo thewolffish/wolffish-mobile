@@ -252,7 +252,12 @@ describe('demoConfig browser extension', () => {
               os: 'macOS',
               profileEmail: 'work@company.com'
             },
-            { browser: 'edge', name: 'Microsoft Edge', browserVersion: '139.0.3405.86', os: 'macOS' }
+            {
+              browser: 'edge',
+              name: 'Microsoft Edge',
+              browserVersion: '139.0.3405.86',
+              os: 'macOS'
+            }
           ]
         }
       }
