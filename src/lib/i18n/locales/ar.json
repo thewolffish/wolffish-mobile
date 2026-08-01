@@ -236,7 +236,7 @@
       }
     },
     "data": {
-      "subtitle": "كم من المساحة يستهلك وولفيش — على سطح المكتب وعلى هذا الهاتف — وكيف تبدأ بهذا الجهاز من جديد.",
+      "subtitle": "المساحة على سطح المكتب وهذا الهاتف.",
       "desktopTitle": "سطح المكتب",
       "desktopDescription": "فضاء عمل وولفيش على سطح المكتب المقترن، كما كان عند آخر مزامنة.",
       "diskUsage": "{{free}} متاح من أصل {{total}}",
@@ -642,5 +642,26 @@
     "days": "{{value}} ي",
     "months": "{{value}} شهر",
     "years": "{{value}} سنة"
+  },
+  "relative": {
+    "today": "اليوم",
+    "yesterday": "أمس",
+    "tomorrow": "غدًا",
+    "twoDaysAgo": "قبل يومين",
+    "daysAgo": "قبل {{count}} أيام",
+    "inTwoDays": "بعد يومين",
+    "inDays": "بعد {{count}} أيام",
+    "oneMonthAgo": "قبل شهر",
+    "twoMonthsAgo": "قبل شهرين",
+    "monthsAgo": "قبل {{count}} أشهر",
+    "inOneMonth": "بعد شهر",
+    "inTwoMonths": "بعد شهرين",
+    "inMonths": "بعد {{count}} أشهر",
+    "oneYearAgo": "قبل سنة",
+    "twoYearsAgo": "قبل سنتين",
+    "yearsAgo": "قبل {{count}} سنوات",
+    "inOneYear": "بعد سنة",
+    "inTwoYears": "بعد سنتين",
+    "inYears": "بعد {{count}} سنوات"
   }
 }

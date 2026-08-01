@@ -236,7 +236,7 @@
       }
     },
     "data": {
-      "subtitle": "How much space Wolffish is using — on the desktop and on this phone — and how to start this device over.",
+      "subtitle": "Storage on the desktop and this phone.",
       "desktopTitle": "Desktop",
       "desktopDescription": "The Wolffish workspace on the paired desktop, as of the last sync.",
       "diskUsage": "{{free}} free of {{total}}",
@@ -642,5 +642,26 @@
     "days": "{{value}}d",
     "months": "{{value}}mo",
     "years": "{{value}}y"
+  },
+  "relative": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "tomorrow": "Tomorrow",
+    "twoDaysAgo": "2 days ago",
+    "daysAgo": "{{count}} days ago",
+    "inTwoDays": "in 2 days",
+    "inDays": "in {{count}} days",
+    "oneMonthAgo": "a month ago",
+    "twoMonthsAgo": "2 months ago",
+    "monthsAgo": "{{count}} months ago",
+    "inOneMonth": "in a month",
+    "inTwoMonths": "in 2 months",
+    "inMonths": "in {{count}} months",
+    "oneYearAgo": "a year ago",
+    "twoYearsAgo": "2 years ago",
+    "yearsAgo": "{{count}} years ago",
+    "inOneYear": "in a year",
+    "inTwoYears": "in 2 years",
+    "inYears": "in {{count}} years"
   }
 }

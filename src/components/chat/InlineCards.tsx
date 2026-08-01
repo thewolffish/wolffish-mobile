@@ -4,7 +4,7 @@ import type { WorkflowSnapshot } from '@/lib/conversations/types'
 import { cn } from '@/lib/utils/cn'
 import { memo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { I18nManager, Text, View } from 'react-native'
+import { I18nManager, Pressable, Text, View } from 'react-native'
 
 /**
  * The small inline chat cards: model chip, turn-end footer, workflow summary,
@@ -52,27 +52,29 @@ export const TurnEndCard = memo(function TurnEndCard({
       : ArrowRight01Icon
 
   return (
-    <View className="flex-col gap-1.5 self-start">
+    <View className="flex-col gap-1.5">
       {label && (
-        <View className="rounded-full bg-amber-500/15 px-2.5 py-1">
+        <View className="self-start rounded-full bg-amber-500/15 px-2.5 py-1">
           <Text className="font-sans-medium text-left text-[10px] text-amber-600 dark:text-amber-400">
             {label}
           </Text>
         </View>
       )}
       {reasoning ? (
-        <View className="flex-col gap-1">
-          <Text
+        <View className="bg-surface border-border w-[85%] flex-col gap-2 self-start rounded-xl border px-3 py-2.5">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showReasoning }}
             onPress={() => setShowReasoning((value) => !value)}
-            className="text-muted font-sans-medium text-left text-[10px]"
-            suppressHighlighting
+            className="flex-row items-center gap-2"
           >
-            <Chevron size={10} className="text-muted" /> {t('chat.reasoning')}
-          </Text>
-          {showReasoning && (
-            <Text className="text-muted border-border border-s-2 ps-2 text-left font-sans text-xs leading-5">
-              {reasoning}
+            <Text numberOfLines={1} className="text-fg font-sans-medium flex-1 text-left text-xs">
+              {t('chat.reasoning')}
             </Text>
+            <Chevron size={14} className="text-muted" />
+          </Pressable>
+          {showReasoning && (
+            <Text className="text-muted text-left font-sans text-xs leading-5">{reasoning}</Text>
           )}
         </View>
       ) : null}

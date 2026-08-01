@@ -27,6 +27,7 @@ import {
 } from '@/lib/usage/stats'
 import { cn } from '@/lib/utils/cn'
 import { formatTokens } from '@/lib/utils/formatTokens'
+import { formatDayFromNow } from '@/lib/utils/relativeTime'
 import { useTheme, useTokens } from '@/providers/theme/useTheme'
 import { useConfigValue, useUsageDays } from '@/state/demoConfig'
 import { useQuery } from '@tanstack/react-query'
@@ -37,11 +38,13 @@ import { Pressable, ScrollView, Text, View, type LayoutChangeEvent } from 'react
 /**
  * Usage — the desktop UsagePanel on one column, computed from the usage
  * ledger rows the config snapshot carries (lib/usage/stats mirrors
- * main/runtime/usage.ts): range selector, activity pixels, overview grid,
- * cost cards, provider cards, Brave. Two adaptations for the phone: the six
+ * main/runtime/usage.ts): activity pixels, then the range selector sitting
+ * directly above the overview/cost/provider sections it scopes (the activity
+ * month has its own month/year selects). Two adaptations for the phone: the six
  * ranges ride a horizontally scrollable switch instead of a fixed row, and
- * the year heatmap becomes one month of pixels with month/year selects —
- * tapping a day opens the card the desktop's hover tooltip can't offer.
+ * the year heatmap becomes one month of pixels with month/year selects plus
+ * an always-visible day card standing in for the desktop's hover tooltip —
+ * on today until another day is tapped.
  * Sync stays on the desktop: these numbers refresh with the dataset.
  */
 
@@ -87,9 +90,9 @@ export default function UsageScreen(): React.JSX.Element {
 
   return (
     <PanelScreen title={t('settings.tabs.usage')} subtitle={t('settings.usage.subtitle')}>
-      <RangeSelector range={range} onChange={setRange} />
-
       <ActivityMonth days={days} now={now} locale={locale} />
+
+      <RangeSelector range={range} onChange={setRange} />
 
       <View className="flex-col gap-3">
         <Text className="text-fg font-sans-semibold text-left text-sm">
@@ -235,10 +238,12 @@ function RangeSelector({
 const CELL_GAP = 4
 
 /**
- * One month of the desktop's activity pixels, month/year selects above,
- * tap-a-day details card below. Intensity is normalised against the selected
- * YEAR's peak — the desktop heatmap's scale — so a quiet month reads quiet
- * instead of being stretched to full brightness.
+ * One month of the desktop's activity pixels, month/year selects above, day
+ * details card below. The card is always present — it opens on today and only
+ * ever moves to another tapped day; browsing months leaves it in place.
+ * Intensity is normalised against the selected YEAR's peak — the desktop
+ * heatmap's scale — so a quiet month reads quiet instead of being stretched
+ * to full brightness.
  */
 function ActivityMonth({
   days,
@@ -253,9 +258,12 @@ function ActivityMonth({
   const { isDark } = useTheme()
   const tokens = useTokens()
   const weekStartsOn = useConfigValue('weekStartsOn')
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+    now.getDate()
+  ).padStart(2, '0')}`
   const [month, setMonth] = useState(now.getMonth())
   const [year, setYear] = useState(now.getFullYear())
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState(today)
   const [gridWidth, setGridWidth] = useState(0)
 
   const daily = useMemo(() => dailyTokens(days, year), [days, year])
@@ -303,9 +311,6 @@ function ActivityMonth({
   }, [locale, weekStartsOn])
 
   const cellSize = gridWidth > 0 ? (gridWidth - 6 * CELL_GAP) / 7 : 0
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-    now.getDate()
-  ).padStart(2, '0')}`
 
   const cellColor = (date: string): string => {
     const value = daily.get(date) ?? 0
@@ -329,19 +334,13 @@ function ActivityMonth({
           className="flex-1"
           value={`${month}`}
           options={monthOptions}
-          onChange={(value) => {
-            setMonth(Number(value))
-            setSelected(null)
-          }}
+          onChange={(value) => setMonth(Number(value))}
         />
         <Select<string>
           className="w-28"
           value={`${year}`}
           options={yearOptions}
-          onChange={(value) => {
-            setYear(Number(value))
-            setSelected(null)
-          }}
+          onChange={(value) => setYear(Number(value))}
         />
       </View>
 
@@ -369,7 +368,7 @@ function ActivityMonth({
                     accessibilityRole="button"
                     accessibilityLabel={date}
                     accessibilityState={{ selected: selected === date }}
-                    onPress={() => setSelected(selected === date ? null : date)}
+                    onPress={() => setSelected(date)}
                     style={{
                       width: cellSize,
                       height: cellSize,
@@ -385,7 +384,7 @@ function ActivityMonth({
           ))}
       </View>
 
-      {selected !== null && <DayCard days={days} date={selected} locale={locale} />}
+      <DayCard days={days} date={selected} now={now} locale={locale} />
     </View>
   )
 }
@@ -394,10 +393,12 @@ function ActivityMonth({
 function DayCard({
   days,
   date,
+  now,
   locale
 }: {
   days: ReturnType<typeof useUsageDays>
   date: string
+  now: Date
   locale: string
 }): React.JSX.Element {
   const { t } = useTranslation()
@@ -421,7 +422,12 @@ function DayCard({
 
   return (
     <View className="bg-surface border-border flex-col gap-3 rounded-2xl border p-4">
-      <Text className="text-fg font-sans-semibold text-left text-sm">{title}</Text>
+      <View className="flex-row items-baseline justify-between gap-3">
+        <Text className="text-fg font-sans-semibold min-w-0 flex-1 text-left text-sm">
+          {title}
+        </Text>
+        <Text className="text-muted font-sans text-xs">{formatDayFromNow(date, now, t)}</Text>
+      </View>
       {hasUsage ? (
         <>
           <View className="flex-row flex-wrap gap-3">
