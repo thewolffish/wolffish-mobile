@@ -494,7 +494,39 @@
     "ttsVoice": "af_bella",
     "ttsSpeed": "1.0",
     "screenshotMaxWidth": "1280",
-    "screenshotFormat": "jpeg"
+    "screenshotFormat": "jpeg",
+    "browserExtension": {
+      "port": 23151,
+      "screenshotMaxWidth": 1280,
+      "screenshotFormat": "jpeg",
+      "screenshotQuality": 80,
+      "connected": true,
+      "browsers": [
+        {
+          "browser": "chrome",
+          "name": "Google Chrome",
+          "browserVersion": "151.0.7601.84",
+          "os": "macOS",
+          "profileEmail": "alturkeyy@gmail.com",
+          "extensionVersion": "0.1.53"
+        },
+        {
+          "browser": "chrome",
+          "name": "Google Chrome",
+          "browserVersion": "151.0.7601.84",
+          "os": "macOS",
+          "profileEmail": "younes@wolffi.sh",
+          "extensionVersion": "0.1.53"
+        },
+        {
+          "browser": "brave",
+          "name": "Brave",
+          "browserVersion": "1.84.120",
+          "os": "macOS",
+          "extensionVersion": "0.1.53"
+        }
+      ]
+    }
   },
   "channels": {
     "inapp": {

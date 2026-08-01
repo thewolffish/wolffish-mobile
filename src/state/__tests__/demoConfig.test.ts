@@ -231,6 +231,66 @@ describe('demoConfig provider keys', () => {
   })
 })
 
+describe('demoConfig browser extension', () => {
+  const extService = () =>
+    useDemoConfig.getState().services.find((service) => service.key === 'browserExtension')
+
+  it('lists every connected browser with profile, version and OS', () => {
+    const base = snapshot()
+    useDemoConfig.getState().applySnapshot({
+      ...base,
+      services: {
+        ...base.services,
+        browserExtension: {
+          port: 23151,
+          connected: true,
+          browsers: [
+            {
+              browser: 'chrome',
+              name: 'Google Chrome',
+              browserVersion: '138.0.7204.97',
+              os: 'macOS',
+              profileEmail: 'work@company.com'
+            },
+            { browser: 'edge', name: 'Microsoft Edge', browserVersion: '139.0.3405.86', os: 'macOS' }
+          ]
+        }
+      }
+    })
+    const service = extService()
+    expect(service?.connected).toBe(true)
+    expect(service?.connections).toEqual([
+      { label: 'Google Chrome', detail: 'work@company.com · v138 · macOS' },
+      { label: 'Microsoft Edge', detail: 'v139 · macOS' }
+    ])
+  })
+
+  // Bundles published before multi-browser shipped carry no browsers list —
+  // the panel must fall back to the old single synthesized row, not vanish.
+  it('falls back to the port row when the bundle predates multi-browser', () => {
+    useDemoConfig.getState().applySnapshot(snapshot())
+    const service = extService()
+    expect(service?.connected).toBe(false)
+    expect(service?.connections).toEqual([{ label: 'Chrome extension', detail: 'port 23151' }])
+  })
+
+  // `connected` omitted but browsers present: presence of connections is the
+  // only honest reading.
+  it('infers connected from a non-empty browsers list', () => {
+    const base = snapshot()
+    useDemoConfig.getState().applySnapshot({
+      ...base,
+      services: {
+        ...base.services,
+        browserExtension: {
+          browsers: [{ browser: 'brave', name: 'Brave', browserVersion: '1.81.132', os: 'macOS' }]
+        }
+      }
+    })
+    expect(extService()?.connected).toBe(true)
+  })
+})
+
 describe('demoConfig desktop data', () => {
   const FULL_DATA = {
     freeDiskBytes: 549673246720,

@@ -398,6 +398,16 @@ export type ConfigSnapshot = {
       screenshotMaxWidth?: number
       screenshotFormat?: string
       screenshotQuality?: number
+      /** Absent in bundles published before multi-browser shipped. */
+      connected?: boolean
+      browsers?: Array<{
+        browser?: string
+        name?: string
+        browserVersion?: string
+        os?: string
+        profileEmail?: string
+        extensionVersion?: string
+      }>
     }
   }
   channels: {
@@ -738,13 +748,28 @@ export const useDemoConfig = create<DemoConfigState>()(
               },
               {
                 key: 'browserExtension',
-                connected: false,
-                connections: [
-                  {
-                    label: 'Chrome extension',
-                    detail: `port ${services.browserExtension?.port ?? DEFAULTS.browserExtensionPort}`
-                  }
-                ]
+                connected:
+                  services.browserExtension?.connected ??
+                  (services.browserExtension?.browsers?.length ?? 0) > 0,
+                connections: services.browserExtension?.browsers?.length
+                  ? services.browserExtension.browsers.map((browser) => ({
+                      label: browser.name ?? 'Browser',
+                      detail:
+                        [
+                          browser.profileEmail ?? null,
+                          browser.browserVersion ? `v${browser.browserVersion.split('.')[0]}` : null,
+                          browser.os ?? null
+                        ]
+                          .filter(Boolean)
+                          .join(' · ') ||
+                        `port ${services.browserExtension?.port ?? DEFAULTS.browserExtensionPort}`
+                    }))
+                  : [
+                      {
+                        label: 'Chrome extension',
+                        detail: `port ${services.browserExtension?.port ?? DEFAULTS.browserExtensionPort}`
+                      }
+                    ]
               },
               { key: 'computerUse', connected: true, connections: [] }
             ]
