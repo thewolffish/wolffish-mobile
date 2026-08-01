@@ -67,7 +67,7 @@
           "name": "file_write",
           "args": {
             "path": "~/Desktop/README.md",
-            "content": "# Welcome to Your Desktop 🐟\n\nCreated by Wolffish — your local-first AI assistant.\n\n## Quick Info\n- **User:** Younes Alturkey\n- **Location:** Riyadh, Saudi Arabia\n- **Current Project:** Building Wolffish — a markdown-powered personal AI agent\n\n## What is this?\nJust a placeholder README to show that Wolffish can write files to your desktop. Feel free to edit or delete it.\n\n## Need something?\nAsk Wolffish to:\n- Create files and documents\n- Automate tasks\n- Check your emails\n- Send messages\n- Research anything\n- And much more...\n\n---\n*Generated on $(date)*",
+            "content": "# Welcome to Your Desktop 🐟\n\nCreated by Wolffish — your local-first AI assistant.\n\n## Quick Info\n- **User:** Younes Alharbi\n- **Location:** Riyadh, Saudi Arabia\n- **Current Project:** Building Wolffish — a markdown-powered personal AI agent\n\n## What is this?\nJust a placeholder README to show that Wolffish can write files to your desktop. Feel free to edit or delete it.\n\n## Need something?\nAsk Wolffish to:\n- Create files and documents\n- Automate tasks\n- Check your emails\n- Send messages\n- Research anything\n- And much more...\n\n---\n*Generated on $(date)*",
             "mode": "overwrite"
           }
         },

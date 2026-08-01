@@ -553,7 +553,7 @@
           "segmentId": "seg_100",
           "toolCallId": "call_00_QJGIG4ROqAoMWAiMDTCK6960",
           "status": "success",
-          "output": "Sent. message_id=1232 to=8692209949"
+          "output": "Sent. message_id=1232 to=8417306252"
         },
         {
           "kind": "active_model",
@@ -579,7 +579,7 @@
           "segmentId": "seg_103",
           "toolCallId": "call_00_2WaxDkuSXQXEGugNFqq90291",
           "status": "success",
-          "output": "Sent. message_id=1233 to=8692209949 kind=document"
+          "output": "Sent. message_id=1233 to=8417306252 kind=document"
         },
         {
           "kind": "active_model",

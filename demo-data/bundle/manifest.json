@@ -1,11 +1,11 @@
 {
-  "version": "a4a36b51c19d",
-  "builtAt": "2026-07-29T23:48:25.808Z",
-  "conversations": 168,
-  "totalBytes": 18649745,
+  "version": "3b6760ab83a4",
+  "builtAt": "2026-08-01T18:01:28.365Z",
+  "conversations": 163,
+  "totalBytes": 18604706,
   "config": {
     "file": "config-snapshot.json",
-    "bytes": 57421
+    "bytes": 58295
   },
   "shards": [
     {
@@ -15,18 +15,18 @@
     },
     {
       "file": "conversations-001.json",
-      "bytes": 2558287,
+      "bytes": 2558283,
       "conversations": 1
     },
     {
       "file": "conversations-002.json",
-      "bytes": 1572868,
+      "bytes": 1572874,
       "conversations": 4
     },
     {
       "file": "conversations-003.json",
-      "bytes": 1571656,
-      "conversations": 4
+      "bytes": 1572654,
+      "conversations": 5
     },
     {
       "file": "conversations-004.json",
@@ -35,33 +35,33 @@
     },
     {
       "file": "conversations-005.json",
-      "bytes": 1572839,
+      "bytes": 1572833,
       "conversations": 8
     },
     {
       "file": "conversations-006.json",
-      "bytes": 1572890,
+      "bytes": 1572866,
       "conversations": 9
     },
     {
       "file": "conversations-007.json",
-      "bytes": 1572811,
-      "conversations": 12
+      "bytes": 1572751,
+      "conversations": 11
     },
     {
       "file": "conversations-008.json",
-      "bytes": 1572807,
+      "bytes": 1571921,
       "conversations": 17
     },
     {
       "file": "conversations-009.json",
-      "bytes": 1572034,
-      "conversations": 35
+      "bytes": 1572890,
+      "conversations": 37
     },
     {
       "file": "conversations-010.json",
-      "bytes": 387936,
-      "conversations": 71
+      "bytes": 342017,
+      "conversations": 64
     }
   ]
 }

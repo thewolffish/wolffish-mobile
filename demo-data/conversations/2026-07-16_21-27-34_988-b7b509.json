@@ -693,7 +693,7 @@
           "segmentId": "seg_31",
           "toolCallId": "call_01_diXwUlH77DzowWevuELW1748",
           "status": "success",
-          "output": "Browsing for _companion-link._tcp\nDATE: ---Thu 16 Jul 2026---\n21:29:35.870  ...STARTING...\nTimestamp     A/R    Flags  if Domain               Service Type         Instance Name\n21:29:35.870  Add        3   1 local.               _companion-link._tcp. yana-macbook-pro\n21:29:35.870  Add        3  17 local.               _companion-link._tcp. yana-macbook-pro\n21:29:35.870  Add        2  17 local.               _companion-link._tcp. YOUNES  ABDALLAH T ALTURKEY-Salla-Device",
+          "output": "Browsing for _companion-link._tcp\nDATE: ---Thu 16 Jul 2026---\n21:29:35.870  ...STARTING...\nTimestamp     A/R    Flags  if Domain               Service Type         Instance Name\n21:29:35.870  Add        3   1 local.               _companion-link._tcp. yana-macbook-pro\n21:29:35.870  Add        3  17 local.               _companion-link._tcp. yana-macbook-pro\n21:29:35.870  Add        2  17 local.               _companion-link._tcp. YOUNES ALHARBI-Device",
           "conversationId": "2026-07-16_21-27-34_988-b7b509"
         },
         {
@@ -757,8 +757,8 @@
           "segmentId": "seg_80",
           "toolCallId": "call_00_WTcq7zWIcKxjilblIYMW3130",
           "status": "failed",
-          "output": "tool failed after 3 attempts (timeout): Command timed out after 40000ms\nBrowsing for _companion-link._tcp\nDATE: ---Thu 16 Jul 2026---\n21:30:41.777  ...STARTING...\nTimestamp     A/R    Flags  if Domain               Service Type         Instance Name\n21:30:41.778  Add        3   1 local.               _companion-link._tcp. yana-macbook-pro\n21:30:41.778  Add        3  17 local.               _companion-link._tcp. yana-macbook-pro\n21:30:41.778  Add        2  17 local.               _companion-link._tcp. YOUNES  ABDALLAH T ALTURKEY-Salla-Device",
-          "error": "Browsing for _companion-link._tcp\nDATE: ---Thu 16 Jul 2026---\n21:30:41.777  ...STARTING...\nTimestamp     A/R    Flags  if Domain               Service Type         Instance Name\n21:30:41.778  Add        3   1 local.               _companion-link._tcp. yana-macbook-pro\n21:30:41.778  Add        3  17 local.               _companion-link._tcp. yana-macbook-pro\n21:30:41.778  Add        2  17 local.               _companion-link._tcp. YOUNES  ABDALLAH T ALTURKEY-Salla-Device",
+          "output": "tool failed after 3 attempts (timeout): Command timed out after 40000ms\nBrowsing for _companion-link._tcp\nDATE: ---Thu 16 Jul 2026---\n21:30:41.777  ...STARTING...\nTimestamp     A/R    Flags  if Domain               Service Type         Instance Name\n21:30:41.778  Add        3   1 local.               _companion-link._tcp. yana-macbook-pro\n21:30:41.778  Add        3  17 local.               _companion-link._tcp. yana-macbook-pro\n21:30:41.778  Add        2  17 local.               _companion-link._tcp. YOUNES ALHARBI-Device",
+          "error": "Browsing for _companion-link._tcp\nDATE: ---Thu 16 Jul 2026---\n21:30:41.777  ...STARTING...\nTimestamp     A/R    Flags  if Domain               Service Type         Instance Name\n21:30:41.778  Add        3   1 local.               _companion-link._tcp. yana-macbook-pro\n21:30:41.778  Add        3  17 local.               _companion-link._tcp. yana-macbook-pro\n21:30:41.778  Add        2  17 local.               _companion-link._tcp. YOUNES ALHARBI-Device",
           "conversationId": "2026-07-16_21-27-34_988-b7b509"
         },
         {
@@ -797,7 +797,7 @@
           "segmentId": "seg_84",
           "toolCallId": "call_00_061Yc9snYu3wgfuCVaMQ9583",
           "status": "success",
-          "output": "=== lo0 ===\nlo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384\n\toptions=1203<RXCSUM,TXCSUM,TXSTATUS,SW_TIMESTAMP>\n\tinet 127.0.0.1 netmask 0xff000000\n=== gif0 ===\ngif0: flags=8010<POINTOPOINT,MULTICAST> mtu 1280\n=== stf0 ===\nstf0: flags=0<> mtu 1280\n=== anpi2 ===\nanpi2: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether 56:d1:4b:69:0d:ae\n=== anpi1 ===\nanpi1: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether 56:d1:4b:69:0d:ad\n=== anpi0 ===\nanpi0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether 56:d1:4b:69:0d:ac\n=== en4 ===\nen4: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether 56:d1:4b:69:0d:8c\n=== en5 ===\nen5: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether 56:d1:4b:69:0d:8d\n=== en6 ===\nen6: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether 56:d1:4b:69:0d:8e\n=== en1 ===\nen1: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n\toptions=460<TSO4,TSO6,CHANNEL_IO>\n\tether 36:a3:6a:af:60:c0\n=== en2 ===\nen2: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n\toptions=460<TSO4,TSO6,CHANNEL_IO>\n\tether 36:a3:6a:af:60:c4\n=== en3 ===\nen3: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n\toptions=460<TSO4,TSO6,CHANNEL_IO>\n\tether 36:a3:6a:af:60:c8\n=== bridge0 ===\nbridge0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=63<RXCSUM,TXCSUM,TSO4,TSO6>\n\tether 36:a3:6a:af:60:c0\n=== ap1 ===\nap1: flags=8822<BROADCAST,SMART,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether 6e:86:4b:59:91:de\n=== en0 ===\nen0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=6460<TSO4,TSO6,CHANNEL_IO,PARTIAL_CSUM,ZEROINVERT_CSUM>\n\tether b6:93:8b:0d:a9:04\n=== awdl0 ===\nawdl0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=6460<TSO4,TSO6,CHANNEL_IO,PARTIAL_CSUM,ZEROINVERT_CSUM>\n\tether 22:57:f5:d6:8c:21\n=== llw0 ===\nllw0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether 22:57:f5:d6:8c:21\n=== utun0 ===\nutun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500\n\tinet6 fe80::c4c5:49f3:e305:e423%utun0 prefixlen 64 scopeid 0x15 \n\tnd6 options=201<PERFORMNUD,DAD>\n=== utun1 ===\nutun1: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1380\n\tinet6 fe80::880e:ab38:de8b:e196%utun1 prefixlen 64 scopeid 0x16 \n\tnd6 options=201<PERFORMNUD,DAD>\n=== utun2 ===\nutun2: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 2000\n\tinet6 fe80::b811:e92c:12ee:2b15%utun2 prefixlen 64 scopeid 0x17 \n\tnd6 options=201<PERFORMNUD,DAD>\n=== utun3 ===\nutun3: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1000\n\tinet6 fe80::ce81:b1c:bd2c:69e%utun3 prefixlen 64 scopeid 0x18 \n\tnd6 options=201<PERFORMNUD,DAD>\n=== utun4 ===\nutun4: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1380\n\tinet6 fe80::5f42:d7a3:5677:8e85%utun4 prefixlen 64 scopeid 0x19 \n\tnd6 options=201<PERFORMNUD,DAD>\n=== utun5 ===\nutun5: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1380\n\tinet6 fe80::39c7:38dd:f5ab:927c%utun5 prefixlen 64 scopeid 0x1a \n\tnd6 options=201<PERFORMNUD,DAD>",
+          "output": "=== lo0 ===\nlo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384\n\toptions=1203<RXCSUM,TXCSUM,TXSTATUS,SW_TIMESTAMP>\n\tinet 127.0.0.1 netmask 0xff000000\n=== gif0 ===\ngif0: flags=8010<POINTOPOINT,MULTICAST> mtu 1280\n=== stf0 ===\nstf0: flags=0<> mtu 1280\n=== anpi2 ===\nanpi2: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether cd:48:b2:d0:74:15\n=== anpi1 ===\nanpi1: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether cd:48:b2:d0:74:14\n=== anpi0 ===\nanpi0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether cd:48:b2:d0:74:13\n=== en4 ===\nen4: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether cd:48:b2:d0:74:f3\n=== en5 ===\nen5: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether cd:48:b2:d0:74:f4\n=== en6 ===\nen6: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether cd:48:b2:d0:74:f5\n=== en1 ===\nen1: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n\toptions=460<TSO4,TSO6,CHANNEL_IO>\n\tether ad:1a:d1:16:d7:37\n=== en2 ===\nen2: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n\toptions=460<TSO4,TSO6,CHANNEL_IO>\n\tether ad:1a:d1:16:d7:3b\n=== en3 ===\nen3: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500\n\toptions=460<TSO4,TSO6,CHANNEL_IO>\n\tether ad:1a:d1:16:d7:3f\n=== bridge0 ===\nbridge0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=63<RXCSUM,TXCSUM,TSO4,TSO6>\n\tether ad:1a:d1:16:d7:37\n=== ap1 ===\nap1: flags=8822<BROADCAST,SMART,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether d5:fd:b2:c0:08:45\n=== en0 ===\nen0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=6460<TSO4,TSO6,CHANNEL_IO,PARTIAL_CSUM,ZEROINVERT_CSUM>\n\tether 2d:0a:f2:74:10:7b\n=== awdl0 ===\nawdl0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=6460<TSO4,TSO6,CHANNEL_IO,PARTIAL_CSUM,ZEROINVERT_CSUM>\n\tether 99:ce:6c:4d:f3:98\n=== llw0 ===\nllw0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\toptions=400<CHANNEL_IO>\n\tether 99:ce:6c:4d:f3:98\n=== utun0 ===\nutun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500\n\tinet6 fe80::c4c5:49f3:e305:e423%utun0 prefixlen 64 scopeid 0x15 \n\tnd6 options=201<PERFORMNUD,DAD>\n=== utun1 ===\nutun1: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1380\n\tinet6 fe80::880e:ab38:de8b:e196%utun1 prefixlen 64 scopeid 0x16 \n\tnd6 options=201<PERFORMNUD,DAD>\n=== utun2 ===\nutun2: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 2000\n\tinet6 fe80::b811:e92c:12ee:2b15%utun2 prefixlen 64 scopeid 0x17 \n\tnd6 options=201<PERFORMNUD,DAD>\n=== utun3 ===\nutun3: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1000\n\tinet6 fe80::ce81:b1c:bd2c:69e%utun3 prefixlen 64 scopeid 0x18 \n\tnd6 options=201<PERFORMNUD,DAD>\n=== utun4 ===\nutun4: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1380\n\tinet6 fe80::5f42:d7a3:5677:8e85%utun4 prefixlen 64 scopeid 0x19 \n\tnd6 options=201<PERFORMNUD,DAD>\n=== utun5 ===\nutun5: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1380\n\tinet6 fe80::39c7:38dd:f5ab:927c%utun5 prefixlen 64 scopeid 0x1a \n\tnd6 options=201<PERFORMNUD,DAD>",
           "conversationId": "2026-07-16_21-27-34_988-b7b509"
         },
         {
@@ -806,7 +806,7 @@
           "segmentId": "seg_85",
           "toolCallId": "call_01_O3q13BUAd3uKLMlZO2Tc5145",
           "status": "success",
-          "output": "Hardware Port: Ethernet Adapter (en4)\nDevice: en4\nEthernet Address: 56:d1:4b:69:0d:8c\n\nHardware Port: Ethernet Adapter (en5)\nDevice: en5\nEthernet Address: 56:d1:4b:69:0d:8d\n\nHardware Port: Ethernet Adapter (en6)\nDevice: en6\nEthernet Address: 56:d1:4b:69:0d:8e\n\nHardware Port: Thunderbolt Bridge\nDevice: bridge0\nEthernet Address: 36:a3:6a:af:60:c0\n\nHardware Port: Wi-Fi\nDevice: en0\nEthernet Address: 5c:e9:1e:bc:d3:4f\n\nHardware Port: Thunderbolt 1\nDevice: en1\nEthernet Address: 36:a3:6a:af:60:c0\n\nHardware Port: Thunderbolt 2\nDevice: en2\nEthernet Address: 36:a3:6a:af:60:c4\n\nHardware Port: Thunderbolt 3\nDevice: en3\nEthernet Address: 36:a3:6a:af:60:c8\n\nVLAN Configurations\n===================",
+          "output": "Hardware Port: Ethernet Adapter (en4)\nDevice: en4\nEthernet Address: cd:48:b2:d0:74:f3\n\nHardware Port: Ethernet Adapter (en5)\nDevice: en5\nEthernet Address: cd:48:b2:d0:74:f4\n\nHardware Port: Ethernet Adapter (en6)\nDevice: en6\nEthernet Address: cd:48:b2:d0:74:f5\n\nHardware Port: Thunderbolt Bridge\nDevice: bridge0\nEthernet Address: ad:1a:d1:16:d7:37\n\nHardware Port: Wi-Fi\nDevice: en0\nEthernet Address: c3:50:85:23:4a:b6\n\nHardware Port: Thunderbolt 1\nDevice: en1\nEthernet Address: ad:1a:d1:16:d7:37\n\nHardware Port: Thunderbolt 2\nDevice: en2\nEthernet Address: ad:1a:d1:16:d7:3b\n\nHardware Port: Thunderbolt 3\nDevice: en3\nEthernet Address: ad:1a:d1:16:d7:3f\n\nVLAN Configurations\n===================",
           "conversationId": "2026-07-16_21-27-34_988-b7b509"
         },
         {
@@ -883,7 +883,7 @@
           "segmentId": "seg_93",
           "toolCallId": "call_00_Hx459hjZ4Og6lmZ7SWyw0177",
           "status": "success",
-          "output": "Browsing for _companion-link._tcp\nDATE: ---Thu 16 Jul 2026---\n21:31:38.757  ...STARTING...\nTimestamp     A/R    Flags  if Domain               Service Type         Instance Name\n21:31:38.758  Add        3  17 local.               _companion-link._tcp. YOUNES  ABDALLAH T ALTURKEY-Salla-Device\n21:31:38.758  Add        3   1 local.               _companion-link._tcp. yana-macbook-pro\n21:31:38.758  Add        2  17 local.               _companion-link._tcp. yana-macbook-pro",
+          "output": "Browsing for _companion-link._tcp\nDATE: ---Thu 16 Jul 2026---\n21:31:38.757  ...STARTING...\nTimestamp     A/R    Flags  if Domain               Service Type         Instance Name\n21:31:38.758  Add        3  17 local.               _companion-link._tcp. YOUNES ALHARBI-Device\n21:31:38.758  Add        3   1 local.               _companion-link._tcp. yana-macbook-pro\n21:31:38.758  Add        2  17 local.               _companion-link._tcp. yana-macbook-pro",
           "conversationId": "2026-07-16_21-27-34_988-b7b509"
         },
         {
@@ -1142,7 +1142,7 @@
           "toolCallId": "call_01_7dTxIpiu777QAtRsDuXt1233",
           "name": "shell_exec",
           "args": {
-            "command": "dns-sd -L \"YOUNES  ABDALLAH T ALTURKEY-Salla-Device\" _companion-link._tcp local 2>&1 &\nPID=$!\nsleep 3\nkill $PID 2>/dev/null\n",
+            "command": "dns-sd -L \"YOUNES ALHARBI-Device\" _companion-link._tcp local 2>&1 &\nPID=$!\nsleep 3\nkill $PID 2>/dev/null\n",
             "timeout": 10000
           },
           "conversationId": "2026-07-16_21-27-34_988-b7b509"
@@ -1162,7 +1162,7 @@
           "segmentId": "seg_122",
           "toolCallId": "call_01_7dTxIpiu777QAtRsDuXt1233",
           "status": "success",
-          "output": "Lookup YOUNES  ABDALLAH T ALTURKEY-Salla-Device._companion-link._tcp.local\nDATE: ---Thu 16 Jul 2026---\n21:32:39.971  ...STARTING...\n21:32:41.245  YOUNES\\032\\032ABDALLAH\\032T\\032ALTURKEY-Salla-Device._companion-link._tcp.local. can be reached at YOUNES-ABDALLAH-T-ALTURKEY-Salla-Device.local.:49153 (interface 17)\n rpBA=E1:C1:74:40:F9:CA rpAD=7c18739a7fda rpFl=0x20000 rpHN=f14b3da764a0 rpMac=0 rpVr=715.2",
+          "output": "Lookup YOUNES ALHARBI-Device._companion-link._tcp.local\nDATE: ---Thu 16 Jul 2026---\n21:32:39.971  ...STARTING...\n21:32:41.245  YOUNES\\032ALHARBI-Device._companion-link._tcp.local. can be reached at YOUNES-FAHAD-T-ALHARBI-Sadeem-Device.local.:49153 (interface 17)\n rpBA=58:38:eb:c4:17:59 rpAD=7c18d54b92ea rpFl=0x20000 rpHN=f14b7e28c351 rpMac=0 rpVr=715.2",
           "conversationId": "2026-07-16_21-27-34_988-b7b509"
         },
         {
@@ -1290,7 +1290,7 @@
           "segmentId": "seg_205",
           "toolCallId": "call_00_p7DVvgdjiiJMD6WR8Qe28973",
           "status": "success",
-          "output": "Browsing for _companion-link._tcp\nDATE: ---Thu 16 Jul 2026---\n21:33:12.050  ...STARTING...\nTimestamp     A/R    Flags  if Domain               Service Type         Instance Name\n21:33:12.051  Add        3  17 local.               _companion-link._tcp. YOUNES  ABDALLAH T ALTURKEY-Salla-Device\n21:33:12.051  Add        3   1 local.               _companion-link._tcp. yana-macbook-pro\n21:33:12.051  Add        2  17 local.               _companion-link._tcp. yana-macbook-pro",
+          "output": "Browsing for _companion-link._tcp\nDATE: ---Thu 16 Jul 2026---\n21:33:12.050  ...STARTING...\nTimestamp     A/R    Flags  if Domain               Service Type         Instance Name\n21:33:12.051  Add        3  17 local.               _companion-link._tcp. YOUNES ALHARBI-Device\n21:33:12.051  Add        3   1 local.               _companion-link._tcp. yana-macbook-pro\n21:33:12.051  Add        2  17 local.               _companion-link._tcp. yana-macbook-pro",
           "conversationId": "2026-07-16_21-27-34_988-b7b509"
         },
         {
@@ -1340,7 +1340,7 @@
           "kind": "turn_end",
           "turnId": "turn_1784226538322_gl0l3y",
           "segmentId": "seg_249",
-          "stopReason": "no_provider_available",
+          "stopReason": "end_turn",
           "iterationCount": 21,
           "providerErrors": [
             {
@@ -1474,8 +1474,7 @@
           "endedAt": 1784226802736
         }
       },
-      "stopReason": "no_provider_available",
-      "error": "You appear to be offline. Check your internet connection.",
+      "stopReason": "end_turn",
       "timestamp": 1784226538318
     },
     {
@@ -2062,7 +2061,7 @@
           "segmentId": "seg_225",
           "toolCallId": "call_01_avoc9kshHR45177HAbB16187",
           "status": "success",
-          "output": "Hardware Port: Ethernet Adapter (en4)\nDevice: en4\nEthernet Address: 56:d1:4b:69:0d:8c\n\nHardware Port: Ethernet Adapter (en5)\nDevice: en5\nEthernet Address: 56:d1:4b:69:0d:8d\n\nHardware Port: Ethernet Adapter (en6)\nDevice: en6\nEthernet Address: 56:d1:4b:69:0d:8e\n\nHardware Port: Thunderbolt Bridge\nDevice: bridge0\nEthernet Address: 36:a3:6a:af:60:c0\n\nHardware Port: Wi-Fi\nDevice: en0\nEthernet Address: 5c:e9:1e:bc:d3:4f\n\nHardware Port: Thunderbolt 1\nDevice: en1\nEthernet Address: 36:a3:6a:af:60:c0\n\nHardware Port: Thunderbolt 2\nDevice: en2\nEthernet Address: 36:a3:6a:af:60:c4\n\nHardware Port: Thunderbolt 3\nDevice: en3\nEthernet Address: 36:a3:6a:af:60:c8\n\nVLAN Configurations\n===================",
+          "output": "Hardware Port: Ethernet Adapter (en4)\nDevice: en4\nEthernet Address: cd:48:b2:d0:74:f3\n\nHardware Port: Ethernet Adapter (en5)\nDevice: en5\nEthernet Address: cd:48:b2:d0:74:f4\n\nHardware Port: Ethernet Adapter (en6)\nDevice: en6\nEthernet Address: cd:48:b2:d0:74:f5\n\nHardware Port: Thunderbolt Bridge\nDevice: bridge0\nEthernet Address: ad:1a:d1:16:d7:37\n\nHardware Port: Wi-Fi\nDevice: en0\nEthernet Address: c3:50:85:23:4a:b6\n\nHardware Port: Thunderbolt 1\nDevice: en1\nEthernet Address: ad:1a:d1:16:d7:37\n\nHardware Port: Thunderbolt 2\nDevice: en2\nEthernet Address: ad:1a:d1:16:d7:3b\n\nHardware Port: Thunderbolt 3\nDevice: en3\nEthernet Address: ad:1a:d1:16:d7:3f\n\nVLAN Configurations\n===================",
           "conversationId": "2026-07-16_21-27-34_988-b7b509"
         },
         {
@@ -2338,7 +2337,7 @@
           "segmentId": "seg_318",
           "toolCallId": "call_00_wagchgC5NvFdidgtUf9D2645",
           "status": "success",
-          "output": "Connected:\n          MX Keys:\n              Address: F1:C0:44:4E:E9:9E\n              Vendor ID: 0x046D\n              Product ID: 0xB35B\n              Firmware Version: MPK12.01_0013\n              Minor Type: Keyboard\n              Services: 0x400000 < BLE >\n          MX Master 3S:\n              Address: D6:A8:68:6E:D1:E4\n              Vendor ID: 0x046D\n              Product ID: 0xB034\n              Firmware Version: RBM22.02_0009\n              Minor Type: Mouse\n              Services: 0x400000 < BLE >\n      Not Connected:\n          Keyboard K780:\n              Address: C5:76:C8:F5:D4:4F\n              Vendor ID: 0x046D\n              Product ID: 0xB33B\n              Firmware Version: MPK01.05_0029\n              Minor Type: Keyboard\n          Logi K580 Keyboard:\n              Address: DC:64:31:18:CB:5D\n              Minor Type: Keyboard\n          MX Master 3:\n              Address: E5:AF:0A:EC:BF:4A\n              Minor Type: Mouse\n          MX Master 3S:\n              Address: D9:F7:81:B6:7A:CC\n              Vendor ID: 0x046D\n              Product ID: 0xB034\n              Firmware Version: RBM22.02_0009\n              Minor Type: Mouse\n          Younes’s AirPods:\n              Address: D4:68:AA:C6:92:D0",
+          "output": "Connected:\n          MX Keys:\n              Address: 68:37:bb:b5:50:05\n              Vendor ID: 0x046D\n              Product ID: 0xB35B\n              Firmware Version: MPK12.01_0013\n              Minor Type: Keyboard\n              Services: 0x400000 < BLE >\n          MX Master 3S:\n              Address: 4d:1f:df:d5:48:5b\n              Vendor ID: 0x046D\n              Product ID: 0xB034\n              Firmware Version: RBM22.02_0009\n              Minor Type: Mouse\n              Services: 0x400000 < BLE >\n      Not Connected:\n          Keyboard K780:\n              Address: 3c:ed:3f:6c:4b:b6\n              Vendor ID: 0x046D\n              Product ID: 0xB33B\n              Firmware Version: MPK01.05_0029\n              Minor Type: Keyboard\n          Logi K580 Keyboard:\n              Address: 43:db:a8:8f:32:c4\n              Minor Type: Keyboard\n          MX Master 3:\n              Address: 5c:16:71:53:26:b1\n              Minor Type: Mouse\n          MX Master 3S:\n              Address: 40:6e:f8:2d:e1:33\n              Vendor ID: 0x046D\n              Product ID: 0xB034\n              Firmware Version: RBM22.02_0009\n              Minor Type: Mouse\n          Younes’s AirPods:\n              Address: 4b:df:11:3d:09:47",
           "conversationId": "2026-07-16_21-27-34_988-b7b509"
         },
         {

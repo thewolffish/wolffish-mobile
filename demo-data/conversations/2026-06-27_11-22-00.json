@@ -64,7 +64,7 @@
           "segmentId": "seg_19",
           "toolCallId": "call_01_3SLNzXms3a1J3MSxAijG5997",
           "status": "success",
-          "output": "{\"accounts\":[\"alturkeyy@gmail.com\",\"younes@wolffi.sh\"],\"note\":\"Every google_* tool call REQUIRES an explicit `account` parameter — there is no default account. Pick the email from `accounts` above. For identity-agnostic requests like \\\"check my email\\\", call the tool once per entry in `accounts` (in parallel) and aggregate the results.\"}"
+          "output": "{\"accounts\":[\"youneswolf@gmail.com\",\"younes@wolffi.sh\"],\"note\":\"Every google_* tool call REQUIRES an explicit `account` parameter — there is no default account. Pick the email from `accounts` above. For identity-agnostic requests like \\\"check my email\\\", call the tool once per entry in `accounts` (in parallel) and aggregate the results.\"}"
         },
         {
           "kind": "active_model",
@@ -97,7 +97,7 @@
           "toolCallId": "call_01_6rwBOE3XyS0KVdtNOfX17326",
           "name": "google_gmail_search",
           "args": {
-            "account": "alturkeyy@gmail.com",
+            "account": "youneswolf@gmail.com",
             "query": "is:unread",
             "max": 20
           }
@@ -128,7 +128,7 @@
           "segmentId": "seg_44",
           "toolCallId": "call_01_6rwBOE3XyS0KVdtNOfX17326",
           "status": "success",
-          "output": "{\"account\":\"alturkeyy@gmail.com\",\"count\":0,\"nextPageToken\":\"\",\"threads\":[]}"
+          "output": "{\"account\":\"youneswolf@gmail.com\",\"count\":0,\"nextPageToken\":\"\",\"threads\":[]}"
         },
         {
           "kind": "tool_result",
@@ -302,7 +302,7 @@
           "segmentId": "seg_171",
           "toolCallId": "call_00_aOGsY5LJFExBEiJXL0AR8380",
           "status": "success",
-          "output": "Sent. message_id=900 to=8692209949 kind=photo"
+          "output": "Sent. message_id=900 to=8417306252 kind=photo"
         },
         {
           "kind": "active_model",

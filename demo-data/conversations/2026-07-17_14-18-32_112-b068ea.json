@@ -609,7 +609,7 @@
           "segmentId": "seg_145",
           "toolCallId": "call_00_MDC1IVOfZKmq07xUIVkc7428",
           "status": "success",
-          "output": "## Channels\n\n### 🟢 Telegram\n- **Status:** connected (running)\n- **Detail:** connected as @yat_wolffish_bot\n\n### 🟢 WhatsApp\n- **Status:** connected (connected)\n- **Detail:** linked to Younes\n\n### 🟢 In-app chat\n- **Status:** connected (available)\n- **Detail:** always available while the desktop app is open\n\nTo message the user on a channel, use that channel’s send tools (e.g. `telegram_send`, `whatsapp_send`) — these are connected channels, not desktop apps, so never `app_open` or osascript them. A channel’s send tools are only available while it is connected; if a channel is not connected, tell the user and relay the reconnect steps above instead of retrying.",
+          "output": "## Channels\n\n### 🟢 Telegram\n- **Status:** connected (running)\n- **Detail:** connected as @younes_wolffish_bot\n\n### 🟢 WhatsApp\n- **Status:** connected (connected)\n- **Detail:** linked to Younes\n\n### 🟢 In-app chat\n- **Status:** connected (available)\n- **Detail:** always available while the desktop app is open\n\nTo message the user on a channel, use that channel’s send tools (e.g. `telegram_send`, `whatsapp_send`) — these are connected channels, not desktop apps, so never `app_open` or osascript them. A channel’s send tools are only available while it is connected; if a channel is not connected, tell the user and relay the reconnect steps above instead of retrying.",
           "conversationId": "2026-07-17_14-18-32_112-b068ea"
         },
         {
@@ -672,7 +672,7 @@
           "segmentId": "seg_173",
           "toolCallId": "call_00_0dG04uCq4q8rgKkiWCX70197",
           "status": "success",
-          "output": "Sent. message_id=1667 to=8692209949",
+          "output": "Sent. message_id=1667 to=8417306252",
           "conversationId": "2026-07-17_14-18-32_112-b068ea"
         },
         {
@@ -728,7 +728,7 @@
           "segmentId": "seg_179",
           "toolCallId": "call_00_6x57Vj2ioPaQUI3R0qvN2041",
           "status": "success",
-          "output": "Sent. message_id=1668 to=8692209949",
+          "output": "Sent. message_id=1668 to=8417306252",
           "conversationId": "2026-07-17_14-18-32_112-b068ea"
         },
         {
@@ -784,7 +784,7 @@
           "segmentId": "seg_185",
           "toolCallId": "call_00_p3Lv1BvRNnQCMHMTxgyb2643",
           "status": "success",
-          "output": "Sent. message_id=1669 to=8692209949",
+          "output": "Sent. message_id=1669 to=8417306252",
           "conversationId": "2026-07-17_14-18-32_112-b068ea"
         },
         {
@@ -840,7 +840,7 @@
           "segmentId": "seg_191",
           "toolCallId": "call_00_l26nfLcjehNYMgUmBQFx5326",
           "status": "success",
-          "output": "Sent. message_id=1670 to=8692209949",
+          "output": "Sent. message_id=1670 to=8417306252",
           "conversationId": "2026-07-17_14-18-32_112-b068ea"
         },
         {
@@ -896,7 +896,7 @@
           "segmentId": "seg_197",
           "toolCallId": "call_00_tr8jRdENVaMyJ3PW3WHr7553",
           "status": "success",
-          "output": "Sent. message_id=1671 to=8692209949",
+          "output": "Sent. message_id=1671 to=8417306252",
           "conversationId": "2026-07-17_14-18-32_112-b068ea"
         },
         {

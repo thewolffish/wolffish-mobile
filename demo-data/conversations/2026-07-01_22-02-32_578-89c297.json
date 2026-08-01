@@ -259,8 +259,8 @@
       "attachments": [
         {
           "type": "pdf",
-          "filePath": "uploads/conv-2026-07-01_22-02-32_578-89c297/Boarding Pass, Younes Alturkey, YED8HK, RUH-DXB.pdf",
-          "originalName": "Boarding Pass, Younes Alturkey, YED8HK, RUH-DXB.pdf",
+          "filePath": "uploads/conv-2026-07-01_22-02-32_578-89c297/Boarding Pass, Younes Alharbi, YKB6RM, RUH-DXB.pdf",
+          "originalName": "Boarding Pass, Younes Alharbi, YKB6RM, RUH-DXB.pdf",
           "mimeType": "application/pdf",
           "sizeBytes": 0
         }
@@ -286,7 +286,7 @@
           "toolCallId": "call_00_P7iUmk100f1SUkS2GyIS8274",
           "name": "pdf_read",
           "args": {
-            "path": "/Users/younes/.wolffish/workspace/uploads/conv-2026-07-01_22-02-32_578-89c297/Boarding Pass, Younes Alturkey, YED8HK, RUH-DXB.pdf"
+            "path": "/Users/younes/.wolffish/workspace/uploads/conv-2026-07-01_22-02-32_578-89c297/Boarding Pass, Younes Alharbi, YKB6RM, RUH-DXB.pdf"
           }
         },
         {
@@ -295,7 +295,7 @@
           "segmentId": "seg_3",
           "toolCallId": "call_00_P7iUmk100f1SUkS2GyIS8274",
           "status": "success",
-          "output": "{\n  \"path\": \"/Users/younes/.wolffish/workspace/uploads/conv-2026-07-01_22-02-32_578-89c297/Boarding Pass, Younes Alturkey, YED8HK, RUH-DXB.pdf\",\n  \"pages\": 1,\n  \"metadata\": {\n    \"title\": null,\n    \"author\": null,\n    \"subject\": null,\n    \"creator\": null,\n    \"producer\": null\n  },\n  \"text\": \"--- Page 1 ---\\nBoarding Pass  Booking Reference  YED8HK - 140907341521   SEQ0063  Hi   Younes Alturkey   thank you for choosing flyadeal   F3 505  RUH  Riyadh  King Khalid International Airport  Terminal 1  DXB  Dubai  Dubai International Airport  Terminal 1  Departure  08:50  02 July 2026  Flight duration  2:55  Arrival  11:45  02 July 2026  Services  Younes Alturkey   Included   Not Included   Not Eligible   Not Included  Travel information  Trolley carry-on bag should not  exceed 10kg, 55 x 40 x 20cm.  Check-in counter closes  60 minutes before departure.  Boarding gate closes  30 minutes before departure.  2023 © flyadeal ،   all rights reserved  /   flyadeal.com   For more information, please read our Terms & Conditions   and   privacy policy  Gate  Check monitors  Zone  2  Gate Closes  08:20  Seat  17C  Boarding Time  08:05\\n\",\n  \"requestedPages\": \"all\",\n  \"fileSize\": 223054\n}"
+          "output": "{\n  \"path\": \"/Users/younes/.wolffish/workspace/uploads/conv-2026-07-01_22-02-32_578-89c297/Boarding Pass, Younes Alharbi, YKB6RM, RUH-DXB.pdf\",\n  \"pages\": 1,\n  \"metadata\": {\n    \"title\": null,\n    \"author\": null,\n    \"subject\": null,\n    \"creator\": null,\n    \"producer\": null\n  },\n  \"text\": \"--- Page 1 ---\\nBoarding Pass  Booking Reference  YKB6RM - 140912583647   SEQ0047  Hi   Younes Alharbi   thank you for choosing flyadeal   F3 505  RUH  Riyadh  King Khalid International Airport  Terminal 1  DXB  Dubai  Dubai International Airport  Terminal 1  Departure  08:50  02 July 2026  Flight duration  2:55  Arrival  11:45  02 July 2026  Services  Younes Alharbi   Included   Not Included   Not Eligible   Not Included  Travel information  Trolley carry-on bag should not  exceed 10kg, 55 x 40 x 20cm.  Check-in counter closes  60 minutes before departure.  Boarding gate closes  30 minutes before departure.  2023 © flyadeal ،   all rights reserved  /   flyadeal.com   For more information, please read our Terms & Conditions   and   privacy policy  Gate  Check monitors  Zone  2  Gate Closes  08:20  Seat  17C  Boarding Time  08:05\\n\",\n  \"requestedPages\": \"all\",\n  \"fileSize\": 223054\n}"
         },
         {
           "kind": "active_model",
@@ -335,8 +335,8 @@
       "attachments": [
         {
           "type": "pdf",
-          "filePath": "uploads/conv-2026-07-01_22-02-32_578-89c297/Boarding Pass, Sana Garah, YED8HK, RUH-DXB.pdf",
-          "originalName": "Boarding Pass, Sana Garah, YED8HK, RUH-DXB.pdf",
+          "filePath": "uploads/conv-2026-07-01_22-02-32_578-89c297/Boarding Pass, Sana Ghanem, YKB6RM, RUH-DXB.pdf",
+          "originalName": "Boarding Pass, Sana Ghanem, YKB6RM, RUH-DXB.pdf",
           "mimeType": "application/pdf",
           "sizeBytes": 0
         }
@@ -345,7 +345,7 @@
     {
       "id": "m_1782939082692_5d0b20",
       "role": "assistant",
-      "content": "Same flight, same terminal. *Terminal 1* at King Khalid International Airport.\n\nYou're on the same booking (YED8HK), same flight F3 505. Sana's in seat 17B, you're in 17C — side by side. Both Zone 2, boarding 08:05, gate closes 08:20. ✈️🐟",
+      "content": "Same flight, same terminal. *Terminal 1* at King Khalid International Airport.\n\nYou're on the same booking (YKB6RM), same flight F3 505. Sana's in seat 17B, you're in 17C — side by side. Both Zone 2, boarding 08:05, gate closes 08:20. ✈️🐟",
       "timestamp": 1782939082692,
       "segments": [
         {
@@ -362,7 +362,7 @@
           "toolCallId": "call_00_Di4xAjDzqMzFcknIx3Ib4069",
           "name": "pdf_read",
           "args": {
-            "path": "/Users/younes/.wolffish/workspace/uploads/conv-2026-07-01_22-02-32_578-89c297/Boarding Pass, Sana Garah, YED8HK, RUH-DXB.pdf"
+            "path": "/Users/younes/.wolffish/workspace/uploads/conv-2026-07-01_22-02-32_578-89c297/Boarding Pass, Sana Ghanem, YKB6RM, RUH-DXB.pdf"
           }
         },
         {
@@ -371,7 +371,7 @@
           "segmentId": "seg_3",
           "toolCallId": "call_00_Di4xAjDzqMzFcknIx3Ib4069",
           "status": "success",
-          "output": "{\n  \"path\": \"/Users/younes/.wolffish/workspace/uploads/conv-2026-07-01_22-02-32_578-89c297/Boarding Pass, Sana Garah, YED8HK, RUH-DXB.pdf\",\n  \"pages\": 1,\n  \"metadata\": {\n    \"title\": null,\n    \"author\": null,\n    \"subject\": null,\n    \"creator\": null,\n    \"producer\": null\n  },\n  \"text\": \"--- Page 1 ---\\nBoarding Pass  Booking Reference  YED8HK - 140907341521   SEQ0064  Hi   Sana Garah   thank you for choosing flyadeal   F3 505  RUH  Riyadh  King Khalid International Airport  Terminal 1  DXB  Dubai  Dubai International Airport  Terminal 1  Departure  08:50  02 July 2026  Flight duration  2:55  Arrival  11:45  02 July 2026  Services  Sana Garah   Included   Not Included   Not Eligible   Not Included  Travel information  Trolley carry-on bag should not  exceed 10kg, 55 x 40 x 20cm.  Check-in counter closes  60 minutes before departure.  Boarding gate closes  30 minutes before departure.  2023 © flyadeal ،   all rights reserved  /   flyadeal.com   For more information, please read our Terms & Conditions   and   privacy policy  Gate  Check monitors  Zone  2  Gate Closes  08:20  Seat  17B  Boarding Time  08:05\\n\",\n  \"requestedPages\": \"all\",\n  \"fileSize\": 223056\n}"
+          "output": "{\n  \"path\": \"/Users/younes/.wolffish/workspace/uploads/conv-2026-07-01_22-02-32_578-89c297/Boarding Pass, Sana Ghanem, YKB6RM, RUH-DXB.pdf\",\n  \"pages\": 1,\n  \"metadata\": {\n    \"title\": null,\n    \"author\": null,\n    \"subject\": null,\n    \"creator\": null,\n    \"producer\": null\n  },\n  \"text\": \"--- Page 1 ---\\nBoarding Pass  Booking Reference  YKB6RM - 140912583647   SEQ0048  Hi   Sana Ghanem   thank you for choosing flyadeal   F3 505  RUH  Riyadh  King Khalid International Airport  Terminal 1  DXB  Dubai  Dubai International Airport  Terminal 1  Departure  08:50  02 July 2026  Flight duration  2:55  Arrival  11:45  02 July 2026  Services  Sana Ghanem   Included   Not Included   Not Eligible   Not Included  Travel information  Trolley carry-on bag should not  exceed 10kg, 55 x 40 x 20cm.  Check-in counter closes  60 minutes before departure.  Boarding gate closes  30 minutes before departure.  2023 © flyadeal ،   all rights reserved  /   flyadeal.com   For more information, please read our Terms & Conditions   and   privacy policy  Gate  Check monitors  Zone  2  Gate Closes  08:20  Seat  17B  Boarding Time  08:05\\n\",\n  \"requestedPages\": \"all\",\n  \"fileSize\": 223056\n}"
         },
         {
           "kind": "active_model",
@@ -384,7 +384,7 @@
           "kind": "text",
           "turnId": "turn_1782939065450_m3pq08",
           "segmentId": "seg_5",
-          "delta": "Same flight, same terminal. *Terminal 1* at King Khalid International Airport.\n\nYou're on the same booking (YED8HK), same flight F3 505. Sana's in seat 17B, you're in 17C — side by side. Both Zone 2, boarding 08:05, gate closes 08:20. ✈️🐟"
+          "delta": "Same flight, same terminal. *Terminal 1* at King Khalid International Airport.\n\nYou're on the same booking (YKB6RM), same flight F3 505. Sana's in seat 17B, you're in 17C — side by side. Both Zone 2, boarding 08:05, gate closes 08:20. ✈️🐟"
         },
         {
           "kind": "turn_end",

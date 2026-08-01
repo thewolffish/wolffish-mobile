@@ -14,7 +14,7 @@
     {
       "id": "m_1782192476117_8d3260",
       "role": "assistant",
-      "content": "Zero unread across both accounts. Inbox is clean 🐟\n\n- **alturkeyy@gmail.com** — 0 unread\n- **younes@wolffi.sh** — 0 unread\n\nNothing to action. Enjoy the silence while it lasts.",
+      "content": "Zero unread across both accounts. Inbox is clean 🐟\n\n- **youneswolf@gmail.com** — 0 unread\n- **younes@wolffi.sh** — 0 unread\n\nNothing to action. Enjoy the silence while it lasts.",
       "segments": [
         {
           "kind": "active_model",
@@ -37,7 +37,7 @@
           "segmentId": "seg_3",
           "toolCallId": "call_00_FMXKkvfYcgA7nNuW0SdZ1414",
           "status": "success",
-          "output": "{\"accounts\":[\"alturkeyy@gmail.com\",\"younes@wolffi.sh\"],\"note\":\"Every google_* tool call REQUIRES an explicit `account` parameter — there is no default account. Pick the email from `accounts` above. For identity-agnostic requests like \\\"check my email\\\", call the tool once per entry in `accounts` (in parallel) and aggregate the results.\"}"
+          "output": "{\"accounts\":[\"youneswolf@gmail.com\",\"younes@wolffi.sh\"],\"note\":\"Every google_* tool call REQUIRES an explicit `account` parameter — there is no default account. Pick the email from `accounts` above. For identity-agnostic requests like \\\"check my email\\\", call the tool once per entry in `accounts` (in parallel) and aggregate the results.\"}"
         },
         {
           "kind": "active_model",
@@ -53,7 +53,7 @@
           "toolCallId": "call_00_U7qy5bxHwLheZNKtjEGp2505",
           "name": "google_gmail_search",
           "args": {
-            "account": "alturkeyy@gmail.com",
+            "account": "youneswolf@gmail.com",
             "query": "is:unread",
             "max": 20
           }
@@ -76,7 +76,7 @@
           "segmentId": "seg_7",
           "toolCallId": "call_00_U7qy5bxHwLheZNKtjEGp2505",
           "status": "success",
-          "output": "{\"account\":\"alturkeyy@gmail.com\",\"count\":0,\"nextPageToken\":\"\",\"threads\":[]}"
+          "output": "{\"account\":\"youneswolf@gmail.com\",\"count\":0,\"nextPageToken\":\"\",\"threads\":[]}"
         },
         {
           "kind": "tool_result",
@@ -97,7 +97,7 @@
           "kind": "text",
           "turnId": "turn_1782191839578_cdkt57",
           "segmentId": "seg_10",
-          "delta": "Zero unread across both accounts. Inbox is clean 🐟\n\n- **alturkeyy@gmail.com** — 0 unread\n- **younes@wolffi.sh** — 0 unread\n\nNothing to action. Enjoy the silence while it lasts."
+          "delta": "Zero unread across both accounts. Inbox is clean 🐟\n\n- **youneswolf@gmail.com** — 0 unread\n- **younes@wolffi.sh** — 0 unread\n\nNothing to action. Enjoy the silence while it lasts."
         },
         {
           "kind": "turn_end",
@@ -150,7 +150,7 @@
           "toolCallId": "call_00_Ioy23Mcq81AAao0NIKwq0711",
           "name": "google_gmail_search",
           "args": {
-            "account": "alturkeyy@gmail.com",
+            "account": "youneswolf@gmail.com",
             "query": "is:unread",
             "max": 20
           }
@@ -173,7 +173,7 @@
           "segmentId": "seg_4",
           "toolCallId": "call_00_Ioy23Mcq81AAao0NIKwq0711",
           "status": "success",
-          "output": "{\"account\":\"alturkeyy@gmail.com\",\"count\":0,\"nextPageToken\":\"\",\"threads\":[]}"
+          "output": "{\"account\":\"youneswolf@gmail.com\",\"count\":0,\"nextPageToken\":\"\",\"threads\":[]}"
         },
         {
           "kind": "tool_result",
@@ -202,7 +202,7 @@
           "segmentId": "seg_147",
           "stopReason": "end_turn",
           "iterationCount": 2,
-          "reasoningContent": "Got results. alturkeyy@gmail.com still has 0 unread. younes@wolffi.sh has 3 unread emails, all from June 22. Let me summarize them for the user.\n\n1. Product Hunt Daily - \"Software with no front door\" - Jun 22\n2. Kimi API - \"New model: Kimi K2.7 Code HighSpeed is live\" - Jun 22\n3. Product Hunt - \"You have been awarded a badge!\" - Jun 22\n\nThese are all promotions. Let me present them concisely."
+          "reasoningContent": "Got results. youneswolf@gmail.com still has 0 unread. younes@wolffi.sh has 3 unread emails, all from June 22. Let me summarize them for the user.\n\n1. Product Hunt Daily - \"Software with no front door\" - Jun 22\n2. Kimi API - \"New model: Kimi K2.7 Code HighSpeed is live\" - Jun 22\n3. Product Hunt - \"You have been awarded a badge!\" - Jun 22\n\nThese are all promotions. Let me present them concisely."
         }
       ],
       "toolTimings": {

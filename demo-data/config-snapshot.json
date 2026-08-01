@@ -475,11 +475,11 @@
     "github": [
       {
         "label": "Wolffish",
-        "detail": "younesbites · Younes Alturkey"
+        "detail": "younesposts · Younes Alharbi"
       },
       {
         "label": "Personal",
-        "detail": "younes-alturkey · Younes Alturkey"
+        "detail": "younes-alharbi · Younes Alharbi"
       }
     ],
     "notion": [
@@ -507,7 +507,7 @@
           "name": "Google Chrome",
           "browserVersion": "151.0.7601.84",
           "os": "macOS",
-          "profileEmail": "alturkeyy@gmail.com",
+          "profileEmail": "youneswolf@gmail.com",
           "extensionVersion": "0.1.53"
         },
         {
@@ -534,7 +534,7 @@
     },
     "telegram": {
       "enabled": true,
-      "allowedUserIds": "8692209949",
+      "allowedUserIds": "8417306252",
       "autoRefresh": true,
       "staleHours": "3",
       "verbose": false,
@@ -542,7 +542,7 @@
     },
     "whatsapp": {
       "enabled": true,
-      "allowedNumbers": "+966538654514",
+      "allowedNumbers": "+966532918476",
       "autoRefresh": true,
       "staleHours": "3",
       "verbose": false,
@@ -983,7 +983,7 @@
         "model": "deepseek-v4-pro",
         "inputTokens": 3754,
         "outputTokens": 683,
-        "output": "Here are the long-term facts worth promoting from today's log:\n\n---\n\n## projects.md\n```markdown\n## Younes AI Daily\n- A daily Arabic PDF digest covering AI news, trends, and interesting developments.\n- Purpose: Created for Younes to post on LinkedIn.\n- Publication rhythm appears to be daily (editions confirmed for July 26–29, 2026).\n- Format: Approximately 8-page PDF, light/fun/bite-sized tone, designed for social sharing.\n- Avoids repeating topics covered in previous editions.\n```\n\n---\n\n## people.md\n```markdown\n## Sana\n- Phone number: +966505349989 (WhatsApp).\n- Receives funny-romantic memes from Younes.\n- WhatsApp connection to this number has been problematic (reconnection needed as of 2026-07-29).\n\n## Mom (SMS Forwarder)\n- Bank transaction alerts forwarded to Younes's alturkeyy@gmail.com.\n- References Mada card *2448 and a credit card (dorman account).\n```\n\n---\n\n## preferences.md\n```markdown\n## Communication preferences\n- Prefers email summaries delivered via Telegram (not in-app).\n- All emails should be marked as read after summarization.\n- Recurring scheduled task: email check at 00:00, 06:00, and 12:00 daily.\n\n## Content preferences\n- Enjoys original, frog-themed startup/entrepreneurship memes.\n- Prefers dark-humor-relatable tone in memes.\n- Memes should never repeat previously sent formats, images, or captions.\n```\n\n---\n\n## technical.md\n```markdown\n## Email accounts connected\n- alturkeyy@gmail.com (primary personal) — OAuth token has expired repeatedly (invalid_grant). Needs reauthorization.\n- younes@wolffi.sh (secondary/work) — reliably connected, usually zero unread.\n\n## WhatsApp connectivity\n- WhatsApp channel disconnected as of 2026-07-29. Failed maximum reconnection attempts.\n- Requires user intervention to reconnect (Settings → re-link device).\n\n## Meme creation capability\n- Can source memes from Giphy, local uploads, and past conversation artifacts.\n- Frog meme format history tracked (Michigan J. Frog GIF used on 2026-07-29 as Vol. 11).\n\n## PDF generation workflow\n- PDFs built from HTML templates using Python scripts, rendered headlessly via browser, and delivered in-app.\n- Assets stored in ~/.wolffish/workspace/files/.\n- Arabic fonts (IBM Plex Sans Arabic) downloaded from GitHub and embedded via base64.\n```\n\n---\n\n## decisions.md\n```markdown\n## 2026-07-29\n- Michigan J. Frog (top hat dancing GIF) selected as frog meme format for the day. Labeled \"Founder Life, Vol. 11\" with dark-humor caption about founder cycles.\n- Younes AI Daily edition #4 (July 29) curated with lead story: Sam Altman's call to decelerate AI development. Additional topics: Meta + BlackRock $14B data center, FCC ban on Chinese humanoid robots, Together AI $800M round, Nvidia Cosmos 3 Edge in Japan, and more.\n```"
+        "output": "Here are the long-term facts worth promoting from today's log:\n\n---\n\n## projects.md\n```markdown\n## Younes AI Daily\n- A daily Arabic PDF digest covering AI news, trends, and interesting developments.\n- Purpose: Created for Younes to post on LinkedIn.\n- Publication rhythm appears to be daily (editions confirmed for July 26–29, 2026).\n- Format: Approximately 8-page PDF, light/fun/bite-sized tone, designed for social sharing.\n- Avoids repeating topics covered in previous editions.\n```\n\n---\n\n## people.md\n```markdown\n## Sana\n- Phone number: +966507219348 (WhatsApp).\n- Receives funny-romantic memes from Younes.\n- WhatsApp connection to this number has been problematic (reconnection needed as of 2026-07-29).\n\n## Mom (SMS Forwarder)\n- Bank transaction alerts forwarded to Younes's youneswolf@gmail.com.\n- References Mada card *7031 and a credit card (dorman account).\n```\n\n---\n\n## preferences.md\n```markdown\n## Communication preferences\n- Prefers email summaries delivered via Telegram (not in-app).\n- All emails should be marked as read after summarization.\n- Recurring scheduled task: email check at 00:00, 06:00, and 12:00 daily.\n\n## Content preferences\n- Enjoys original, frog-themed startup/entrepreneurship memes.\n- Prefers dark-humor-relatable tone in memes.\n- Memes should never repeat previously sent formats, images, or captions.\n```\n\n---\n\n## technical.md\n```markdown\n## Email accounts connected\n- youneswolf@gmail.com (primary personal) — OAuth token has expired repeatedly (invalid_grant). Needs reauthorization.\n- younes@wolffi.sh (secondary/work) — reliably connected, usually zero unread.\n\n## WhatsApp connectivity\n- WhatsApp channel disconnected as of 2026-07-29. Failed maximum reconnection attempts.\n- Requires user intervention to reconnect (Settings → re-link device).\n\n## Meme creation capability\n- Can source memes from Giphy, local uploads, and past conversation artifacts.\n- Frog meme format history tracked (Michigan J. Frog GIF used on 2026-07-29 as Vol. 11).\n\n## PDF generation workflow\n- PDFs built from HTML templates using Python scripts, rendered headlessly via browser, and delivered in-app.\n- Assets stored in ~/.wolffish/workspace/files/.\n- Arabic fonts (IBM Plex Sans Arabic) downloaded from GitHub and embedded via base64.\n```\n\n---\n\n## decisions.md\n```markdown\n## 2026-07-29\n- Michigan J. Frog (top hat dancing GIF) selected as frog meme format for the day. Labeled \"Founder Life, Vol. 11\" with dark-humor caption about founder cycles.\n- Younes AI Daily edition #4 (July 29) curated with lead story: Sam Altman's call to decelerate AI development. Additional topics: Meta + BlackRock $14B data center, FCC ban on Chinese humanoid robots, Together AI $800M round, Nvidia Cosmos 3 Edge in Japan, and more.\n```"
       },
       "weekly": {
         "at": 1784901600107,

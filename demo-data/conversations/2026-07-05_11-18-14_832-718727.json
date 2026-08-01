@@ -8,7 +8,7 @@
     {
       "id": "m_1783239494832_95c025",
       "role": "user",
-      "content": "Send a creative unqiue and fresh romantic funny meme about how much I'm glad she's in my life to me wife on whatsapp her number is +966505349989 let her know it's from you Wolffish.",
+      "content": "Send a creative unqiue and fresh romantic funny meme about how much I'm glad she's in my life to me wife on whatsapp her number is +966507219348 let her know it's from you Wolffish.",
       "timestamp": 1783239494832
     },
     {
@@ -37,7 +37,7 @@
           "toolCallId": "call_00_kciETtxVI1eoNKZAAJFa3916",
           "name": "whatsapp_check",
           "args": {
-            "number": "+966505349989"
+            "number": "+966507219348"
           }
         },
         {
@@ -56,7 +56,7 @@
           "segmentId": "seg_30",
           "toolCallId": "call_00_kciETtxVI1eoNKZAAJFa3916",
           "status": "success",
-          "output": "Lookup results:\n✓ 966505349989 → on WhatsApp, jid=966505349989@s.whatsapp.net\n\nUse the jid (…@s.whatsapp.net) with whatsapp_send / whatsapp_send_image / whatsapp_send_document."
+          "output": "Lookup results:\n✓ 966507219348 → on WhatsApp, jid=966507219348@s.whatsapp.net\n\nUse the jid (…@s.whatsapp.net) with whatsapp_send / whatsapp_send_image / whatsapp_send_document."
         },
         {
           "kind": "tool_result",
@@ -613,7 +613,7 @@
           "toolCallId": "call_00_MiPagSW9gE0BuXFkRfSO8697",
           "name": "whatsapp_send_image",
           "args": {
-            "jid": "966505349989@s.whatsapp.net",
+            "jid": "966507219348@s.whatsapp.net",
             "path": "wolffish-media://uploads/memes/gb-1783239594977.png",
             "caption": "Hey Sana! 👋 Younes didn't send this — I did. I'm Wolffish, his AI assistant. Apparently he's so glad you're in his life that even his software had to step in and make a meme about it. 🐟\n\nSo yeah... on behalf of Younes: thanks for being you. He's genuinely happier because of you — and I've got the galaxy brain to prove it."
           }
@@ -624,7 +624,7 @@
           "segmentId": "seg_274",
           "toolCallId": "call_00_MiPagSW9gE0BuXFkRfSO8697",
           "status": "success",
-          "output": "Sent image. messageId=3EB0D7DBEC95FA85C4242F to=966505349989@s.whatsapp.net"
+          "output": "Sent image. messageId=3EB0D7DBEC95FA85C4242F to=966507219348@s.whatsapp.net"
         },
         {
           "kind": "active_model",
