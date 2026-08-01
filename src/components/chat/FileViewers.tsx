@@ -363,7 +363,7 @@ export function HtmlFileCard({
         {/* While the sheet is up the card is hidden behind it — don't keep a
             second copy of the page (and its scripts) alive underneath. */}
         {open ? (
-          <View className="bg-bg flex-1" />
+          <View className="bg-surface flex-1" />
         ) : previewing ? (
           frame
         ) : (
@@ -551,7 +551,7 @@ export function PdfFileCard({
       <CardHeader icon={<Pdf02Icon size={14} className="text-muted" />} name={name} />
       <PreviewTap onPress={() => setOpen(true)} label={name} height={INLINE_BODY_HEIGHT + 60}>
         {/* One document renderer at a time — see HtmlFileCard. */}
-        {open ? <View className="bg-bg flex-1" /> : frame}
+        {open ? <View className="bg-surface flex-1" /> : frame}
       </PreviewTap>
       <CardFooter
         label={[classification.ext.toUpperCase(), formatBytes(sizeBytes || cachedSize)]

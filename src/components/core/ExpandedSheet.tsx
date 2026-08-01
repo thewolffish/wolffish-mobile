@@ -32,7 +32,9 @@ export function ExpandedSheet({
 
   return (
     <RNModal visible={open} animationType="slide" onRequestClose={onClose}>
-      <View className="bg-bg flex-1" style={{ paddingTop: insets.top }}>
+      {/* Surface, not bg: the sheet is the card grown to full screen, and a
+          reader mid-file must not watch the page color change under the text. */}
+      <View className="bg-surface flex-1" style={{ paddingTop: insets.top }}>
         <View className="border-border-soft flex-row items-center gap-2 border-b px-3 pb-2">
           <Text
             numberOfLines={1}
