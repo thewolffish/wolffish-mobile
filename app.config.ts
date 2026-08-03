@@ -107,6 +107,20 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     'expo-localization',
+    // Pairing keys and the tunnel's pairing secret live in the OS keystore
+    // (Keychain on iOS, Keystore-encrypted SharedPreferences on Android) —
+    // never in AsyncStorage, which is plain text on disk.
+    'expo-secure-store',
+    [
+      // Scanning the desktop's pairing QR is the only camera use; there is no
+      // photo capture, no library access, and no recording.
+      'expo-camera',
+      {
+        cameraPermission:
+          'Wolffish uses the camera only to scan the pairing code shown by the desktop app.',
+        recordAudioAndroid: false
+      }
+    ],
     // Delivered/attached videos play inline in the chat feed (MediaBlocks
     // VideoBlock). The config plugin is what wires up the native player;
     // background playback and PiP stay off — chat video is foreground only.
