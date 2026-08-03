@@ -933,10 +933,7 @@
           "name": "meme_generate",
           "args": {
             "template_id": "doge",
-            "lines": [
-              "when you exist",
-              "younes: such love. very wife. wow."
-            ]
+            "lines": ["when you exist", "younes: such love. very wife. wow."]
           }
         },
         {

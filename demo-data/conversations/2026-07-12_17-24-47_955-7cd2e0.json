@@ -457,13 +457,7 @@
           "toolCallId": "call_00_k6PK4L89duZkqZGws9U14017",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a1",
-              "a2",
-              "a3",
-              "a4",
-              "a5"
-            ]
+            "agent_ids": ["a1", "a2", "a3", "a4", "a5"]
           },
           "conversationId": "2026-07-12_17-24-47_955-7cd2e0"
         },
@@ -498,12 +492,7 @@
           "toolCallId": "call_00_Yiw6W8lBzTfosDXnvF9p3299",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a1",
-              "a2",
-              "a3",
-              "a5"
-            ]
+            "agent_ids": ["a1", "a2", "a3", "a5"]
           },
           "conversationId": "2026-07-12_17-24-47_955-7cd2e0"
         },
@@ -538,11 +527,7 @@
           "toolCallId": "call_00_zw20j88FLunHuE0dpNSU1046",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a1",
-              "a3",
-              "a5"
-            ]
+            "agent_ids": ["a1", "a3", "a5"]
           },
           "conversationId": "2026-07-12_17-24-47_955-7cd2e0"
         },
@@ -570,10 +555,7 @@
           "toolCallId": "call_00_doK3Nd9RoQNeQL1ZjybY4982",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a1",
-              "a3"
-            ]
+            "agent_ids": ["a1", "a3"]
           },
           "conversationId": "2026-07-12_17-24-47_955-7cd2e0"
         },
@@ -608,9 +590,7 @@
           "toolCallId": "call_00_3ypigbQ1rDJIckfAQu9d1616",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a3"
-            ]
+            "agent_ids": ["a3"]
           },
           "conversationId": "2026-07-12_17-24-47_955-7cd2e0"
         },

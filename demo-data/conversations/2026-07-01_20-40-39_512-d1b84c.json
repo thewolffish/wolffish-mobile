@@ -150,9 +150,7 @@
           "name": "google_gmail_mark_read",
           "args": {
             "account": "youneswolf@gmail.com",
-            "ids": [
-              "19f1ec0fd8fa5a1f"
-            ]
+            "ids": ["19f1ec0fd8fa5a1f"]
           }
         },
         {

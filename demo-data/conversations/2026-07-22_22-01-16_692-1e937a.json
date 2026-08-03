@@ -4230,11 +4230,7 @@
           "name": "workflow_plan",
           "args": {
             "note": "Fresh research on internal employee-facing AI agents — discarding customer-facing content, reusing only universal TCO/governance data. Parallel web + gated platform mining, then build card-based HTML → PDF.",
-            "phrases": [
-              "research-web",
-              "research-gated",
-              "build-report"
-            ]
+            "phrases": ["research-web", "research-gated", "build-report"]
           },
           "conversationId": "2026-07-22_22-01-16_692-1e937a"
         },
@@ -4263,11 +4259,7 @@
           "toolCallId": "call_00_bidWzWpg2lGjCQexEcM41219",
           "name": "workflow_plan",
           "args": {
-            "phases": [
-              "research-web",
-              "research-gated",
-              "build-report"
-            ],
+            "phases": ["research-web", "research-gated", "build-report"],
             "note": "Fresh research on internal employee-facing AI agents. Discarding all customer-facing content, reusing only universal TCO/governance data."
           },
           "conversationId": "2026-07-22_22-01-16_692-1e937a"

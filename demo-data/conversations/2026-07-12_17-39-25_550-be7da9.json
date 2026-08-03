@@ -66,12 +66,7 @@
           "toolCallId": "call_00_g6Q3e0HwsrSdOw1Vp5x08595",
           "name": "workflow_plan",
           "args": {
-            "phases": [
-              "Research (parallel sweep)",
-              "Filter & Curate",
-              "Create PDF",
-              "Deliver"
-            ],
+            "phases": ["Research (parallel sweep)", "Filter & Curate", "Create PDF", "Deliver"],
             "note": "Arabic AI daily digest: wide parallel research → curate 5-8 items → styled PDF → Telegram"
           },
           "conversationId": "2026-07-12_17-39-25_550-be7da9"
@@ -339,11 +334,7 @@
           "toolCallId": "call_00_NxPLiJoGNXBPpBMHVUjY9725",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a1",
-              "a2",
-              "a3"
-            ]
+            "agent_ids": ["a1", "a2", "a3"]
           },
           "conversationId": "2026-07-12_17-39-25_550-be7da9"
         },
@@ -371,10 +362,7 @@
           "toolCallId": "call_00_8PabBF5sjyFkxrzFpVVM8392",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a1",
-              "a3"
-            ]
+            "agent_ids": ["a1", "a3"]
           },
           "conversationId": "2026-07-12_17-39-25_550-be7da9"
         },
@@ -402,9 +390,7 @@
           "toolCallId": "call_00_DiXjUBxnl9z5UNSsT0Mx1667",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a1"
-            ]
+            "agent_ids": ["a1"]
           },
           "conversationId": "2026-07-12_17-39-25_550-be7da9"
         },

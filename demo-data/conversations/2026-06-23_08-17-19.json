@@ -244,11 +244,7 @@
           "name": "google_gmail_mark_read",
           "args": {
             "account": "younes@wolffi.sh",
-            "ids": [
-              "19ef011d03d9520e",
-              "19eef6f9c72d32f5",
-              "19eef45919831320"
-            ]
+            "ids": ["19ef011d03d9520e", "19eef6f9c72d32f5", "19eef45919831320"]
           }
         },
         {

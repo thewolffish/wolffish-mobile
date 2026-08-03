@@ -88,21 +88,9 @@
                   }
                 ],
                 "rows": [
-                  [
-                    "Alice",
-                    "92",
-                    "A"
-                  ],
-                  [
-                    "Bob",
-                    "78",
-                    "B"
-                  ],
-                  [
-                    "Carol",
-                    "85",
-                    "B"
-                  ]
+                  ["Alice", "92", "A"],
+                  ["Bob", "78", "B"],
+                  ["Carol", "85", "B"]
                 ]
               }
             ]
@@ -128,18 +116,9 @@
                   }
                 ],
                 "rows": [
-                  [
-                    "Riyadh",
-                    "42"
-                  ],
-                  [
-                    "Dubai",
-                    "38"
-                  ],
-                  [
-                    "London",
-                    "18"
-                  ]
+                  ["Riyadh", "42"],
+                  ["Dubai", "38"],
+                  ["London", "18"]
                 ]
               }
             ]
@@ -153,10 +132,7 @@
           "name": "meme_generate",
           "args": {
             "template_id": "drake",
-            "lines": [
-              "Making 9 sample files one by one",
-              "Batching all of them at once"
-            ]
+            "lines": ["Making 9 sample files one by one", "Batching all of them at once"]
           }
         },
         {

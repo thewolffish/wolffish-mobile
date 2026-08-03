@@ -28,9 +28,7 @@
       "core": false,
       "hasPlugin": true,
       "toolCount": 25,
-      "requires": [
-        "node"
-      ]
+      "requires": ["node"]
     },
     {
       "name": "browser-extension",
@@ -40,9 +38,7 @@
       "core": false,
       "hasPlugin": true,
       "toolCount": 58,
-      "requires": [
-        "node"
-      ]
+      "requires": ["node"]
     },
     {
       "name": "cloudflared",
@@ -62,9 +58,7 @@
       "core": false,
       "hasPlugin": true,
       "toolCount": 8,
-      "requires": [
-        "node"
-      ]
+      "requires": ["node"]
     },
     {
       "name": "document",
@@ -74,10 +68,7 @@
       "core": false,
       "hasPlugin": true,
       "toolCount": 10,
-      "requires": [
-        "pdf",
-        "node"
-      ]
+      "requires": ["pdf", "node"]
     },
     {
       "name": "ffmpeg",
@@ -97,9 +88,7 @@
       "core": false,
       "hasPlugin": true,
       "toolCount": 4,
-      "requires": [
-        "node"
-      ]
+      "requires": ["node"]
     },
     {
       "name": "git",
@@ -109,9 +98,7 @@
       "core": false,
       "hasPlugin": false,
       "toolCount": 0,
-      "requires": [
-        "shell"
-      ]
+      "requires": ["shell"]
     },
     {
       "name": "github",
@@ -121,10 +108,7 @@
       "core": false,
       "hasPlugin": true,
       "toolCount": 54,
-      "requires": [
-        "shell",
-        "node"
-      ]
+      "requires": ["shell", "node"]
     },
     {
       "name": "google",
@@ -184,9 +168,7 @@
       "core": false,
       "hasPlugin": true,
       "toolCount": 18,
-      "requires": [
-        "node"
-      ]
+      "requires": ["node"]
     },
     {
       "name": "operating-manual",
@@ -216,9 +198,7 @@
       "core": false,
       "hasPlugin": true,
       "toolCount": 12,
-      "requires": [
-        "node"
-      ]
+      "requires": ["node"]
     },
     {
       "name": "procedures",
@@ -288,9 +268,7 @@
       "core": false,
       "hasPlugin": true,
       "toolCount": 4,
-      "requires": [
-        "python"
-      ]
+      "requires": ["python"]
     },
     {
       "name": "spreadsheet",
@@ -300,9 +278,7 @@
       "core": false,
       "hasPlugin": true,
       "toolCount": 10,
-      "requires": [
-        "node"
-      ]
+      "requires": ["node"]
     },
     {
       "name": "system",
@@ -322,10 +298,7 @@
       "core": false,
       "hasPlugin": true,
       "toolCount": 3,
-      "requires": [
-        "python",
-        "ffmpeg"
-      ]
+      "requires": ["python", "ffmpeg"]
     },
     {
       "name": "utilities",
@@ -345,9 +318,7 @@
       "core": false,
       "hasPlugin": true,
       "toolCount": 2,
-      "requires": [
-        "node"
-      ]
+      "requires": ["node"]
     },
     {
       "name": "workflow",
@@ -559,11 +530,7 @@
       "enabled": true,
       "model": "gemma4:e2b",
       "running": true,
-      "models": [
-        "deepseek-r1:8b",
-        "gemma4:e2b",
-        "qwen3.5:9b"
-      ]
+      "models": ["deepseek-r1:8b", "gemma4:e2b", "qwen3.5:9b"]
     },
     "providers": [
       {
@@ -571,10 +538,7 @@
         "model": "mimo-v2.5-pro",
         "hasKey": true,
         "apiKey": "sk-OrbhaVxufphxtVOmqlQQvCCKjVxl6WPM",
-        "models": [
-          "mimo-v2.5",
-          "mimo-v2.5-pro"
-        ]
+        "models": ["mimo-v2.5", "mimo-v2.5-pro"]
       },
       {
         "id": "minimax",
@@ -872,10 +836,7 @@
         "model": "step-3.7-flash",
         "hasKey": true,
         "apiKey": "sk-6LgBckB3VmKvJUNpGjN8TUSkcY8kGd",
-        "models": [
-          "step-3.7-flash",
-          "step-3.5-flash"
-        ]
+        "models": ["step-3.7-flash", "step-3.5-flash"]
       },
       {
         "id": "kimi",
@@ -899,10 +860,7 @@
         "model": "deepseek-v4-pro",
         "hasKey": true,
         "apiKey": "sk-qwir4ejiom8tcj0inl7rp88vi9xmb1ib",
-        "models": [
-          "deepseek-v4-flash",
-          "deepseek-v4-pro"
-        ]
+        "models": ["deepseek-v4-flash", "deepseek-v4-pro"]
       },
       {
         "id": "zai",

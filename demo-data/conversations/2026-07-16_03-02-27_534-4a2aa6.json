@@ -304,11 +304,7 @@
           "toolCallId": "call_00_XqcVyX5eBVDxqLI5OMOL5101",
           "name": "workflow_plan",
           "args": {
-            "phases": [
-              "Extract all 13 book pages",
-              "Generate clean PDFs",
-              "Deliver"
-            ],
+            "phases": ["Extract all 13 book pages", "Generate clean PDFs", "Deliver"],
             "note": "Parallel extraction of all 13 Alex West books, then clean PDF generation"
           }
         },

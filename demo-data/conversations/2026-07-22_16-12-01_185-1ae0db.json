@@ -1001,20 +1001,7 @@
           "toolCallId": "call_00_EBeJKAWZCrys5M210vuy8885",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a1",
-              "a2",
-              "a3",
-              "a4",
-              "a5",
-              "a6",
-              "a7",
-              "a8",
-              "a9",
-              "a10",
-              "a11",
-              "a12"
-            ]
+            "agent_ids": ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "a10", "a11", "a12"]
           }
         },
         {
@@ -1045,19 +1032,7 @@
           "toolCallId": "call_00_TpcHs2TKhAXQCr2SZw3O9765",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a1",
-              "a2",
-              "a3",
-              "a5",
-              "a6",
-              "a7",
-              "a8",
-              "a9",
-              "a10",
-              "a11",
-              "a12"
-            ]
+            "agent_ids": ["a1", "a2", "a3", "a5", "a6", "a7", "a8", "a9", "a10", "a11", "a12"]
           }
         },
         {
@@ -1088,18 +1063,7 @@
           "toolCallId": "call_00_70tMyA593heHTq3NX45x1712",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a1",
-              "a3",
-              "a5",
-              "a6",
-              "a7",
-              "a8",
-              "a9",
-              "a10",
-              "a11",
-              "a12"
-            ]
+            "agent_ids": ["a1", "a3", "a5", "a6", "a7", "a8", "a9", "a10", "a11", "a12"]
           }
         },
         {
@@ -1130,17 +1094,7 @@
           "toolCallId": "call_00_BFIj9qZzG44iO7S5ubVx9309",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a3",
-              "a5",
-              "a6",
-              "a7",
-              "a8",
-              "a9",
-              "a10",
-              "a11",
-              "a12"
-            ]
+            "agent_ids": ["a3", "a5", "a6", "a7", "a8", "a9", "a10", "a11", "a12"]
           }
         },
         {
@@ -1171,16 +1125,7 @@
           "toolCallId": "call_00_yHROIOMTcTUoTKgYibLT3117",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a3",
-              "a6",
-              "a7",
-              "a8",
-              "a9",
-              "a10",
-              "a11",
-              "a12"
-            ]
+            "agent_ids": ["a3", "a6", "a7", "a8", "a9", "a10", "a11", "a12"]
           }
         },
         {
@@ -1211,15 +1156,7 @@
           "toolCallId": "call_00_vofsnqOc3fJ0aAbcPVul3331",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a3",
-              "a7",
-              "a8",
-              "a9",
-              "a10",
-              "a11",
-              "a12"
-            ]
+            "agent_ids": ["a3", "a7", "a8", "a9", "a10", "a11", "a12"]
           }
         },
         {
@@ -1250,14 +1187,7 @@
           "toolCallId": "call_00_HrOKeBqTgoCuqt0BjNcZ8999",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a7",
-              "a8",
-              "a9",
-              "a10",
-              "a11",
-              "a12"
-            ]
+            "agent_ids": ["a7", "a8", "a9", "a10", "a11", "a12"]
           }
         },
         {
@@ -1288,13 +1218,7 @@
           "toolCallId": "call_00_06c6Pe5S3CncrjvJd2cS2877",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a8",
-              "a9",
-              "a10",
-              "a11",
-              "a12"
-            ]
+            "agent_ids": ["a8", "a9", "a10", "a11", "a12"]
           }
         },
         {
@@ -1325,12 +1249,7 @@
           "toolCallId": "call_00_DbKi4qRfSj1bHI56FHGl6187",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a9",
-              "a10",
-              "a11",
-              "a12"
-            ]
+            "agent_ids": ["a9", "a10", "a11", "a12"]
           }
         },
         {
@@ -1361,11 +1280,7 @@
           "toolCallId": "call_00_ue5C5RzojBYKsZotvnSs9341",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a9",
-              "a11",
-              "a12"
-            ]
+            "agent_ids": ["a9", "a11", "a12"]
           }
         },
         {
@@ -1396,10 +1311,7 @@
           "toolCallId": "call_00_H5ZB1b0CKjITCy6u4FvG2189",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a9",
-              "a12"
-            ]
+            "agent_ids": ["a9", "a12"]
           }
         },
         {
@@ -1430,9 +1342,7 @@
           "toolCallId": "call_00_NlhtHzIEZiLfXrdBsspI0275",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a12"
-            ]
+            "agent_ids": ["a12"]
           }
         },
         {

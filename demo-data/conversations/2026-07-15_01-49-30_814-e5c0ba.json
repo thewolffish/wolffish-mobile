@@ -56,12 +56,7 @@
           "toolCallId": "call_00_0IIpQivvCzXf0wCXYePJ8627",
           "name": "workflow_plan",
           "args": {
-            "phrases": [
-              "research-problem",
-              "research-solutions",
-              "synthesize",
-              "generate-pdf"
-            ],
+            "phrases": ["research-problem", "research-solutions", "synthesize", "generate-pdf"],
             "note": "Researching the solo founder cold-start problem and possible solution shapes — paid early adopter networks, crypto quests, launch platforms, and alternatives"
           }
         },
@@ -88,12 +83,7 @@
           "toolCallId": "call_00_K3JYATLIMun4rOJ5Vhvt9267",
           "name": "workflow_plan",
           "args": {
-            "phases": [
-              "research-problem",
-              "research-solutions",
-              "synthesize",
-              "generate-pdf"
-            ],
+            "phases": ["research-problem", "research-solutions", "synthesize", "generate-pdf"],
             "note": "Researching the solo founder cold-start problem and possible solution shapes — paid early adopter networks, crypto quests, launch platforms, and alternatives"
           }
         },

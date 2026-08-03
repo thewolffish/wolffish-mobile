@@ -143,11 +143,7 @@
           "name": "meme_generate",
           "args": {
             "template_id": "db",
-            "lines": [
-              "All other WhatsApp contacts",
-              "Wolffish",
-              "Sana ❤️"
-            ]
+            "lines": ["All other WhatsApp contacts", "Wolffish", "Sana ❤️"]
           }
         },
         {

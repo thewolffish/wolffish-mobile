@@ -651,16 +651,7 @@
           "toolCallId": "call_00_kFzt4WhFpoGuVgNvR1Aq7791",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a1",
-              "a2",
-              "a3",
-              "a4",
-              "a5",
-              "a6",
-              "a7",
-              "a8"
-            ]
+            "agent_ids": ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8"]
           }
         },
         {
@@ -691,15 +682,7 @@
           "toolCallId": "call_00_Ee7oH1xAjwHX6DgxcAUi2522",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a1",
-              "a2",
-              "a3",
-              "a5",
-              "a6",
-              "a7",
-              "a8"
-            ]
+            "agent_ids": ["a1", "a2", "a3", "a5", "a6", "a7", "a8"]
           }
         },
         {
@@ -730,14 +713,7 @@
           "toolCallId": "call_00_0X5QtA899jXz5S4rxkF61886",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a1",
-              "a2",
-              "a3",
-              "a6",
-              "a7",
-              "a8"
-            ]
+            "agent_ids": ["a1", "a2", "a3", "a6", "a7", "a8"]
           }
         },
         {
@@ -768,13 +744,7 @@
           "toolCallId": "call_00_h0b9aYnAalkrdFrPEpHW3317",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a2",
-              "a3",
-              "a6",
-              "a7",
-              "a8"
-            ]
+            "agent_ids": ["a2", "a3", "a6", "a7", "a8"]
           }
         },
         {
@@ -805,12 +775,7 @@
           "toolCallId": "call_00_F0XJGh2NVHheCrVbV2cQ7456",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a2",
-              "a3",
-              "a7",
-              "a8"
-            ]
+            "agent_ids": ["a2", "a3", "a7", "a8"]
           }
         },
         {
@@ -841,11 +806,7 @@
           "toolCallId": "call_00_me2jgzGLDOJTj7czyZBY8312",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a2",
-              "a7",
-              "a8"
-            ]
+            "agent_ids": ["a2", "a7", "a8"]
           }
         },
         {
@@ -870,10 +831,7 @@
           "toolCallId": "call_00_dIFH3pTgUBf6ucVdrt0U4143",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a7",
-              "a8"
-            ]
+            "agent_ids": ["a7", "a8"]
           }
         },
         {
@@ -898,9 +856,7 @@
           "toolCallId": "call_00_26RIiFyuJ8jvmkAQzcZT5170",
           "name": "agents_await",
           "args": {
-            "agent_ids": [
-              "a8"
-            ]
+            "agent_ids": ["a8"]
           }
         },
         {

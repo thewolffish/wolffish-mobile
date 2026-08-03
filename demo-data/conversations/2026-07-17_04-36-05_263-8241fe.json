@@ -74,11 +74,7 @@
           "name": "workflow_plan",
           "args": {
             "note": "Single-author build of the full game, then two parallel adversarial reviewers (API correctness + gameplay logic), then fixes and ship.",
-            "phases": [
-              "build",
-              "adversarial review",
-              "fix & verify"
-            ]
+            "phases": ["build", "adversarial review", "fix & verify"]
           },
           "conversationId": "2026-07-17_04-36-05_263-8241fe"
         },

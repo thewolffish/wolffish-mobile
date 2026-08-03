@@ -62,11 +62,7 @@
           "toolCallId": "call_00_iPD4a3Nmn6Om3cmUzjlR1613",
           "name": "workflow_plan",
           "args": {
-            "phases": [
-              "research",
-              "synthesis",
-              "pdf"
-            ],
+            "phases": ["research", "synthesis", "pdf"],
             "note": "Parallel research across X, YouTube, LinkedIn, Reddit — real data, case studies, examples — then synthesis and PDF"
           }
         },
@@ -452,10 +448,7 @@
           "toolCallId": "call_00_oAazwbE2tmUBhjc2Arx31752",
           "name": "workflow_plan",
           "args": {
-            "phases": [
-              "synthesis",
-              "pdf"
-            ],
+            "phases": ["synthesis", "pdf"],
             "note": "Cross-platform analysis + minimal well-spaced PDF summary"
           }
         },

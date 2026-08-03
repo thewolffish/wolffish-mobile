@@ -30,11 +30,7 @@
           "toolCallId": "call_00_FXzarWNLGfdcJIHLO8eD3358",
           "name": "workflow_plan",
           "args": {
-            "phases": [
-              "research",
-              "build",
-              "verify"
-            ],
+            "phases": ["research", "build", "verify"],
             "note": "Parallel research across 5 angles → single HTML build → adversarial fact-check"
           }
         },
@@ -507,11 +503,7 @@
           "toolCallId": "call_00_MlcuhDccrvsmDdxaQBi11902",
           "name": "workflow_plan",
           "args": {
-            "phases": [
-              "research",
-              "build",
-              "verify"
-            ],
+            "phases": ["research", "build", "verify"],
             "note": "Research done → building the HTML page now with a fact-checker on deck"
           }
         },
@@ -943,11 +935,7 @@
           "name": "workflow_plan",
           "args": {
             "note": "Modify HTML with print CSS → Chrome headless PDF → verify output",
-            "phases": [
-              "build-print-css",
-              "render-pdf",
-              "verify"
-            ]
+            "phases": ["build-print-css", "render-pdf", "verify"]
           }
         },
         {

@@ -552,9 +552,7 @@
           "name": "google_gmail_mark_read",
           "args": {
             "account": "youneswolf@gmail.com",
-            "ids": [
-              "19f6b45b283aca0d"
-            ]
+            "ids": ["19f6b45b283aca0d"]
           }
         },
         {

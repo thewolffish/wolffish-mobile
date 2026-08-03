@@ -184,10 +184,7 @@
           "name": "meme_generate",
           "args": {
             "template_id": "success",
-            "lines": [
-              "BUILDING A STARTUP SOLO",
-              "AND SHIPPING EVERY SINGLE DAY"
-            ]
+            "lines": ["BUILDING A STARTUP SOLO", "AND SHIPPING EVERY SINGLE DAY"]
           }
         },
         {

@@ -38,12 +38,7 @@
           "args": {
             "surah": 1,
             "ayah": 1,
-            "sources": [
-              "saadi",
-              "tabary",
-              "moyassar",
-              "ibn_ashur"
-            ]
+            "sources": ["saadi", "tabary", "moyassar", "ibn_ashur"]
           }
         },
         {
@@ -134,9 +129,7 @@
           "args": {
             "surah": 1,
             "ayah": 1,
-            "sources": [
-              "tabary"
-            ],
+            "sources": ["tabary"],
             "part": 2
           }
         },
@@ -173,10 +166,7 @@
             "surah": 1,
             "ayah": 1,
             "word_no": 3,
-            "aspects": [
-              "meaning",
-              "sarf"
-            ]
+            "aspects": ["meaning", "sarf"]
           }
         },
         {
@@ -234,10 +224,7 @@
             "surah": 1,
             "ayah": 1,
             "word_no": 4,
-            "aspects": [
-              "meaning",
-              "sarf"
-            ]
+            "aspects": ["meaning", "sarf"]
           }
         },
         {
@@ -250,9 +237,7 @@
             "part": 3,
             "surah": 1,
             "ayah": 1,
-            "sources": [
-              "tabary"
-            ]
+            "sources": ["tabary"]
           }
         },
         {
@@ -265,9 +250,7 @@
             "part": 2,
             "surah": 1,
             "ayah": 1,
-            "sources": [
-              "ibn_ashur"
-            ]
+            "sources": ["ibn_ashur"]
           }
         },
         {
@@ -317,9 +300,7 @@
             "part": 5,
             "surah": 1,
             "ayah": 1,
-            "sources": [
-              "ibn_ashur"
-            ]
+            "sources": ["ibn_ashur"]
           }
         },
         {
@@ -332,9 +313,7 @@
             "part": 6,
             "surah": 1,
             "ayah": 1,
-            "sources": [
-              "ibn_ashur"
-            ]
+            "sources": ["ibn_ashur"]
           }
         },
         {
@@ -376,9 +355,7 @@
             "part": 10,
             "surah": 1,
             "ayah": 1,
-            "sources": [
-              "ibn_ashur"
-            ]
+            "sources": ["ibn_ashur"]
           }
         },
         {
@@ -391,9 +368,7 @@
             "part": 11,
             "surah": 1,
             "ayah": 1,
-            "sources": [
-              "ibn_ashur"
-            ]
+            "sources": ["ibn_ashur"]
           }
         },
         {
@@ -428,9 +403,7 @@
           "args": {
             "surah": 1,
             "ayah": 1,
-            "sources": [
-              "ibn_ashur"
-            ],
+            "sources": ["ibn_ashur"],
             "part": 14
           }
         },
@@ -443,9 +416,7 @@
           "args": {
             "surah": 1,
             "ayah": 3,
-            "sources": [
-              "ibn_ashur"
-            ]
+            "sources": ["ibn_ashur"]
           }
         },
         {
@@ -487,9 +458,7 @@
             "part": 2,
             "surah": 1,
             "ayah": 3,
-            "sources": [
-              "ibn_ashur"
-            ]
+            "sources": ["ibn_ashur"]
           }
         },
         {
@@ -502,9 +471,7 @@
             "part": 3,
             "surah": 1,
             "ayah": 3,
-            "sources": [
-              "ibn_ashur"
-            ]
+            "sources": ["ibn_ashur"]
           }
         },
         {
@@ -540,9 +507,7 @@
             "part": 4,
             "surah": 1,
             "ayah": 3,
-            "sources": [
-              "ibn_ashur"
-            ]
+            "sources": ["ibn_ashur"]
           }
         },
         {
@@ -555,9 +520,7 @@
             "part": 5,
             "surah": 1,
             "ayah": 3,
-            "sources": [
-              "ibn_ashur"
-            ]
+            "sources": ["ibn_ashur"]
           }
         },
         {
