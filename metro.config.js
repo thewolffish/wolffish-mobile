@@ -11,4 +11,11 @@ const config = getDefaultConfig(__dirname)
 // of Metro trying to parse the prose as JavaScript.
 config.resolver.assetExts.push('md')
 
+// WebView page scripts ship as bundled assets too: assets/charts/*.webjs are
+// plain browser JavaScript (the vendored ECharts build and the chart page
+// runtime) that runs inside a WebView, never through Metro. The made-up
+// extension is deliberate — registering plain `js` as an asset extension
+// would collide with source resolution.
+config.resolver.assetExts.push('webjs')
+
 module.exports = withNativeWind(config, { input: './src/global.css' })

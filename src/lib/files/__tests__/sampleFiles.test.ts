@@ -18,9 +18,9 @@ import { classifyFile } from '@/lib/files/fileKinds'
 const files = allSampleFiles()
 
 describe('the published sample set', () => {
-  it('is all 110 files: 109 types plus the README', () => {
-    expect(files).toHaveLength(110)
-    expect(files.filter((f) => f.name.startsWith('wolffish-sample.'))).toHaveLength(109)
+  it('is all 111 files: 110 types plus the README', () => {
+    expect(files).toHaveLength(111)
+    expect(files.filter((f) => f.name.startsWith('wolffish-sample.'))).toHaveLength(110)
     expect(files.at(-1)).toEqual({
       name: 'README.md',
       ext: 'md',
@@ -36,7 +36,7 @@ describe('the published sample set', () => {
     // wolffish-sample.md, which is why it is named explicitly rather than
     // derived from the extension list.
     const sampleExts = files.filter((f) => f.name !== 'README.md').map((f) => f.ext)
-    expect(new Set(sampleExts).size).toBe(109)
+    expect(new Set(sampleExts).size).toBe(110)
     for (const file of files) {
       expect(file.ext).toBe(file.ext.toLowerCase())
       expect(file.url).toBe(`${SAMPLE_BASE_URL}/${file.name}`)
@@ -61,10 +61,21 @@ describe('the published sample set', () => {
     expect(sampleUrlFor('')).toBeNull()
   })
 
+  it('serves the chart sample — never the generic JSON one — behind a chart spec', () => {
+    // `.chart.json` is its own type: the double extension resolves to the
+    // published chart spec, while plain .json keeps its own sample.
+    expect(sampleUrlFor('files/q3-revenue.chart.json')).toBe(
+      `${SAMPLE_BASE_URL}/wolffish-sample.chart.json`
+    )
+    expect(sampleExtFor('files/q3-revenue.chart.json')).toBe('chart.json')
+    expect(sampleUrlFor('files/data.json')).toBe(`${SAMPLE_BASE_URL}/wolffish-sample.json`)
+  })
+
   it('gives every viewer in the dispatch table something real to render', () => {
     // A kind with no sample behind it would be untestable on a device.
     const kinds = new Set(files.map((f) => classifyFile(f.name).kind))
-    for (const kind of ['image', 'video', 'audio', 'pdf', 'markdown', 'text', 'code', 'html']) {
+    const covered = ['image', 'video', 'audio', 'pdf', 'markdown', 'text', 'code', 'html', 'chart']
+    for (const kind of covered) {
       expect(kinds).toContain(kind)
     }
   })

@@ -58,6 +58,9 @@ const MATRIX: Array<[string, FileViewerKind]> = [
   // html — desktop HtmlFileViewer
   ['files/page.html', 'html'],
   ['files/page.htm', 'html'],
+  // chart specs — desktop ChartCard; the double extension is the type
+  ['files/q3-revenue.chart.json', 'chart'],
+  ['files/Q3.CHART.JSON', 'chart'],
   // source — desktop FileCard; mobile renders it as a code card
   ['files/app.ts', 'code'],
   ['files/app.tsx', 'code'],
@@ -89,6 +92,15 @@ describe('classifyFile', () => {
   it('is case-insensitive about extensions', () => {
     expect(classifyFile('A.PDF').kind).toBe('pdf')
     expect(classifyFile('A.HTML').kind).toBe('html')
+  })
+
+  it('keeps plain .json a code card — only .chart.json is a chart', () => {
+    expect(classifyFile('files/data.json').kind).toBe('code')
+    const chart = classifyFile('files/q3.chart.json')
+    expect(chart.kind).toBe('chart')
+    // The spec is JSON underneath: the data view labels and shares it as such.
+    expect(chart.language).toBe('json')
+    expect(chart.mimeType).toBe('application/json')
   })
 
   describe('ambiguous containers', () => {

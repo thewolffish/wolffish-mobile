@@ -1,3 +1,4 @@
+import { useFreshConfig } from '@/lib/sync/useFreshConfig'
 import { Button } from '@/components/core/Button'
 import {
   AiBrain01Icon,
@@ -61,6 +62,8 @@ function formatBytes(bytes: number | null | undefined): string {
 }
 
 export default function DataScreen(): React.JSX.Element {
+  // Desktop-owned values: pull the current ones when this screen opens.
+  useFreshConfig()
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()

@@ -46,6 +46,7 @@ describe('appStore', () => {
       theme: 'light',
       locale: null,
       demoMode: false,
+      paired: false,
       demoVersion: null,
       otaEnabled: true
     })
@@ -55,6 +56,7 @@ describe('appStore', () => {
       'demoVersion',
       'locale',
       'otaEnabled',
+      'paired',
       'theme'
     ])
   })

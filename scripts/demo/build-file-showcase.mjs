@@ -74,7 +74,9 @@ const DELIVERED = [
   'app.ts',
   'data.json',
   'regions.csv',
-  'regions.tsv'
+  'regions.tsv',
+  // Last on purpose: the showcase closes on the interactive chart card.
+  'wolffish-observations.chart.json'
 ]
 
 /** Attached by the user rather than delivered — the other render path. */
@@ -96,7 +98,12 @@ async function main() {
 
   const now = Date.now()
   const rel = (name) => `${SHOWCASE_DIR}/${name}`
-  const kindOf = (name) => MARKER_KIND[path.extname(name).slice(1).toLowerCase()] ?? 'file'
+  const kindOf = (name) => {
+    // The chart card's double extension — path.extname only sees `.json`,
+    // but the desktop marks `.chart.json` deliveries as (chart).
+    if (name.toLowerCase().endsWith('.chart.json')) return 'chart'
+    return MARKER_KIND[path.extname(name).slice(1).toLowerCase()] ?? 'file'
+  }
 
   const segments = [
     {

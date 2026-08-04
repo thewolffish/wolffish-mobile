@@ -81,12 +81,17 @@ describe('demoConfig compaction', () => {
       compactionDailyHour: 23,
       compactionWeeklyDay: 0,
       compactionWeeklyHour: 23,
-      compactionRuns: { daily: null, weekly: null }
+      compactionRuns: { daily: null, weekly: null, reflection: null, deepClean: null }
     })
   })
 
   it('has no runs until a snapshot brings some', () => {
-    expect(useDemoConfig.getState().compactionRuns).toEqual({ daily: null, weekly: null })
+    expect(useDemoConfig.getState().compactionRuns).toEqual({
+      daily: null,
+      weekly: null,
+      reflection: null,
+      deepClean: null
+    })
   })
 
   it('ingests the schedule and both run records', () => {
@@ -125,7 +130,12 @@ describe('demoConfig compaction', () => {
     expect(state.compactionDailyHour).toBe(23)
     expect(state.compactionWeeklyDay).toBe(0)
     expect(state.compactionWeeklyHour).toBe(23)
-    expect(state.compactionRuns).toEqual({ daily: null, weekly: null })
+    expect(state.compactionRuns).toEqual({
+      daily: null,
+      weekly: null,
+      reflection: null,
+      deepClean: null
+    })
   })
 
   it('keeps a job that has never run null while the other has a record', () => {
@@ -346,5 +356,96 @@ describe('demoConfig desktop data', () => {
     expect(data.totalRamBytes).toBeNull()
     expect(data.corpusBytes).toBe(FULL_DATA.corpusBytes)
     expect(data.cpuPercent).toBe(0)
+  })
+})
+
+describe('demoConfig reflection', () => {
+  beforeEach(() => {
+    useDemoConfig.setState({
+      reflectionHour: 3,
+      reflectionQuietHours: 12,
+      reflectionScoringInapp: true,
+      reflectionScoringTelegram: true,
+      reflectionScoringWhatsapp: true
+    })
+  })
+
+  it('ingests the schedule, quiet gate and per-surface scoring', () => {
+    useDemoConfig.getState().applySnapshot({
+      ...snapshot(),
+      reflection: {
+        hour: 2,
+        quietHours: 24,
+        scoring: { inapp: true, telegram: true, whatsapp: false }
+      }
+    })
+    const state = useDemoConfig.getState()
+    expect(state.reflectionHour).toBe(2)
+    expect(state.reflectionQuietHours).toBe(24)
+    expect(state.reflectionScoringInapp).toBe(true)
+    expect(state.reflectionScoringWhatsapp).toBe(false)
+  })
+
+  // A bundle/desktop from before reflection shipped carries no `reflection`
+  // key: the desktop defaults (3 AM / 12 h / all surfaces) must land, and a
+  // stale non-default from a previous sync must not survive the new snapshot.
+  it('falls back to the desktop defaults when the snapshot predates reflection', () => {
+    useDemoConfig.setState({ reflectionHour: 22, reflectionScoringWhatsapp: false })
+    useDemoConfig.getState().applySnapshot(snapshot())
+    const state = useDemoConfig.getState()
+    expect(state.reflectionHour).toBe(3)
+    expect(state.reflectionQuietHours).toBe(12)
+    expect(state.reflectionScoringWhatsapp).toBe(true)
+  })
+
+  it('carries the reflection and deep-clean run records beside compaction’s', () => {
+    useDemoConfig.getState().applySnapshot(
+      snapshot({
+        runs: {
+          daily: DAILY_RUN,
+          reflection: { ...DAILY_RUN, output: 'Reviewed 3 conversation(s). Playbook updated.' },
+          deepClean: { ...DAILY_RUN, output: 'No changes needed.' }
+        }
+      })
+    )
+    const state = useDemoConfig.getState()
+    expect(state.compactionRuns.reflection?.output).toContain('Playbook updated')
+    expect(state.compactionRuns.deepClean?.output).toBe('No changes needed.')
+    expect(state.compactionRuns.weekly).toBeNull()
+  })
+
+  it('keeps the desktop timezone when the snapshot carries one, null otherwise', () => {
+    useDemoConfig.getState().applySnapshot({
+      ...snapshot(),
+      desktop: { version: '1.0.20', platform: 'macOS', timezone: 'Asia/Riyadh', syncedAt: null }
+    })
+    expect(useDemoConfig.getState().desktop.timezone).toBe('Asia/Riyadh')
+    useDemoConfig.getState().applySnapshot(snapshot())
+    expect(useDemoConfig.getState().desktop.timezone).toBeNull()
+  })
+})
+
+describe('demoConfig desktop changelog', () => {
+  it('keeps well-formed months, newest first, and drops the rest', () => {
+    useDemoConfig.getState().applySnapshot({
+      ...snapshot(),
+      changelog: { months: ['2026-05', '2026-08', 'not-a-month', '2026-08', '2026-07'] }
+    })
+    expect(useDemoConfig.getState().desktopChangelogMonths).toEqual([
+      '2026-08',
+      '2026-07',
+      '2026-05'
+    ])
+  })
+
+  it('clears the months when a snapshot stops carrying them', () => {
+    useDemoConfig.getState().applySnapshot({
+      ...snapshot(),
+      changelog: { months: ['2026-08'] }
+    })
+    // A desktop from before notes synced (or a republished bundle without
+    // them) must not leave last sync's months on the What's-new tab.
+    useDemoConfig.getState().applySnapshot(snapshot())
+    expect(useDemoConfig.getState().desktopChangelogMonths).toEqual([])
   })
 })

@@ -37,6 +37,28 @@ import { fingerprint, toHex } from './pairing'
 const encoder = new TextEncoder()
 const decoder = new TextDecoder()
 
+/**
+ * How long to wait for the relay to accept a socket before giving up and
+ * retrying. Generous enough for a slow mobile network to complete a TLS
+ * handshake, short enough that a portal or a vanished network becomes a
+ * retry rather than a permanent hang.
+ */
+const CONNECT_TIMEOUT_MS = 15_000
+
+/** How often listeners hear about counter-only movement. Fast enough that a
+ *  panel's numbers feel live; slow enough that a file transfer cannot turn
+ *  state listeners into a per-frame workload. */
+const COUNTER_NOTIFY_MS = 300
+
+/**
+ * Silence that means the socket is dead regardless of what the OS reports.
+ *
+ * Two and a half keepalive intervals: one answer may be lost to a blip
+ * without tearing a working link down, but a genuinely half-open socket is
+ * caught inside a minute rather than lasting until something else notices.
+ */
+const LIVENESS_TIMEOUT_MS = KEEPALIVE_MS * 2.5
+
 export type TunnelRole = 'host' | 'guest'
 export type PairingMode = 'qr' | 'code'
 
@@ -104,6 +126,18 @@ export type TunnelOptions = {
   /** Reconnect automatically. The desktop parks and should; a phone reconnects
    * when it returns to the foreground. */
   autoReconnect?: boolean
+  /**
+   * How long to wait at the rendezvous for the other device, or null to wait
+   * indefinitely.
+   *
+   * A host parks: the phone is away most of the day and that is the ordinary
+   * state, not a failure. Timing out tears the socket down and backs off,
+   * which empties the rendezvous exactly when the phone might arrive — both
+   * sides then cycle independently and can keep missing each other. A guest
+   * mid-pairing is the opposite case: the desktop is supposed to be there
+   * right now, so a bounded wait is the honest answer.
+   */
+  peerWaitMs?: number | null
 }
 
 export class Tunnel {
@@ -114,6 +148,9 @@ export class Tunnel {
   private handshakeInbox: ((message: Uint8Array) => void) | null = null
   private handshakeQueue: Uint8Array[] = []
   private keepaliveTimer: ReturnType<typeof setInterval> | null = null
+  private counterFlushTimer: ReturnType<typeof setTimeout> | null = null
+  /** When anything last arrived on this socket — the watchdog's evidence. */
+  private lastInboundAt = 0
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void }>()
   private rpcHandlers = new Map<string, RpcHandler>()
@@ -162,6 +199,36 @@ export class Tunnel {
 
   private patch(next: Partial<TunnelState>): void {
     this.state = { ...this.state, ...next }
+    // A real transition flushes immediately and supersedes any pending
+    // counter tick — its snapshot already carries the newest numbers.
+    if (this.counterFlushTimer) {
+      clearTimeout(this.counterFlushTimer)
+      this.counterFlushTimer = null
+    }
+    this.notifyState()
+  }
+
+  /**
+   * Counters only — no listener storm.
+   *
+   * The transfer path calls this once per frame, and notifying listeners at
+   * frame rate is what melted the desktop: every tick re-ran channel state
+   * handlers that log to disk, rewrite pairing.json and broadcast over IPC —
+   * thousands of encrypt+write cycles that starved the event loop until RPCs
+   * timed out. The phone read "connected", asked for a sync, and the answer
+   * never came back in time. State stays exact; listeners hear about it at
+   * most a few times a second.
+   */
+  private patchCounters(next: Partial<TunnelState>): void {
+    this.state = { ...this.state, ...next }
+    if (this.counterFlushTimer) return
+    this.counterFlushTimer = setTimeout(() => {
+      this.counterFlushTimer = null
+      this.notifyState()
+    }, COUNTER_NOTIFY_MS)
+  }
+
+  private notifyState(): void {
     const snapshot = this.getState()
     for (const listener of this.stateListeners) listener(snapshot)
   }
@@ -175,21 +242,64 @@ export class Tunnel {
   /** Connect and hand-shake, retrying until `stop()` when autoReconnect is on. */
   async start(mode: PairingMode = 'qr'): Promise<void> {
     this.stopped = false
-    await this.cycle(mode)
+    // cycle() outlives the first connection now — it loops sessions on one
+    // socket for as long as the link stays up — so awaiting it outright
+    // resolves only when the connection DIES. Every caller that awaits
+    // start() (pairing, the reconnect button) would hang precisely while
+    // everything worked, holding its busy flag forever. Resolve at the first
+    // settle instead: connected, the first scheduled retry, or stop(). That
+    // is the moment the old single-session cycle returned at, and the
+    // contract callers were written against.
+    const settled = new Promise<void>((resolve) => {
+      let done = false
+      const unsubscribe = this.onState((state) => {
+        if (done) return
+        if (
+          this.stopped ||
+          state.status === 'connected' ||
+          state.status === 'reconnecting' ||
+          state.status === 'error'
+        ) {
+          done = true
+          // Deferred: onState replays synchronously inside subscription, so
+          // unsubscribing here would mutate the listener set mid-iteration.
+          queueMicrotask(unsubscribe)
+          resolve()
+        }
+      })
+    })
+    void this.cycle(mode).catch(() => undefined)
+    await settled
   }
 
   private async cycle(mode: PairingMode): Promise<void> {
     if (this.stopped) return
     try {
       await this.openSocket()
-      await this.waitForPeer()
-      await this.performHandshake(mode)
-      this.attempt = 0
-      this.patch({ status: 'connected', connectedAt: Date.now(), lastError: null })
-      this.log('connected')
+      const socket = this.ws
+      // One socket, many sessions. A peer that leaves and returns brings a
+      // fresh handshake, so this loops back to listening for one rather than
+      // ending the cycle — which would vacate the rendezvous and hand both
+      // sides a window in which to miss each other. The guard is socket
+      // identity: once this socket is replaced or closed, the loop is over.
+      while (!this.stopped && this.ws === socket) {
+        await this.waitForPeer(this.options.peerWaitMs ?? 60_000)
+        if (this.stopped || this.ws !== socket) return
+        await this.performHandshake(mode)
+        this.attempt = 0
+        this.patch({ status: 'connected', connectedAt: Date.now(), lastError: null })
+        this.log('connected')
+        await this.waitForPeerGone()
+        if (this.stopped || this.ws !== socket) return
+        this.log('peer left — listening for its return')
+      }
+      return
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      this.patch({ status: this.options.autoReconnect ? 'reconnecting' : 'error', lastError: message })
+      this.patch({
+        status: this.options.autoReconnect ? 'reconnecting' : 'error',
+        lastError: message
+      })
       this.log(`cycle failed: ${message}`)
       this.teardownSocket()
       if (this.options.autoReconnect && !this.stopped) this.scheduleReconnect(mode)
@@ -219,12 +329,29 @@ export class Tunnel {
     this.ws = socket
 
     return new Promise((resolve, reject) => {
+      // A dial that neither opens nor errors is the ordinary shape of a
+      // captive portal, or of a network that vanished mid-connect. Without a
+      // deadline this promise never settles: the cycle never ends, no
+      // reconnect is ever scheduled, and the link is dead with nothing left
+      // running to revive it. Everything else here retries; this one hangs.
+      const timer = setTimeout(() => {
+        socket.removeEventListener('open', onOpen)
+        socket.removeEventListener('error', onError)
+        try {
+          socket.close()
+        } catch {
+          /* already gone */
+        }
+        reject(new TunnelError('the relay did not answer'))
+      }, CONNECT_TIMEOUT_MS)
       const onOpen = (): void => {
+        clearTimeout(timer)
         socket.removeEventListener('error', onError)
         this.attachSocket(socket)
         resolve()
       }
       const onError = (): void => {
+        clearTimeout(timer)
         socket.removeEventListener('open', onOpen)
         reject(new TunnelError('could not reach the relay'))
       }
@@ -234,34 +361,83 @@ export class Tunnel {
   }
 
   private attachSocket(socket: WebSocket): void {
-    socket.addEventListener('message', (event) => this.onMessage(event.data))
+    // Every handler below is scoped to THIS socket and checks that it is
+    // still the live one before touching shared state.
+    //
+    // Close events arrive asynchronously, so a socket torn down a moment ago
+    // can deliver its close *after* its replacement is connected. Unguarded,
+    // that stale handler forced the tunnel back to 'reconnecting' and queued
+    // a cycle that dropped the healthy socket — a loop with no fixed point,
+    // and the reason a phone could sit reconnecting forever with a desktop
+    // sitting right there waiting for it.
+    const isCurrent = (): boolean => this.ws === socket
+
+    // A previous interval must never outlive its socket: it shares
+    // lastInboundAt, so a leaked one can declare a healthy connection dead.
+    this.stopKeepalive()
+
+    socket.addEventListener('message', (event) => {
+      if (!isCurrent()) return
+      this.onMessage(event.data)
+    })
     socket.addEventListener('close', (event) => {
+      if (!isCurrent()) {
+        this.log(`stale socket closed (${(event as CloseEvent).code}) — ignored`)
+        return
+      }
       this.log(`socket closed (${(event as CloseEvent).code})`)
       this.abortInFlight(`code ${(event as CloseEvent).code}`)
       this.handshakeDone = false
       this.sendCipher = null
       this.receiveCipher = null
       this.stopKeepalive()
+      // Drop the reference first: it is what every guard reads, and what
+      // tells the session loop below that this socket is finished.
+      this.ws = null
+      // Unblock anything parked on this socket, or the loop waits forever on
+      // a peer that can no longer arrive.
+      this.releaseWaiters()
       if (!this.stopped) {
         this.patch({ status: 'reconnecting', peerPresent: false, session: null })
         if (this.options.autoReconnect) this.scheduleReconnect('qr')
       }
     })
+    this.lastInboundAt = Date.now()
     this.keepaliveTimer = setInterval(() => {
-      if (socket.readyState === 1) socket.send(KEEPALIVE_REQUEST)
+      if (!isCurrent()) return
+      if (socket.readyState !== 1) return
+      // A send-only keepalive proves nothing. Half-open sockets are the
+      // normal result of a phone changing network — the OS still reports
+      // OPEN while there is no longer anything on the other end, so frames
+      // leave into nowhere and the app sits "connected" forever. Anything
+      // inbound counts as proof of life; silence past a few intervals means
+      // the pipe is gone and only a fresh socket will fix it.
+      if (Date.now() - this.lastInboundAt > LIVENESS_TIMEOUT_MS) {
+        this.log('relay stopped answering — reconnecting')
+        this.patch({ status: 'reconnecting', peerPresent: false, session: null })
+        if (this.options.autoReconnect && !this.stopped) this.scheduleReconnect('qr')
+        this.teardownSocket()
+        return
+      }
+      socket.send(KEEPALIVE_REQUEST)
     }, KEEPALIVE_MS)
   }
 
-  private waitForPeer(timeoutMs = 60_000): Promise<void> {
+  private waitForPeer(timeoutMs: number | null = 60_000): Promise<void> {
     if (this.state.peerPresent) return Promise.resolve()
     this.patch({ status: 'waiting-for-peer' })
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.peerWaiter = null
-        reject(new TunnelError('the other device did not arrive'))
-      }, timeoutMs)
+      // null means park here: hold the socket and let the relay say when the
+      // peer arrives. Keepalive keeps the connection healthy meanwhile.
+      const timer =
+        timeoutMs === null
+          ? null
+          : setTimeout(() => {
+              this.peerWaiter = null
+              reject(new TunnelError('the other device did not arrive'))
+            }, timeoutMs)
       this.peerWaiter = () => {
-        clearTimeout(timer)
+        if (timer) clearTimeout(timer)
         this.peerWaiter = null
         resolve()
       }
@@ -269,9 +445,37 @@ export class Tunnel {
   }
 
   private peerWaiter: (() => void) | null = null
+  private peerGoneWaiter: (() => void) | null = null
+
+  /**
+   * Resolves when the peer leaves, so the session loop can go back to
+   * listening for its next handshake on the same socket.
+   */
+  private waitForPeerGone(): Promise<void> {
+    if (!this.state.peerPresent) return Promise.resolve()
+    return new Promise((resolve) => {
+      this.peerGoneWaiter = () => {
+        this.peerGoneWaiter = null
+        resolve()
+      }
+    })
+  }
+
+  /** Unblock both parks — used when the socket underneath them is gone. */
+  private releaseWaiters(): void {
+    const waiting = this.peerWaiter
+    const gone = this.peerGoneWaiter
+    this.peerWaiter = null
+    this.peerGoneWaiter = null
+    waiting?.()
+    gone?.()
+  }
 
   stop(): void {
     this.stopped = true
+    this.releaseWaiters()
+    if (this.counterFlushTimer) clearTimeout(this.counterFlushTimer)
+    this.counterFlushTimer = null
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
     this.reconnectTimer = null
     this.teardownSocket()
@@ -339,7 +543,12 @@ export class Tunnel {
       const third = this.expectHandshake()
       this.sendRecord(responder.writeMessage2(identity), RecordType.HANDSHAKE)
       const result = responder.readMessage3(await third)
-      this.adoptSession(result.send, result.receive, result.handshakeHash, result.remoteStaticPublicKey)
+      this.adoptSession(
+        result.send,
+        result.receive,
+        result.handshakeHash,
+        result.remoteStaticPublicKey
+      )
       return
     }
 
@@ -391,6 +600,9 @@ export class Tunnel {
   // ---------------------------------------------------------------- transport
 
   private onMessage(data: unknown): void {
+    // Every inbound byte, of any kind, is the liveness signal the watchdog
+    // reads — keepalive answers, relay notices and real frames alike.
+    this.lastInboundAt = Date.now()
     if (typeof data === 'string') {
       if (data === KEEPALIVE_RESPONSE) return
       if (data === PEER_PRESENT) {
@@ -398,17 +610,40 @@ export class Tunnel {
         this.log('peer present')
         this.peerWaiter?.()
       } else if (data === PEER_GONE) {
-        this.patch({ peerPresent: false })
+        // The session died with the peer. Saying 'connected' with nobody
+        // there is the lie that makes the peer's return look like a fault —
+        // it reads as a drop from connected back into handshaking, when it
+        // is simply the reconnect this side never admitted it was waiting
+        // for. Say waiting, and clear the keys the departed peer held: the
+        // returning device always brings a new session anyway.
+        const hadSession = this.handshakeDone
+        this.handshakeDone = false
+        this.sendCipher = null
+        this.receiveCipher = null
+        this.patch({
+          peerPresent: false,
+          session: null,
+          status: this.stopped ? this.state.status : 'waiting-for-peer'
+        })
         this.log('peer gone')
         // Our socket is fine, but anything in flight is going nowhere: the
         // relay drops frames with no peer to receive them.
         this.abortInFlight('peer gone')
+        // Re-arm in place. A handshake is only *listened for* from inside
+        // performHandshake, which returned when this session came up — so
+        // without this the peer's next handshake queues with nobody to
+        // answer it and the link never forms again. The session loop in
+        // cycle() goes back to listening, and it does so WITHOUT dropping
+        // the socket: leaving the rendezvous, even for the moment a
+        // reconnect takes, is exactly when the other device arrives and
+        // finds nobody home.
+        if (hadSession) this.peerGoneWaiter?.()
       }
       return
     }
 
     const record = new Uint8Array(data as ArrayBuffer)
-    this.patch({
+    this.patchCounters({
       framesReceived: this.state.framesReceived + 1,
       bytesReceived: this.state.bytesReceived + record.length
     })
@@ -433,10 +668,23 @@ export class Tunnel {
       // A handshake record on a live session means the peer restarted — which
       // is what a returning device sends, often before this side has finished
       // tearing the old session down. Drop the stale keys and take it.
+      //
+      // This is also the ONLY warning some reconnections give. The relay
+      // replaces a same-role socket without a peer-gone notice, so a phone
+      // that comes back on a fresh socket leaves this side's peerPresent
+      // untouched — no peer-gone, no close, just this record. Clearing the
+      // keys and stopping there was the bug behind "connected, but every
+      // request says not connected": the status still claimed connected, RPCs
+      // were rejected for want of a session, and the loop stayed parked
+      // waiting for a departure that had already happened without notice.
+      // Say what is true and wake the loop so it listens for the handshake
+      // queued just below.
       this.handshakeDone = false
       this.sendCipher = null
       this.receiveCipher = null
       this.log('peer restarted the session')
+      if (!this.stopped) this.patch({ status: 'handshaking', session: null })
+      this.peerGoneWaiter?.()
     }
     if (this.handshakeInbox) this.handshakeInbox(body)
     else this.handshakeQueue.push(body)
@@ -449,7 +697,7 @@ export class Tunnel {
     record[0] = kind
     record.set(payload, 1)
     socket.send(record)
-    this.patch({
+    this.patchCounters({
       framesSent: this.state.framesSent + 1,
       bytesSent: this.state.bytesSent + record.length
     })
@@ -525,7 +773,11 @@ export class Tunnel {
     this.eventHandlers.set(topic, handler)
   }
 
-  rpc<T = unknown>(method: RpcMethod | string, params: unknown = {}, timeoutMs = 30_000): Promise<T> {
+  rpc<T = unknown>(
+    method: RpcMethod | string,
+    params: unknown = {},
+    timeoutMs = 30_000
+  ): Promise<T> {
     if (!this.handshakeDone) return Promise.reject(new Disconnected('not connected'))
     const id = this.nextRpcId++
     const promise = new Promise<T>((resolve, reject) => {
@@ -555,6 +807,43 @@ export class Tunnel {
 
   get connected(): boolean {
     return this.handshakeDone && this.state.peerPresent
+  }
+
+  /**
+   * Is this tunnel still working on staying up?
+   *
+   * True while connected, while a retry is queued, and while a dial or
+   * handshake is in flight — including parked at the rendezvous waiting for
+   * the other device, which is the normal resting state, not a fault. False
+   * means nothing is going to happen without help, and the caller should
+   * build a new one rather than trust this object to recover.
+   */
+  get alive(): boolean {
+    if (this.stopped) return false
+    if (this.connected || this.reconnectTimer !== null) return true
+    return (
+      this.state.status === 'connecting' ||
+      this.state.status === 'handshaking' ||
+      this.state.status === 'waiting-for-peer'
+    )
+  }
+
+  /**
+   * Stop waiting out the backoff and try now. Returning to the app is new
+   * information — the user is here and the network usually just came back —
+   * and sitting through the remaining 30 seconds of a doubling delay is the
+   * difference between "instant" and "broken" to whoever is looking at it.
+   *
+   * Only acts on a queued retry, so it can never start a second cycle
+   * alongside one already running.
+   */
+  retryNow(): void {
+    if (this.stopped || this.reconnectTimer === null) return
+    clearTimeout(this.reconnectTimer)
+    this.reconnectTimer = null
+    this.attempt = 0
+    this.log('retrying now')
+    void this.cycle('qr')
   }
 }
 

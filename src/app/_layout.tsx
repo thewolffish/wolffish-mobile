@@ -3,9 +3,16 @@ if (__DEV__) {
   require('../ReactotronConfig')
 }
 
+// Must load before anything touches @noble: Hermes has no crypto.getRandomValues,
+// and X25519 key generation calls it the moment a pairing starts.
+import 'react-native-get-random-values'
+
 import '../global.css'
 import '@/lib/i18n'
 
+import { ChartSnapshotHost } from '@/components/chat/ChartSnapshotHost'
+import { ConnectingOverlay } from '@/components/pairing/ConnectingOverlay'
+import { SyncOverlay } from '@/components/pairing/SyncOverlay'
 import { UpdateNotice } from '@/components/updates/UpdateNotice'
 import { useOtaUpdates } from '@/lib/updates/useOtaUpdates'
 import { ToastProvider } from '@/providers/toast/ToastProvider'
@@ -23,6 +30,7 @@ import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect } from 'react'
+import { useConnection } from '@/lib/sync/useConnection'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -30,6 +38,8 @@ function AppShell(): React.JSX.Element {
   const { isDark } = useTheme()
   const tokens = useTokens()
   useOtaUpdates()
+  // Restores a stored pairing at launch and on every foreground.
+  useConnection()
 
   useEffect(() => {
     // Providers gate rendering until theme + locale are restored, so the
@@ -45,8 +55,30 @@ function AppShell(): React.JSX.Element {
           headerShown: false,
           contentStyle: { backgroundColor: tokens.bg }
         }}
-      />
+      >
+        {/* Launching a paired phone straight into chat is a restoration, not
+            a navigation: sliding in reads as the app going somewhere when it
+            is only showing where the user already was. Silenced for that one
+            arrival — the `boot` flag the entry screen's redirect carries —
+            so opening a conversation from History keeps its usual push. */}
+        <Stack.Screen
+          name="chat"
+          options={({ route }) => ({
+            animation:
+              (route.params as { boot?: string } | undefined)?.boot === '1' ? 'none' : 'default'
+          })}
+        />
+      </Stack>
       <UpdateNotice />
+      {/* Above every screen: without the tunnel a paired app can only show a
+          stale copy and refuse every action. */}
+      <ConnectingOverlay />
+      {/* Mutually exclusive with the above by construction: syncing needs a
+          connection, and the connecting overlay only shows without one. */}
+      <SyncOverlay />
+      {/* Invisible, and null until the first chart card asks for a snapshot —
+          the one ECharts runtime every inline chart in the app shares. */}
+      <ChartSnapshotHost />
     </>
   )
 }

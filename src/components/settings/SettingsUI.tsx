@@ -164,13 +164,27 @@ export function InfoRow({
   )
 }
 
-export function StatusDot({ connected }: { connected: boolean }): React.JSX.Element {
-  return (
-    <View
-      className={cn('h-2 w-2 rounded-full', connected ? 'bg-emerald-500' : 'bg-border')}
-      accessibilityElementsHidden
-    />
-  )
+/**
+ * Connection state as a colour. `tone` distinguishes the two ways of not
+ * being connected: working on it (amber) reads as progress, while the grey
+ * of `idle` reads as nothing happening — showing grey mid-handshake tells
+ * the user the link is dead when it is seconds from up.
+ */
+export function StatusDot({
+  connected,
+  tone
+}: {
+  connected?: boolean
+  tone?: 'ok' | 'busy' | 'error' | 'idle'
+}): React.JSX.Element {
+  const resolved = tone ?? (connected ? 'ok' : 'idle')
+  const color = {
+    ok: 'bg-emerald-500',
+    busy: 'bg-amber-500',
+    error: 'bg-rose-500',
+    idle: 'bg-border'
+  }[resolved]
+  return <View className={cn('h-2 w-2 rounded-full', color)} accessibilityElementsHidden />
 }
 
 export function NavRow({

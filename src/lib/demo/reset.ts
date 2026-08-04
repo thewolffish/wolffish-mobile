@@ -44,7 +44,16 @@ export async function purgeDemoState(): Promise<void> {
 
   try {
     const db = await getDb()
-    await db.execAsync('DELETE FROM messages; DELETE FROM conversations; DELETE FROM cached_files;')
+    // sync_meta lives outside the migration set (created lazily by sync.ts) —
+    // the CREATE guard keeps this batch valid on a database that has never
+    // synced. It must be wiped with the rows it describes: a purge that kept
+    // the cursor would make a later incremental sync silently skip everything
+    // before it, and a stale "last synced" would describe deleted rows.
+    await db.execAsync(
+      'DELETE FROM messages; DELETE FROM conversations; DELETE FROM cached_files; ' +
+        'CREATE TABLE IF NOT EXISTS sync_meta (key TEXT PRIMARY KEY, value TEXT); ' +
+        'DELETE FROM sync_meta;'
+    )
   } catch {
     // A locked or missing database still leaves the rest worth clearing.
   }

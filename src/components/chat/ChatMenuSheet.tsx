@@ -1,6 +1,6 @@
 import { Modal } from '@/components/core/Modal'
 import { Select, type SelectOption } from '@/components/core/Select'
-import { invalidateConversation, invalidateConversationList } from '@/lib/conversations/hooks'
+import { invalidateConversation, invalidateConversationList } from '@/lib/conversations/cache'
 import { setConversationProject } from '@/lib/conversations/repo'
 import type { ConversationFile } from '@/lib/conversations/types'
 import { useChatRuntime } from '@/state/chatRuntime'

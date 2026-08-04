@@ -16,7 +16,17 @@ import { useChatRuntime } from '@/state/chatRuntime'
 import { useConfigValue } from '@/state/demoConfig'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import {
+  abortTurn,
+  isTurnRunning,
+  onStreamingText,
+  onTurnState,
+  sendPrompt,
+  streamingTextFor
+} from '@/lib/sync/prompt'
+import { uploadFileToDesktop } from '@/lib/sync/files'
+import { useAppStore } from '@/state/appStore'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   I18nManager,
@@ -53,7 +63,29 @@ export default function ChatScreen(): React.JSX.Element {
   const params = useLocalSearchParams<{ id?: string }>()
   const listRef = useRef<ScrollView>(null)
   const [conversationId, setConversationId] = useState<string | null>(params.id ?? null)
-  const { data: conversation } = useConversation(conversationId)
+  const paired = useAppStore((state) => state.paired)
+  // Assistant text arriving from the desktop before the message is final, so
+  // the feed shows it being written rather than appearing all at once.
+  const [remoteStream, setRemoteStream] = useState<string>('')
+  // Whether the desktop is running a turn for this conversation right now —
+  // what puts the composer in its stop state before the first token arrives.
+  const [remoteRunning, setRemoteRunning] = useState(false)
+  useEffect(() => {
+    if (!paired || !conversationId) return
+    setRemoteStream(streamingTextFor(conversationId) ?? '')
+    setRemoteRunning(isTurnRunning(conversationId))
+    const offText = onStreamingText((id, text) => {
+      if (id === conversationId) setRemoteStream(text)
+    })
+    const offTurn = onTurnState((id, running) => {
+      if (id === conversationId) setRemoteRunning(running)
+    })
+    return () => {
+      offText()
+      offTurn()
+    }
+  }, [paired, conversationId])
+  const { data: conversation, isFetching: conversationFetching } = useConversation(conversationId)
   const stream = useChatRuntime((state) =>
     conversationId ? state.streams[conversationId] : undefined
   )
@@ -61,7 +93,7 @@ export default function ChatScreen(): React.JSX.Element {
   // display preference of the workspace, not of the device rendering it.
   const verbose = useConfigValue('inappVerbose')
 
-  const streaming = stream !== undefined
+  const streaming = stream !== undefined || (paired && (remoteRunning || remoteStream.length > 0))
 
   const feed = useMemo<FeedItem[]>(() => {
     const items: FeedItem[] = []
@@ -75,50 +107,109 @@ export default function ChatScreen(): React.JSX.Element {
         streaming: stream.status === 'streaming'
       })
     }
+    // Paired mode has no local turn runner — the desktop is writing, and its
+    // text arrives as deltas. Render them as the same kind of live row the
+    // demo agent produces so the feed has one streaming shape, not two.
+    if (paired && remoteStream) {
+      items.push({
+        key: 'remote-live',
+        message: {
+          id: 'remote-live',
+          role: 'assistant',
+          content: remoteStream,
+          timestamp: Date.now()
+        } as ConversationMessage,
+        streaming: true
+      })
+    }
     return items
-  }, [conversation, stream])
+  }, [conversation, stream, paired, remoteStream])
 
   const handleSubmit = useCallback(
     (payload: ComposerSubmit): void => {
       void (async () => {
         if (payload.kind === 'text') {
-          const id = await sendDemoPrompt({ conversationId, text: payload.text })
+          // Paired: the desktop runs the turn and streams it back. Demo: the
+          // on-device stand-in answers. Same call site, same result shape.
+          const id = paired
+            ? (await sendPrompt({ conversationId, text: payload.text })).conversationId
+            : await sendDemoPrompt({ conversationId, text: payload.text })
           setConversationId(id)
           return
         }
-        // Voice note: file the recording under the conversation's uploads dir,
-        // then send it as an audio attachment with the voice flag — the same
-        // shape the desktop persists for voice prompts.
-        let id = conversationId
-        if (!id) id = await ensureDemoConversation(t('chat.voice.record'))
+        // Voice note. Paired, the desktop owns the workspace: upload the
+        // bytes first — the desktop names the file and, for a first message,
+        // creates the conversation — keep a local copy under that same path
+        // so playback never re-downloads, then send the message referencing
+        // it. The desktop transcribes and runs the turn from there.
         const timestamp = Date.now()
         const name = `voice-${timestamp}.m4a`
+        if (paired) {
+          let uploaded: Awaited<ReturnType<typeof uploadFileToDesktop>> = null
+          try {
+            uploaded = await uploadFileToDesktop(payload.uri, name, 'audio/mp4', conversationId)
+          } catch {
+            uploaded = null // a broken transfer keeps the recording local, like offline
+          }
+          if (uploaded) {
+            await importLocalFile(
+              payload.uri,
+              uploaded.attachment.filePath,
+              uploaded.conversationId
+            )
+            const result = await sendPrompt({
+              conversationId: uploaded.conversationId,
+              text: '',
+              attachments: [{ ...uploaded.attachment, durationSeconds: payload.durationSeconds }],
+              voicePrompt: true
+            })
+            setConversationId(result.conversationId)
+            return
+          }
+        }
+        // Demo — or a paired phone that cannot reach its desktop right now:
+        // file the recording locally under the conversation's uploads dir and
+        // send the same attachment shape. Offline the reply says why nothing
+        // answers, and the local conversation is pruned when the real list
+        // resyncs.
+        let id = conversationId
+        if (!id) id = await ensureDemoConversation(t('chat.voice.record'))
         const relPath = `uploads/conv-${id}/${name}`
         await importLocalFile(payload.uri, relPath, id)
-        await sendDemoPrompt({
-          conversationId: id,
-          text: '',
-          attachments: [
-            {
-              type: 'audio',
-              filePath: relPath,
-              originalName: name,
-              mimeType: 'audio/mp4',
-              sizeBytes: 0,
-              durationSeconds: payload.durationSeconds
-            }
-          ],
-          voicePrompt: true
-        })
+        const attachments = [
+          {
+            type: 'audio' as const,
+            filePath: relPath,
+            originalName: name,
+            mimeType: 'audio/mp4',
+            sizeBytes: 0,
+            durationSeconds: payload.durationSeconds
+          }
+        ]
+        if (paired) {
+          const result = await sendPrompt({
+            conversationId: id,
+            text: '',
+            attachments,
+            voicePrompt: true
+          })
+          setConversationId(result.conversationId)
+          return
+        }
+        await sendDemoPrompt({ conversationId: id, text: '', attachments, voicePrompt: true })
         setConversationId(id)
       })()
     },
-    [conversationId, t]
+    [conversationId, paired, t]
   )
 
   const handleStop = useCallback((): void => {
-    if (conversationId) stopDemoTurn(conversationId)
-  }, [conversationId])
+    if (!conversationId) return
+    // Paired, the turn runs on the desktop — stopping is an RPC, not a local
+    // timer. Demo turns stay the demo agent's to cancel.
+    if (paired) void abortTurn(conversationId)
+    else stopDemoTurn(conversationId)
+  }, [conversationId, paired])
 
   const BackIcon = I18nManager.isRTL ? ArrowRight01Icon : ArrowLeft01Icon
   const title =
@@ -128,21 +219,35 @@ export default function ChatScreen(): React.JSX.Element {
   // Reading the conversation out of SQLite is async, so an opened conversation
   // has no messages for a frame or two. Show placeholders rather than letting
   // it fall through to the new-chat hero and snap to the feed.
-  const loading = empty && conversationId !== null && conversation === undefined
+  //
+  // `isFetching` covers the second case: a paired conversation opened before
+  // its body has been downloaded is present but empty, and the download that
+  // fills it is a *refetch* — the data is no longer undefined, so the first
+  // test alone would show an empty transcript while the messages are on their
+  // way. Only when there is nothing to show yet: a conversation that is
+  // genuinely empty stays empty while a background refresh runs.
+  const loading =
+    empty && conversationId !== null && (conversation === undefined || conversationFetching)
 
   return (
     <View className="bg-bg flex-1" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <View className="border-border-soft flex-row items-center gap-1 border-b px-2 pb-2">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('common.back')}
-          hitSlop={8}
-          onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-lg active:bg-border/40"
-        >
-          <BackIcon size={20} className="text-fg" />
-        </Pressable>
+        {/* Paired, there is nowhere to go back to: the entry screen is behind
+            a replace, and the only thing it offers is a way to drop this very
+            connection. Absent rather than disabled — a dead control invites
+            the tap that a missing one never gets. */}
+        {!paired && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+            hitSlop={8}
+            onPress={() => router.back()}
+            className="h-9 w-9 items-center justify-center rounded-lg active:bg-border/40"
+          >
+            <BackIcon size={20} className="text-fg" />
+          </Pressable>
+        )}
         <Text numberOfLines={1} className="text-fg font-sans-semibold flex-1 text-left text-base">
           {title}
         </Text>

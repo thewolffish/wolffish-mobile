@@ -1,3 +1,4 @@
+import { useFreshConfig } from '@/lib/sync/useFreshConfig'
 import { Button } from '@/components/core/Button'
 import { Input } from '@/components/core/Input'
 import { Select } from '@/components/core/Select'
@@ -185,6 +186,8 @@ const LocalSection = memo(function LocalSection(): React.JSX.Element {
 })
 
 export default function ModelScreen(): React.JSX.Element {
+  // Desktop-owned values: pull the current ones when this screen opens.
+  useFreshConfig()
   const { t } = useTranslation()
   const providers = useDemoConfig((state) => state.providers)
 

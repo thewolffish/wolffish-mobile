@@ -1,6 +1,7 @@
 import { classifyFile, isPlayable, type DeclaredFileKind } from '@/lib/files/fileKinds'
 import { useMemo } from 'react'
 import { Platform } from 'react-native'
+import { ChartFileCard } from './ChartCard'
 import type { Align } from './FileChrome'
 import {
   GenericFileCard,
@@ -99,6 +100,8 @@ export function FileBlock({
       )
     case 'pdf':
       return <PdfFileCard {...shared} />
+    case 'chart':
+      return <ChartFileCard {...shared} />
     case 'html':
       return <HtmlFileCard {...shared} />
     case 'sheet':

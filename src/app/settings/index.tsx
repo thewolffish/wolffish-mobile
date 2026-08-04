@@ -8,12 +8,14 @@ import {
   DnaIcon,
   Key01Icon,
   McpServerIcon,
+  Globe02Icon,
   NeuralNetworkIcon,
   PaintBoardIcon,
   PuzzleIcon
 } from '@/components/core/icons'
 import { NavRow, PanelScreen } from '@/components/settings/SettingsUI'
 import { useConfigValue } from '@/state/demoConfig'
+import { useAppStore } from '@/state/appStore'
 import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { View } from 'react-native'
@@ -25,6 +27,9 @@ import { View } from 'react-native'
 export default function SettingsScreen(): React.JSX.Element {
   const { t } = useTranslation()
   const brainModel = useConfigValue('brainModel')
+  // The one screen with no demo equivalent: in demo mode there is no tunnel
+  // to describe, so the row is absent rather than showing an empty state.
+  const paired = useAppStore((state) => state.paired)
 
   const rows: Array<{
     key: string
@@ -32,6 +37,17 @@ export default function SettingsScreen(): React.JSX.Element {
     icon: React.JSX.Element
     description?: string
   }> = [
+    ...(paired
+      ? [
+          {
+            key: 'relay',
+            href: '/settings/relay',
+            // The globe the pairing sheet uses for the relay row — and no
+            // longer the brain, which belongs to Model two rows down.
+            icon: <Globe02Icon size={18} className="text-muted" />
+          }
+        ]
+      : []),
     {
       key: 'model',
       href: '/settings/model',

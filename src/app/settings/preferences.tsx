@@ -1,16 +1,21 @@
-import { ConfigStatusRow } from '@/components/settings/ConfigRows'
+import { useFreshConfig } from '@/lib/sync/useFreshConfig'
+import { ConfigStatusRow, ConfigSwitchRow } from '@/components/settings/ConfigRows'
 import { InfoRow, PanelScreen, Section } from '@/components/settings/SettingsUI'
 import { useConfigValue } from '@/state/demoConfig'
 import { useTranslation } from 'react-i18next'
 
 /**
- * Preferences — the desktop WolffishPanel, mirrored read-only. Launch at
- * startup, the local-model RAM guard, the agent safety switches, and week
- * start all drive behavior on the desktop machine (its login items, its RAM,
- * its approval prompts), so this device reports what the desktop has
- * configured and never pretends to flip it.
+ * Preferences — the desktop WolffishPanel, mirrored. The RAM guard and the
+ * two agent safety switches are editable here: setConfigValue routes them
+ * through the outbox to the desktop, which persists them exactly as its own
+ * panel would and announces the change back. Launch at startup stays
+ * display-only — it registers a login item with that machine's OS, an act
+ * only the desktop can perform on itself — and week start is likewise the
+ * desktop's own display choice, reported here.
  */
 export default function PreferencesScreen(): React.JSX.Element {
+  // Desktop-owned values: pull the current ones when this screen opens.
+  useFreshConfig()
   const { t } = useTranslation()
   const weekStartsOn = useConfigValue('weekStartsOn')
 
@@ -25,7 +30,7 @@ export default function PreferencesScreen(): React.JSX.Element {
           label={t('settings.preferences.launchAtStartup')}
           description={t('settings.preferences.launchAtStartupDescription')}
         />
-        <ConfigStatusRow
+        <ConfigSwitchRow
           field="restrictPowerfulModels"
           label={t('settings.preferences.restrictPowerfulModels')}
           description={t('settings.preferences.restrictPowerfulModelsDescription')}
@@ -36,12 +41,12 @@ export default function PreferencesScreen(): React.JSX.Element {
         />
       </Section>
       <Section title={t('settings.preferences.safetyTitle')}>
-        <ConfigStatusRow
+        <ConfigSwitchRow
           field="bypassPermissions"
           label={t('settings.preferences.bypassPermissions')}
           description={t('settings.preferences.bypassPermissionsDescription')}
         />
-        <ConfigStatusRow
+        <ConfigSwitchRow
           field="blockCredentials"
           label={t('settings.preferences.blockCredentials')}
           description={t('settings.preferences.blockCredentialsDescription')}

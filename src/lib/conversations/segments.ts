@@ -43,7 +43,7 @@ export type ToolResultInfo = {
   error?: string
 }
 
-export type DeliveredFileKind = 'image' | 'document' | 'audio' | 'video' | 'file'
+export type DeliveredFileKind = 'image' | 'document' | 'audio' | 'video' | 'file' | 'chart'
 
 export type RenderBlock =
   | { type: 'text'; key: string; markdown: string }
@@ -83,7 +83,8 @@ export function toWorkspaceRelative(path: string): string {
 }
 
 /** `[wolffish-output: <path> (<kind>)]` — delivered-file markers, output only. */
-const OUTPUT_MARKER_RE = /\[wolffish-output:\s*([^\]]+?)\s*\((image|document|audio|video|file)\)\]/g
+const OUTPUT_MARKER_RE =
+  /\[wolffish-output:\s*([^\]]+?)\s*\((image|document|audio|video|file|chart)\)\]/g
 
 /** `[wolffish-path: <path> (folder|file)]` — show_path markers. */
 const PATH_MARKER_RE = /\[wolffish-path:\s*([^\]]+?)\s*\((folder|file)\)\]/g
@@ -330,6 +331,26 @@ export function coalesceTextSegments(segments: Segment[]): Segment[] {
     }
   }
   return out
+}
+
+/**
+ * Every workspace path a message renders: its attachments, plus the delivered
+ * file and media blocks its segments produce. This is what the sync layer
+ * prefetches after a conversation body lands — collected through the same
+ * buildRenderBlocks the feed uses, so prefetch and display can never disagree
+ * about what counts as a file.
+ */
+export function messageFilePaths(message: ConversationMessage): string[] {
+  const paths = new Set<string>()
+  for (const attachment of message.attachments ?? []) {
+    if (attachment?.filePath) paths.add(toWorkspaceRelative(attachment.filePath))
+  }
+  if (message.role === 'assistant') {
+    for (const block of buildRenderBlocks(message)) {
+      if (block.type === 'file' || block.type === 'media') paths.add(block.relPath)
+    }
+  }
+  return [...paths]
 }
 
 /** Concatenated assistant prose — the "copy message" payload. */

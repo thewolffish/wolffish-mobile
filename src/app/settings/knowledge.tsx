@@ -1,30 +1,58 @@
-import { Activity04Icon } from '@/components/core/icons'
+import { Button } from '@/components/core/Button'
+import { Activity04Icon, BubbleChatIcon, ComputerIcon, PlayIcon } from '@/components/core/icons'
 import { Select, type SelectOption } from '@/components/core/Select'
-import { PanelScreen, Section } from '@/components/settings/SettingsUI'
+import { PanelScreen, Section, SwitchRow } from '@/components/settings/SettingsUI'
+import { pushReflectionConfig, runReflectionJob } from '@/lib/sync/reflection'
+import { useFreshConfig } from '@/lib/sync/useFreshConfig'
 import { formatTokens } from '@/lib/utils/formatTokens'
+import { useToast } from '@/providers/toast/useToast'
 import {
   setConfigValue,
   useCompactionRuns,
   useConfigValue,
-  type CompactionRunRecord
+  useDesktopInfo,
+  useSettingsReadOnly,
+  type CompactionRunRecord,
+  type DemoConfigValues
 } from '@/state/demoConfig'
-import { useMemo } from 'react'
+import { useAppStore } from '@/state/appStore'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScrollView, Text, View } from 'react-native'
 
 /**
- * Knowledge — the desktop CompactionPanel: when the daily compaction and
- * weekly consolidation run, then what the last of each actually did. Schedule
- * rows are editable and local in demo mode; the last-run cards are read-only
- * records the desktop's brainstem wrote, carried in the config snapshot.
+ * Knowledge — the desktop's two Knowledge panels on one column. Compaction
+ * (the desktop CompactionPanel): when the daily compaction and weekly
+ * consolidation run. Reflection (the desktop ReflectionPanel): the nightly
+ * self-review's hour and quiet gate, the per-surface 0-10 turn scoring, and
+ * the monthly deep reflection. Schedule and scoring controls write through to
+ * the paired desktop (lib/sync/reflection) and stay local in demo mode; the
+ * last-run cards are read-only records the desktop's brainstem wrote, carried
+ * in the config snapshot.
  */
 export default function KnowledgeScreen(): React.JSX.Element {
+  // Desktop-owned values: pull the current ones when this screen opens.
+  useFreshConfig()
   const { t, i18n } = useTranslation()
   const locale = i18n.language || 'en'
+  const toast = useToast()
+  const paired = useAppStore((state) => state.paired)
+  const readOnly = useSettingsReadOnly()
   const dailyHour = useConfigValue('compactionDailyHour')
   const weeklyDay = useConfigValue('compactionWeeklyDay')
   const weeklyHour = useConfigValue('compactionWeeklyHour')
+  const reflectionHour = useConfigValue('reflectionHour')
+  const reflectionQuietHours = useConfigValue('reflectionQuietHours')
   const runs = useCompactionRuns()
+  const desktop = useDesktopInfo()
+
+  const [running, setRunning] = useState<'reflection' | 'deepClean' | null>(null)
+  // Tick every 60s so the clock card and the "next run" chip stay fresh.
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [])
 
   const hourOptions = useMemo<readonly SelectOption<string>[]>(
     () =>
@@ -40,6 +68,41 @@ export default function KnowledgeScreen(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [t]
   )
+  const quietOptions = useMemo<readonly SelectOption<string>[]>(
+    () =>
+      QUIET_HOUR_CHOICES.map((hours) => ({
+        value: `${hours}`,
+        label: t('settings.knowledge.reflection.quietHoursOption', { count: hours })
+      })),
+    [t]
+  )
+
+  const runNow = async (kind: 'reflection' | 'deepClean'): Promise<void> => {
+    if (running) return
+    setRunning(kind)
+    try {
+      if (!paired) {
+        // Demo mode has no brainstem to enqueue on — the tap acknowledges,
+        // and the bundled last-run cards below are the show.
+        toast.show({ tone: 'success', message: t('settings.knowledge.reflection.runStarted') })
+        return
+      }
+      const result = await runReflectionJob(kind)
+      if (result === null) {
+        toast.show({ tone: 'error', message: t('settings.knowledge.reflection.runError') })
+      } else if (result === 'coalesced') {
+        toast.show({ tone: 'info', message: t('settings.knowledge.reflection.runAlready') })
+      } else {
+        toast.show({ tone: 'success', message: t('settings.knowledge.reflection.runStarted') })
+      }
+    } finally {
+      setRunning(null)
+    }
+  }
+
+  const nextRunLabel = t('settings.knowledge.reflection.nextRun', {
+    time: formatFromNow(minutesUntilHour(reflectionHour, desktop.timezone, now), locale)
+  })
 
   return (
     <PanelScreen title={t('settings.tabs.knowledge')} subtitle={t('settings.knowledge.subtitle')}>
@@ -66,9 +129,195 @@ export default function KnowledgeScreen(): React.JSX.Element {
         />
       </Section>
       {/* Absent entirely until a job has actually run — same as the desktop. */}
-      {runs.daily ? <LastRunCard kind="daily" record={runs.daily} locale={locale} /> : null}
-      {runs.weekly ? <LastRunCard kind="weekly" record={runs.weekly} locale={locale} /> : null}
+      {runs.daily ? (
+        <LastRunCard
+          title={t('settings.knowledge.lastRun.dailyTitle')}
+          record={runs.daily}
+          locale={locale}
+        />
+      ) : null}
+      {runs.weekly ? (
+        <LastRunCard
+          title={t('settings.knowledge.lastRun.weeklyTitle')}
+          record={runs.weekly}
+          locale={locale}
+        />
+      ) : null}
+
+      {/* ── Reflection — the desktop ReflectionPanel ──────────────────── */}
+      <View className="mt-2 flex-col gap-1">
+        <Text className="text-fg font-sans-semibold text-left text-base">
+          {t('settings.knowledge.reflection.title')}
+        </Text>
+        <Text className="text-muted text-left font-sans text-sm leading-relaxed">
+          {t('settings.knowledge.reflection.subtitle')}
+        </Text>
+      </View>
+
+      {/* The desktop's clock: schedules below fire in ITS timezone. Absent
+          until a snapshot carries the zone — never a guessed clock. */}
+      {desktop.timezone ? (
+        <Section className="gap-3">
+          <View className="flex-row items-center justify-between gap-3">
+            <Text className="text-fg font-sans-medium text-left text-sm">
+              {formatDesktopTime(now, locale, desktop.timezone)}
+            </Text>
+            <Chip>{desktop.timezone}</Chip>
+          </View>
+        </Section>
+      ) : null}
+
+      <Section title={t('settings.knowledge.reflection.nightly.label')}>
+        <Text className="text-muted text-left font-sans text-xs leading-5">
+          {t('settings.knowledge.reflection.nightly.description')}
+        </Text>
+        <Select<string>
+          label={t('settings.knowledge.reflection.hour')}
+          value={`${reflectionHour}`}
+          options={hourOptions}
+          disabled={readOnly}
+          onChange={(value) => {
+            setConfigValue('reflectionHour', Number(value))
+            pushReflectionConfig({ hour: Number(value) })
+          }}
+        />
+        <View className="flex-row items-center justify-between gap-3">
+          <Chip>{nextRunLabel}</Chip>
+          <RunNowButton
+            label={t('settings.knowledge.reflection.runNow')}
+            busy={running === 'reflection'}
+            disabled={readOnly || running !== null}
+            onPress={() => void runNow('reflection')}
+          />
+        </View>
+      </Section>
+
+      <Section title={t('settings.knowledge.reflection.quiet.label')}>
+        <Text className="text-muted text-left font-sans text-xs leading-5">
+          {t('settings.knowledge.reflection.quiet.description')}
+        </Text>
+        <Select<string>
+          value={`${reflectionQuietHours}`}
+          options={quietOptions}
+          disabled={readOnly}
+          onChange={(value) => {
+            setConfigValue('reflectionQuietHours', Number(value))
+            pushReflectionConfig({ quietHours: Number(value) })
+          }}
+        />
+      </Section>
+
+      <Section title={t('settings.knowledge.reflection.scoring.title')}>
+        <Text className="text-muted text-left font-sans text-xs leading-5">
+          {t('settings.knowledge.reflection.scoring.subtitle')}
+        </Text>
+        <ScoringRow
+          surface="inapp"
+          field="reflectionScoringInapp"
+          icon={<ComputerIcon size={16} className="text-muted" />}
+          disabled={readOnly}
+        />
+        <ScoringRow
+          surface="telegram"
+          field="reflectionScoringTelegram"
+          icon={<BubbleChatIcon size={16} className="text-muted" />}
+          disabled={readOnly}
+        />
+        <ScoringRow
+          surface="whatsapp"
+          field="reflectionScoringWhatsapp"
+          icon={<BubbleChatIcon size={16} className="text-muted" />}
+          disabled={readOnly}
+        />
+      </Section>
+
+      <Section title={t('settings.knowledge.reflection.deepClean.label')}>
+        <Text className="text-muted text-left font-sans text-xs leading-5">
+          {t('settings.knowledge.reflection.deepClean.description')}
+        </Text>
+        <RunNowButton
+          label={t('settings.knowledge.reflection.runNow')}
+          busy={running === 'deepClean'}
+          disabled={readOnly || running !== null}
+          onPress={() => void runNow('deepClean')}
+        />
+      </Section>
+
+      {runs.reflection ? (
+        <LastRunCard
+          title={t('settings.knowledge.lastRun.reflectionTitle')}
+          record={runs.reflection}
+          locale={locale}
+        />
+      ) : null}
+      {runs.deepClean ? (
+        <LastRunCard
+          title={t('settings.knowledge.lastRun.deepCleanTitle')}
+          record={runs.deepClean}
+          locale={locale}
+        />
+      ) : null}
     </PanelScreen>
+  )
+}
+
+// ── Reflection controls ──────────────────────────────────────────────
+
+/** Desktop QUIET_HOUR_CHOICES, verbatim. */
+const QUIET_HOUR_CHOICES = [1, 2, 3, 6, 12, 24, 48]
+
+type ScoringSurface = 'inapp' | 'telegram' | 'whatsapp'
+
+/**
+ * One turn-scoring toggle. Its own component so each row keeps the store's
+ * single-field subscription contract — flipping WhatsApp re-renders this row,
+ * not the panel. The local set moves the switch under the finger; the
+ * write-through replaces it with whatever the desktop actually persisted.
+ */
+function ScoringRow({
+  surface,
+  field,
+  icon,
+  disabled
+}: {
+  surface: ScoringSurface
+  field: keyof DemoConfigValues & `reflectionScoring${string}`
+  icon: React.ReactNode
+  disabled: boolean
+}): React.JSX.Element {
+  const { t } = useTranslation()
+  const value = useConfigValue(field) as boolean
+  return (
+    <SwitchRow
+      label={t(`settings.knowledge.reflection.scoring.${surface}`)}
+      description={t(`settings.knowledge.reflection.scoring.${surface}Hint`)}
+      icon={icon}
+      value={value}
+      disabled={disabled}
+      onValueChange={(next) => {
+        setConfigValue(field, next)
+        pushReflectionConfig({ scoring: { [surface]: next } })
+      }}
+    />
+  )
+}
+
+function RunNowButton({
+  label,
+  busy,
+  disabled,
+  onPress
+}: {
+  label: string
+  busy: boolean
+  disabled: boolean
+  onPress: () => void
+}): React.JSX.Element {
+  return (
+    <Button variant="outline" size="sm" disabled={disabled} onPress={onPress}>
+      <PlayIcon size={12} className="text-fg" />
+      {busy ? '…' : label}
+    </Button>
   )
 }
 
@@ -96,11 +345,11 @@ function Chip({ children }: { children: string }): React.JSX.Element {
 }
 
 function LastRunCard({
-  kind,
+  title,
   record,
   locale
 }: {
-  kind: 'daily' | 'weekly'
+  title: string
   record: CompactionRunRecord
   locale: string
 }): React.JSX.Element {
@@ -114,7 +363,7 @@ function LastRunCard({
             numberOfLines={1}
             className="text-fg font-sans-medium flex-shrink text-left text-sm"
           >
-            {t(`settings.knowledge.lastRun.${kind}Title`)}
+            {title}
           </Text>
         </View>
         <Chip>
@@ -191,4 +440,71 @@ function formatDuration(ms: number, locale: string): string {
     // Falls through to the plain form below.
   }
   return `${value.toFixed(digits)}${asMinutes ? 'm' : 's'}`
+}
+
+/**
+ * The desktop's wall clock, from this phone's clock plus the desktop's IANA
+ * zone — the same instant, that machine's local time. Hermes ships full ICU
+ * on iOS, but an unknown zone string must cost the zone, not the card.
+ */
+function formatDesktopTime(now: number, locale: string, timezone: string): string {
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: timezone
+    }).format(now)
+  } catch {
+    try {
+      return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(now)
+    } catch {
+      return new Date(now).toISOString().slice(11, 16)
+    }
+  }
+}
+
+/**
+ * Minutes until the next daily firing of `hour` — computed in the desktop's
+ * zone when known (the schedule is that machine's), phone-local otherwise.
+ * Exactly at the hour counts as tomorrow, matching the desktop's nextDailyMs.
+ */
+function minutesUntilHour(hour: number, timezone: string | null, nowMs: number): number {
+  let nowHour: number
+  let nowMinute: number
+  try {
+    if (!timezone) throw new Error('no zone')
+    const parts = new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+      timeZone: timezone
+    }).formatToParts(nowMs)
+    nowHour = Number(parts.find((part) => part.type === 'hour')?.value)
+    nowMinute = Number(parts.find((part) => part.type === 'minute')?.value)
+    if (!Number.isFinite(nowHour) || !Number.isFinite(nowMinute)) throw new Error('bad parts')
+  } catch {
+    const d = new Date(nowMs)
+    nowHour = d.getHours()
+    nowMinute = d.getMinutes()
+  }
+  // Intl renders midnight as "24" under hour12:false in some engines.
+  nowHour = nowHour % 24
+  const remaining = (hour * 60 - (nowHour * 60 + nowMinute) + 1440) % 1440
+  return remaining === 0 ? 1440 : remaining
+}
+
+/** The desktop's formatFromNow: relative-time wording, plain fallback. */
+function formatFromNow(totalMinutes: number, locale: string): string {
+  const hours = Math.floor(totalMinutes / 60)
+  const days = Math.floor(hours / 24)
+  try {
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+    if (days > 0) return rtf.format(days, 'day')
+    if (hours > 0) return rtf.format(hours, 'hour')
+    return rtf.format(totalMinutes, 'minute')
+  } catch {
+    if (days > 0) return `in ${days}d`
+    if (hours > 0) return `in ${hours}h`
+    return `in ${totalMinutes}m`
+  }
 }

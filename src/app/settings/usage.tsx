@@ -1,3 +1,4 @@
+import { useFreshConfig } from '@/lib/sync/useFreshConfig'
 import {
   BubbleChatIcon,
   CalendarCheckOut02Icon,
@@ -73,6 +74,8 @@ function formatDay(date: string, locale: string): string {
 }
 
 export default function UsageScreen(): React.JSX.Element {
+  // Desktop-owned values: pull the current ones when this screen opens.
+  useFreshConfig()
   const { t, i18n } = useTranslation()
   const locale = i18n.language || 'en'
   const days = useUsageDays()

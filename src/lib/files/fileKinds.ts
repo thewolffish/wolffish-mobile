@@ -25,11 +25,21 @@
  */
 
 export type FileViewerKind =
-  'image' | 'video' | 'audio' | 'pdf' | 'markdown' | 'text' | 'code' | 'html' | 'sheet' | 'file'
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'pdf'
+  | 'markdown'
+  | 'text'
+  | 'code'
+  | 'html'
+  | 'sheet'
+  | 'chart'
+  | 'file'
 
 /** What the sender said it is: attachment.type, or the output marker's kind. */
 export type DeclaredFileKind =
-  'image' | 'audio' | 'video' | 'pdf' | 'document' | 'file' | 'other' | undefined
+  'image' | 'audio' | 'video' | 'pdf' | 'document' | 'file' | 'chart' | 'other' | undefined
 
 const IMAGE_EXTS = new Set([
   'png',
@@ -209,6 +219,14 @@ export function classifyFile(pathOrName: string, declared?: DeclaredFileKind): F
   const ext = fileExt(name)
   const mimeType = mimeTypeFor(name)
   const base = { ext, name, mimeType }
+
+  // `.chart.json` is its own type — an agent-authored chart spec rendered by
+  // the interactive chart card, exactly the desktop's dispatch (its marker
+  // kind is `chart`, and its bucket keys off the same double extension). The
+  // check needs the full name: by single extension it is just a .json.
+  if (name.toLowerCase().endsWith('.chart.json')) {
+    return { ...base, kind: 'chart', language: 'json' }
+  }
 
   // .webm (and .ogg containers) are audio or video depending on what was
   // encoded — only the sender knows. Voice replies declare 'audio'.

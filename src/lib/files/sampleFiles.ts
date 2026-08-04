@@ -1,4 +1,4 @@
-import { fileExt } from './fileKinds'
+import { fileExt, fileName } from './fileKinds'
 import published from './publishedSamples.json'
 
 /**
@@ -41,6 +41,14 @@ const SAMPLE_ALIASES: Record<string, string> = published.aliases
 
 /** The published sample extension serving this path, or null when there is none. */
 export function sampleExtFor(pathOrName: string): string | null {
+  // `.chart.json` is its own file type (an agent-authored chart spec) even
+  // though its single extension says .json — serving the generic JSON sample
+  // would put type-mismatched bytes behind a chart card. Until a
+  // `wolffish-sample.chart.json` is published (and listed in the manifest),
+  // these resolve to the per-type unavailable state, like .zip.
+  if (fileName(pathOrName).toLowerCase().endsWith('.chart.json')) {
+    return SAMPLE_EXTS.has('chart.json') ? 'chart.json' : null
+  }
   const ext = fileExt(pathOrName)
   if (!ext) return null
   if (SAMPLE_EXTS.has(ext)) return ext

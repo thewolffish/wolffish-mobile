@@ -71,7 +71,7 @@ function CopyAction({ text }: { text: string }): React.JSX.Element {
   )
 }
 
-function ShareAction({ uri }: { uri: string | null }): React.JSX.Element {
+export function ShareAction({ uri }: { uri: string | null }): React.JSX.Element {
   const { t } = useTranslation()
   return (
     <IconAction
@@ -82,7 +82,7 @@ function ShareAction({ uri }: { uri: string | null }): React.JSX.Element {
   )
 }
 
-function ExpandAction({ onPress }: { onPress: () => void }): React.JSX.Element {
+export function ExpandAction({ onPress }: { onPress: () => void }): React.JSX.Element {
   const { t } = useTranslation()
   return (
     <IconAction
@@ -93,7 +93,7 @@ function ExpandAction({ onPress }: { onPress: () => void }): React.JSX.Element {
   )
 }
 
-function LoadingCard({ align }: { align?: Align }): React.JSX.Element {
+export function LoadingCard({ align }: { align?: Align }): React.JSX.Element {
   return (
     <CardShell align={align}>
       <View className="h-40 items-center justify-center">
@@ -135,7 +135,13 @@ function PreviewTap({
 }
 
 /** Line-numbered monospace body — one Text per column keeps it cheap. */
-function SourceBody({ content, flex }: { content: string; flex?: boolean }): React.JSX.Element {
+export function SourceBody({
+  content,
+  flex
+}: {
+  content: string
+  flex?: boolean
+}): React.JSX.Element {
   const shown = content.length > MAX_RENDER_CHARS ? content.slice(0, MAX_RENDER_CHARS) : content
   const gutter = useMemo(
     () => Array.from({ length: Math.max(shown.split('\n').length, 1) }, (_, i) => i + 1).join('\n'),

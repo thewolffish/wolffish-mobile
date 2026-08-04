@@ -1,6 +1,7 @@
 import {
   buildRenderBlocks,
   coalesceTextSegments,
+  messageFilePaths,
   messageText,
   toWorkspaceRelative
 } from '@/lib/conversations/segments'
@@ -123,6 +124,32 @@ describe('buildRenderBlocks', () => {
     const files = blocks.filter((block) => block.type === 'file')
     expect(files).toHaveLength(1)
     expect(files[0]).toMatchObject({ relPath: 'files/a.pdf', kind: 'document' })
+  })
+
+  it('extracts chart markers — the desktop emits (chart) for .chart.json specs', () => {
+    const blocks = buildRenderBlocks(
+      message([
+        {
+          kind: 'tool_call',
+          turnId: 't1',
+          segmentId: 's1',
+          toolCallId: 'c1',
+          name: 'send_file',
+          args: {}
+        },
+        {
+          kind: 'tool_result',
+          turnId: 't1',
+          segmentId: 's2',
+          toolCallId: 'c1',
+          status: 'success',
+          output: 'delivered [wolffish-output: files/q3-revenue.chart.json (chart)]'
+        }
+      ])
+    )
+    const files = blocks.filter((block) => block.type === 'file')
+    expect(files).toHaveLength(1)
+    expect(files[0]).toMatchObject({ relPath: 'files/q3-revenue.chart.json', kind: 'chart' })
   })
 
   it('never renders markers quoted inside file-content tool output', () => {
@@ -249,5 +276,58 @@ describe('messageText', () => {
   it('prefers persisted content and falls back to joined deltas', () => {
     expect(messageText(message([textSeg('a', 's1')], { content: 'full' }))).toBe('full')
     expect(messageText(message([textSeg('a', 's1'), textSeg('b', 's2')]))).toBe('ab')
+  })
+})
+
+describe('messageFilePaths', () => {
+  const attachment = {
+    type: 'audio' as const,
+    filePath: 'uploads/conv-1/voice.m4a',
+    originalName: 'voice.m4a',
+    mimeType: 'audio/mp4',
+    sizeBytes: 10
+  }
+
+  it('collects user attachments, normalized to workspace-relative', () => {
+    const user: ConversationMessage = {
+      id: 'u1',
+      role: 'user',
+      content: 'hi',
+      timestamp: 1,
+      attachments: [
+        attachment,
+        { ...attachment, filePath: '/Users/x/.wolffish/workspace/uploads/conv-1/p.png' }
+      ]
+    }
+    expect(messageFilePaths(user)).toEqual(['uploads/conv-1/voice.m4a', 'uploads/conv-1/p.png'])
+  })
+
+  it('collects delivered files and media from assistant segments, deduplicated', () => {
+    const assistant = message([
+      {
+        kind: 'tool_call',
+        turnId: 't1',
+        segmentId: 's1',
+        toolCallId: 'c1',
+        name: 'send_file',
+        args: {}
+      },
+      {
+        kind: 'tool_result',
+        turnId: 't1',
+        segmentId: 's2',
+        toolCallId: 'c1',
+        status: 'success',
+        output: '[wolffish-output: files/report.pdf (document)]'
+      },
+      textSeg('![chart](wolffish-media://files/chart.png)', 's3')
+    ])
+    expect(messageFilePaths(assistant)).toEqual(['files/report.pdf', 'files/chart.png'])
+    // The same paths again must not double up.
+    expect(messageFilePaths(assistant)).toHaveLength(2)
+  })
+
+  it('never reads segments on user messages and never throws on bare ones', () => {
+    expect(messageFilePaths({ id: 'u2', role: 'user', content: 'plain', timestamp: 2 })).toEqual([])
   })
 })

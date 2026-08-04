@@ -1,3 +1,4 @@
+import { useFreshConfig } from '@/lib/sync/useFreshConfig'
 import { Button } from '@/components/core/Button'
 import { Input } from '@/components/core/Input'
 import { PlusSignIcon } from '@/components/core/icons'
@@ -63,6 +64,8 @@ function VariableRow({
 }
 
 export default function VariablesScreen(): React.JSX.Element {
+  // Desktop-owned values: pull the current ones when this screen opens.
+  useFreshConfig()
   const { t } = useTranslation()
   const variables = useConfigValue('variables')
   const setVariables = (next: DemoVariable[]): void => setConfigValue('variables', next)

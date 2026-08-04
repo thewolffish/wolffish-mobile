@@ -1,3 +1,5 @@
+import { setCapabilityEnabled } from '@/lib/sync/sync'
+import { useFreshConfig } from '@/lib/sync/useFreshConfig'
 import { Badge } from '@/components/core/Badge'
 import {
   CheckmarkBadge01Icon,
@@ -19,9 +21,13 @@ import { Text, View } from 'react-native'
  * active/inactive state, then core/official/unknown provenance, plus its
  * under-description chips (plugin, tool count, requires). Toggles are
  * fully controllable except for core capabilities, which the desktop locks on
- * (LOCKED_CAPABILITIES); import/delete stay on the desktop.
+ * (LOCKED_CAPABILITIES); import/delete stay on the desktop. While paired,
+ * each flip applies on the desktop live over the tunnel and its panel moves
+ * in step; demo mode keeps the edit local.
  */
 export default function CapabilitiesScreen(): React.JSX.Element {
+  // Desktop-owned values: pull the current ones when this screen opens.
+  useFreshConfig()
   const { t } = useTranslation()
   // Metadata is snapshot-static; each row's TOGGLE subscribes on its own.
   const capabilityInfo = useDemoConfig((state) => state.capabilityInfo)
@@ -77,7 +83,6 @@ const CapabilityRow = memo(function CapabilityRow({
   requires: string[]
 }): React.JSX.Element {
   const { t } = useTranslation()
-  const setMapEntry = useDemoConfig((state) => state.setMapEntry)
   const stored = useDemoConfig((state) => state.capabilities[name] ?? false)
   const enabled = core || stored
 
@@ -98,8 +103,10 @@ const CapabilityRow = memo(function CapabilityRow({
           </View>
         ) : (
           <Toggle
+            // Optimistic locally, applied on the desktop over the tunnel;
+            // a refused or failed write snaps the switch back (lib/sync).
             value={enabled}
-            onValueChange={(next) => setMapEntry('capabilities', name, next)}
+            onValueChange={(next) => setCapabilityEnabled(name, next)}
             accessibilityLabel={name}
           />
         )}

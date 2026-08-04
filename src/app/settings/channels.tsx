@@ -1,3 +1,4 @@
+import { useFreshConfig } from '@/lib/sync/useFreshConfig'
 import {
   ConfigSelectRow,
   ConfigStatusRow,
@@ -18,6 +19,8 @@ const STALE_HOURS = ['1', '3', '6', '12', '24'].map((value) => ({ value, label: 
  * single config key, so a toggle re-renders only itself.
  */
 export default function ChannelsScreen(): React.JSX.Element {
+  // Desktop-owned values: pull the current ones when this screen opens.
+  useFreshConfig()
   const { t } = useTranslation()
 
   return (
@@ -64,6 +67,7 @@ export default function ChannelsScreen(): React.JSX.Element {
         <ConfigSwitchRow
           field="telegramVerbose"
           label={t('settings.verbose.label')}
+          description={t('settings.verbose.channelDescription')}
           requires="telegramEnabled"
         />
       </Section>
@@ -100,6 +104,7 @@ export default function ChannelsScreen(): React.JSX.Element {
         <ConfigSwitchRow
           field="whatsappVerbose"
           label={t('settings.verbose.label')}
+          description={t('settings.verbose.channelDescription')}
           requires="whatsappEnabled"
         />
       </Section>

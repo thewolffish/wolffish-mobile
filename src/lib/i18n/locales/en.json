@@ -9,6 +9,7 @@
     "dismiss": "Dismiss",
     "search": "Search…",
     "cancel": "Cancel",
+    "close": "Close",
     "showPassword": "Show password",
     "hidePassword": "Hide password"
   },
@@ -30,7 +31,8 @@
     "title": "Settings",
     "verbose": {
       "label": "Verbose task results",
-      "description": "Show every tool call and step."
+      "description": "Show every tool call and step.",
+      "channelDescription": "Relay every tool call and step to the chat. Off (the default) sends a clean feed — only agent replies and the files it sends."
     },
     "tabs": {
       "model": "Model",
@@ -44,7 +46,8 @@
       "appearance": "Appearance",
       "preferences": "Preferences",
       "mcp": "MCP",
-      "capabilities": "Capabilities"
+      "capabilities": "Capabilities",
+      "relay": "Relay"
     },
     "appearanceSubtitle": "Theme and language.",
     "chatModes": {
@@ -129,8 +132,8 @@
         "fast": "Fast",
         "veryFast": "Very fast"
       },
-      "secretPlaceholder": "Set on the desktop",
-      "secretNote": "Credentials stay in the desktop keychain — typing here does not send them.",
+      "secretPlaceholder": "Not set",
+      "secretNote": "Credentials save to your desktop over the encrypted link and apply there instantly.",
       "voiceLang": {
         "us": "English (US)",
         "uk": "English (UK)"
@@ -154,8 +157,14 @@
       "browserExtension": {
         "port": "Pairing port",
         "quality": "JPEG quality (1-100)",
-        "pairingNote": "Installing and pairing the extension happens on the desktop."
-      }
+        "pairingNote": "Installing and pairing the extension happens on the desktop.",
+        "portManagedOnDesktop": "The port is managed in the desktop app.",
+        "connectedAtTime": "Connected {{time}}"
+      },
+      "keySaved": "Saved to your desktop",
+      "keySaveFailed": "Couldn’t save — check the connection",
+      "saveKey": "Save",
+      "saving": "Saving…"
     },
     "variables": {
       "subtitle": "Named values for prompts.",
@@ -179,7 +188,42 @@
         "weeklyTitle": "Last weekly run",
         "ranAt": "Ran {{time}}",
         "took": "Took {{duration}}",
-        "tokens": "{{input}} tokens in · {{output}} tokens out"
+        "tokens": "{{input}} tokens in · {{output}} tokens out",
+        "reflectionTitle": "Last reflection",
+        "deepCleanTitle": "Last deep reflection"
+      },
+      "reflection": {
+        "title": "Reflection",
+        "subtitle": "Every night, Wolffish reviews its finished conversations — your scores, what worked, what failed — and distills the lessons into a playbook it carries into every future turn.",
+        "hour": "Hour",
+        "nightly": {
+          "label": "Nightly reflection",
+          "description": "Reviews every conversation that has settled since the last pass — automations included — scoring each one and extracting what worked, what failed, and what you liked. Your 0-10 scores are the ground truth; the lessons fold into the playbook carried into every turn. Missed fires (asleep, app closed) run on the next launch."
+        },
+        "quiet": {
+          "label": "Review after quiet for",
+          "description": "A conversation is only reviewed once it has been idle this long, so unfinished or not-yet-scored work isn't judged early. Anything still warm simply waits for a later night — nothing is ever skipped — and a conversation you continue after its review gets reviewed again with the new turns and scores included."
+        },
+        "quietHoursOption": "{{count}}h",
+        "scoring": {
+          "title": "Turn scoring",
+          "subtitle": "Optional 0-10 turn scores — the strongest signal reflection learns from.",
+          "inapp": "In-app",
+          "inappHint": "Shows a 0-10 rating bar above the chat composer after each completed turn.",
+          "telegram": "Telegram",
+          "telegramHint": "A reply that is just a number 0-10 scores the last turn instead of sending a message.",
+          "whatsapp": "WhatsApp",
+          "whatsappHint": "A reply that is just a number 0-10 scores the last turn instead of sending a message."
+        },
+        "deepClean": {
+          "label": "Monthly deep reflection",
+          "description": "Once a month, a deep reflection takes the opposite stance of the nightly pass: it challenges the playbook and knowledge files against recent evidence, merging duplicates and pruning stale, over-general, or contradicted entries — the structural guard against learned bad habits."
+        },
+        "runNow": "Run now",
+        "runStarted": "Started — the result card updates when it finishes.",
+        "runAlready": "Already running or queued.",
+        "runError": "Couldn't start the run",
+        "nextRun": "Next run {{time}}"
       }
     },
     "usage": {
@@ -307,7 +351,8 @@
     "changelog": {
       "title": "What's new",
       "subtitle": "What changed, release by release.",
-      "empty": "No release notes yet."
+      "empty": "No release notes yet.",
+      "desktopEmpty": "The desktop's release notes sync from the desktop app — connect to read them."
     },
     "days": {
       "sunday": "Sunday",
@@ -323,7 +368,7 @@
       "off": "Off"
     },
     "preferences": {
-      "subtitle": "General and safety settings. Managed in the desktop app.",
+      "subtitle": "General and safety settings. Changes apply on the desktop instantly.",
       "generalTitle": "General",
       "launchAtStartup": "Launch at startup",
       "launchAtStartupDescription": "Open Wolffish when you log in.",
@@ -435,7 +480,9 @@
   },
   "home": {
     "demoMode": "Demo Mode",
-    "demoHint": "Every feature, every file type — with three months of real conversations."
+    "demoHint": "Every feature, every file type — with three months of real conversations.",
+    "continue": "Continue",
+    "connectOther": "Connect to another desktop"
   },
   "demo": {
     "importing": "Preparing demo data",
@@ -515,6 +562,11 @@
     "htmlViewer": {
       "preview": "Preview",
       "source": "Source"
+    },
+    "chartCard": {
+      "viewChart": "Chart",
+      "viewData": "Data",
+      "shareImage": "Share as image"
     },
     "audioPlayer": {
       "deleted": "Audio file was deleted or unavailable"
@@ -607,7 +659,8 @@
       "apiCalls": "API calls",
       "toolCalls": "Tool calls",
       "cachedShare": "{{percent}}% of ingested context came from cache"
-    }
+    },
+    "offlineReply": "I can't answer while your desktop is out of reach — it runs the model and holds your workspace. Your message is saved here; send it again once the link is back."
   },
   "history": {
     "loading": "Loading conversations…",
@@ -663,5 +716,137 @@
     "inOneYear": "in a year",
     "inTwoYears": "in 2 years",
     "inYears": "in {{count}} years"
+  },
+  "pair": {
+    "connect": "Connect to Desktop",
+    "connecting": "Connecting",
+    "title": "Connect to your desktop",
+    "instructions": "On your computer, open Wolffish → Settings → Channels → Mobile and start a pairing.",
+    "submit": "Connect",
+    "codeLabel": "Pairing code",
+    "codeIssue": {
+      "length": "A pairing code is 8 characters — dashes optional.",
+      "character": "Codes use letters and numbers only."
+    },
+    "codeTitle": "Type the code",
+    "codeDesc": "Enter the code your desktop shows.",
+    "qrTitle": "Scan the QR",
+    "qrDesc": "Point the camera at your desktop's QR.",
+    "relayLabel": "Relay URL",
+    "relayInvalid": "That doesn't look like a relay URL.",
+    "how": {
+      "title": "How it works",
+      "pairTitle": "Pair once",
+      "pairBody": "The QR or code carries a one-time secret. Each device keeps its own key and pins the other's — no account, no password.",
+      "e2eTitle": "Encrypted end to end",
+      "e2eBody": "Everything is sealed on your devices before it is sent. Only this phone and your desktop hold the keys.",
+      "relayTitle": "Forwarded by a blind relay",
+      "relayBody": "The relay only lets the two devices find each other and passes sealed bytes along — it can't read them and stores nothing."
+    },
+    "relayCard": {
+      "title": "Relay",
+      "body": "Where the two devices meet. The QR sets this for you.",
+      "apply": "Use this relay",
+      "reset": "Reset to default",
+      "repo": "wolffish-relay on GitHub",
+      "confirmTitle": "Change the relay?",
+      "confirmBody": "Pairing will connect through:",
+      "confirmCompat": "It must be compatible with Wolffish — any deployment of the open-source relay works.",
+      "confirmApply": "Change relay"
+    },
+    "cameraDenied": "Camera access is off for Wolffish. Turn it on in Settings, or type the code above instead.",
+    "allowCamera": "Allow camera",
+    "failed": "Could not pair. Check that the code is still showing on your desktop and try again.",
+    "hint": "Pair once — your conversations, settings and usage follow you.",
+    "synced": "Connected — {{count}} conversations",
+    "syncFailed": "Connected, but the first sync failed. Open Settings → Relay to retry.",
+    "syncing": {
+      "connect": "Connecting to your desktop…",
+      "config": "Syncing settings…",
+      "conversations": "Syncing conversations…",
+      "usage": "Syncing usage…"
+    },
+    "qrFound": "Code found — connecting"
+  },
+  "relay": {
+    "subtitle": "The encrypted link to your desktop",
+    "connection": "Connection",
+    "endpoint": "Relay",
+    "rendezvous": "Rendezvous",
+    "since": "Connected for",
+    "lastError": "Last error",
+    "status": {
+      "label": "Status",
+      "connected": "Connected",
+      "connecting": "Connecting",
+      "waiting": "Waiting for desktop",
+      "reconnecting": "Reconnecting",
+      "error": "Not connected",
+      "idle": "Idle"
+    },
+    "encryption": "Encryption",
+    "encryptionHint": "These four-character forms also appear on your desktop. Matching values mean both devices agree on the keys in use.",
+    "keyThis": "This device",
+    "keyDesktop": "Desktop",
+    "session": "Session",
+    "cipher": "Cipher",
+    "traffic": "Traffic",
+    "framesSent": "Frames sent",
+    "framesReceived": "Frames received",
+    "reconnects": "Reconnects",
+    "privacy": "Privacy",
+    "privacyBody": "Everything between this phone and your desktop is encrypted on the devices themselves. The relay only forwards sealed bytes — it cannot read, alter or replay them, and it stores nothing: no database, no logs, no accounts, no message history. When both devices disconnect, nothing about the session remains anywhere.",
+    "resync": "Sync now",
+    "resynced": "Up to date — {{count}} updated",
+    "resyncFailed": "Could not reach your desktop.",
+    "sync": "Sync",
+    "manage": "Connection",
+    "resyncHint": "Pull anything this phone missed.",
+    "resyncNow": "Sync",
+    "syncLive": "synced {{ago}} ago",
+    "syncLivePending": "nothing pulled yet this session",
+    "reconnect": "Reconnect",
+    "reconnectHint": "Rebuild the link if it has gone quiet.",
+    "reconnectAction": "Reconnect",
+    "reconnectFailed": "Could not reconnect.",
+    "disconnect": "Disconnect",
+    "disconnectHint": "Drops the keys and wipes this phone.",
+    "disconnectAction": "Disconnect",
+    "disconnectFailed": "Could not finish disconnecting.",
+    "disconnectConfirmTitle": "Disconnect from this desktop?",
+    "disconnectConfirmBody": "This phone drops its keys and erases the conversations, settings and usage it synced — everything the app holds, back to a fresh install. Your desktop keeps the originals, so pairing again restores them.",
+    "source": "wolffish-relay on GitHub",
+    "how": {
+      "pushTitle": "As it happens",
+      "pushBody": "Your desktop sends changes the moment they occur — a run from anywhere, a renamed conversation, a setting you edited.",
+      "wakeTitle": "On opening the app",
+      "wakeBody": "Every time this app comes back it asks what it missed while it was closed, including anything deleted.",
+      "lastTitle": "Last catch-up"
+    },
+    "repair": "Pairing screen",
+    "repairHint": "Connect this phone to a different desktop.",
+    "repairAction": "Open",
+    "resyncStale": "Lost the link — reconnecting, then try again."
+  },
+  "connecting": {
+    "title": "Reconnecting",
+    "body": "Waiting for your desktop.",
+    "dialing": "Reaching the relay",
+    "waitingPeer": "Relay reached",
+    "retrying": "Trying again",
+    "attempts": "{{count}} attempts",
+    "continueOffline": "Continue offline",
+    "offlineHint": "Past conversations stay readable."
+  },
+  "syncing": {
+    "title": "Syncing",
+    "body": "Getting what changed on your desktop.",
+    "step": {
+      "settings": "Settings and usage",
+      "conversations": "Conversations",
+      "wrapping": "Finishing up"
+    },
+    "continue": "Continue anyway",
+    "continueHint": "It keeps going in the background."
   }
 }

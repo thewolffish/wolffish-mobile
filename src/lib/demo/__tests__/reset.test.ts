@@ -121,7 +121,12 @@ describe('demo state purge', () => {
     expect(state.thinkingMode).toBe('high')
     expect(state.capabilityInfo).toEqual({})
     expect(state.projects).toEqual([])
-    expect(state.desktop).toEqual({ version: null, platform: null, syncedAt: null })
+    expect(state.desktop).toEqual({
+      version: null,
+      platform: null,
+      syncedAt: null,
+      timezone: null
+    })
   })
 
   it('drops in-flight streams that point at conversations being replaced', async () => {

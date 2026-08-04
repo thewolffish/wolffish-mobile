@@ -1,4 +1,6 @@
 import { getDb } from '@/lib/db/database'
+import { fetchDesktopFileInto } from '@/lib/sync/files'
+import { useAppStore } from '@/state/appStore'
 import { Directory, File, Paths } from 'expo-file-system'
 
 /**
@@ -9,10 +11,12 @@ import { Directory, File, Paths } from 'expo-file-system'
  * recently used files are deleted. A deleted file is simply re-fetched the
  * next time its conversation is opened.
  *
- * The fetch source is pluggable: in demo mode it is the published sample for
- * the path's file type (see sampleFiles.ts) — nothing is bundled or pushed;
- * once desktop sync lands, the same seam becomes a Durable Object / WebRTC
- * download.
+ * The fetch source follows the app's mode. Paired, a path's real bytes come
+ * from the desktop's workspace over the tunnel — and only from there: falling
+ * back to a CDN sample would cache demo bytes under a real path, which is
+ * exactly the lie this branch exists to prevent. Unpaired (demo mode), each
+ * path is served the published sample for its file type (see sampleFiles.ts)
+ * — nothing is bundled or pushed, and that behavior is unchanged.
  */
 
 import { selectPrunable, type CachedFileRow } from './lru'
@@ -77,13 +81,19 @@ const inFlight = new Map<string, Promise<string | null>>()
  * real path would read as a valid cache hit forever after.
  */
 async function fetchIntoCache(relPath: string, conversationId?: string): Promise<string | null> {
-  const url = sampleUrlFor(relPath)
-  if (!url) return null
-
   try {
     new Directory(Paths.cache, DOWNLOAD_DIR).create({ intermediates: true, idempotent: true })
     const scratch = scratchFile(relPath)
-    await File.downloadFileAsync(url, scratch, { idempotent: true })
+
+    if (useAppStore.getState().paired) {
+      // Paired: the desktop is the only honest source for this path.
+      if (!(await fetchDesktopFileInto(relPath, scratch))) throw new Error('desktop fetch failed')
+    } else {
+      // Demo: the published sample for this path's file type.
+      const url = sampleUrlFor(relPath)
+      if (!url) return null
+      await File.downloadFileAsync(url, scratch, { idempotent: true })
+    }
 
     const target = fileAt(workspaceRoot(), relPath)
     ensureParent(workspaceRoot(), relPath)

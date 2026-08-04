@@ -79,20 +79,91 @@ export const Rpc = {
   hello: 'desktop.hello',
   /** The full ConfigSnapshot the mobile settings screens render. */
   configSnapshot: 'desktop.config.snapshot',
+  /**
+   * Replace the workspace's prompt variables with the given array — the one
+   * setting the phone edits rather than mirrors. Whole-array replace, exactly
+   * like the desktop's own save: the desktop applies writes in arrival order
+   * and the last one wins, so both screens converge on whatever was written
+   * last. Params: `{ variables: Array<{name, value, sensitive}> }`.
+   */
+  variablesSet: 'desktop.variables.set',
   /** Conversation index — metadata only, never message bodies. */
   conversationIndex: 'desktop.conversations.index',
   /** One conversation's messages, fetched when the user opens it. */
   conversationBody: 'desktop.conversations.body',
   /** Usage totals and per-provider breakdown. */
   usage: 'desktop.usage',
+  /**
+   * One month of the desktop's own release notes — the markdown of
+   * src/changelog/<month>/<locale>.md verbatim, English when the requested
+   * locale has no page. The snapshot's `changelog.months` says what exists;
+   * bodies are fetched one at a time because the full set is hundreds of KB
+   * and read far more rarely than the settings that ride the snapshot.
+   * Params: `{ month: 'YYYY-MM', locale }` → `{ markdown }` (null when the
+   * month is unknown).
+   */
+  changelogRead: 'desktop.changelog.read',
+  /**
+   * Flip one capability on or off from the phone. The desktop applies it
+   * through the exact same path as its own settings toggle and answers
+   * `{ ok, enabled }` with the state that actually holds — a locked core
+   * capability refuses the off, an unknown name is an error.
+   */
+  capabilitySet: 'desktop.capabilities.set',
+  /**
+   * Apply a settings patch the phone edited. Params: `{ settings }` — a flat
+   * partial of the phone's editable config surface. The desktop persists it
+   * through the same setters its own panels use (whitelisted — an unknown key
+   * is an error, and the phone reverts by refetching the snapshot). Answers
+   * `{ ok: true }`; the config.changed push that follows is the confirmation.
+   */
+  configSet: 'desktop.config.set',
   /** Send a user turn; the reply streams back as events. */
   sendMessage: 'desktop.chat.send',
   /** Stop the running turn. */
   abortTurn: 'desktop.chat.abort',
+  /**
+   * Update the reflection schedule / turn-scoring config. The body is a
+   * partial ReflectionConfig-shaped patch ({ hour?, quietHours?, scoring? });
+   * the answer is the desktop's complete post-write config. Callers render
+   * the answer, never their own optimism — both screens can only ever show
+   * what the desktop actually persisted.
+   */
+  setReflectionConfig: 'desktop.config.setReflection',
+  /**
+   * Start a reflection job immediately: { kind: 'reflection' | 'deepClean' }.
+   * Answers { result: 'running' | 'queued' | 'coalesced' } — the same states
+   * the desktop's own Run-now button gets from brainstem.
+   */
+  runReflection: 'desktop.reflection.run',
   /** Everything the phone can do, advertised to the desktop agent. */
   deviceTools: 'device.tools',
   /** Live device state for the desktop's Mobile panel. */
-  deviceStatus: 'device.status'
+  deviceStatus: 'device.status',
+  /**
+   * Workspace file transfer. Bytes ride ordinary RPC frames as base64url
+   * strings so nothing new touches the transport: each read/chunk stays at or
+   * under CHUNK_SIZE raw bytes, which lands well inside the relay's 1 MiB
+   * record cap after base64 and encryption overhead.
+   *
+   * Download (desktop → phone): `fileStat` answers { exists, sizeBytes };
+   * `fileRead` takes { path, offset, length } and answers { data, sizeBytes }
+   * for the requested window. Paths are workspace-relative and validated on
+   * the desktop — anything escaping the workspace root is an error.
+   *
+   * Upload (phone → desktop): `uploadBegin` takes { name, mimeType,
+   * sizeBytes, conversationId? } and answers { uploadId, conversationId } —
+   * creating the conversation when none is named, so a first message's file
+   * has somewhere to land. `uploadChunk` appends { uploadId, offset, data };
+   * `uploadCommit` finalizes and answers the stored attachment metadata
+   * { type, filePath, originalName, mimeType, sizeBytes } with the path the
+   * desktop actually chose (collisions rename, Finder-style).
+   */
+  fileStat: 'desktop.files.stat',
+  fileRead: 'desktop.files.read',
+  uploadBegin: 'desktop.files.uploadBegin',
+  uploadChunk: 'desktop.files.uploadChunk',
+  uploadCommit: 'desktop.files.uploadCommit'
 } as const
 
 /** Event topics pushed without a request. */

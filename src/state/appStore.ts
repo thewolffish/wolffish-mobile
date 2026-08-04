@@ -18,6 +18,13 @@ export type AppState = {
   /** Demo mode: the app runs against the imported demo dataset. */
   demoMode: boolean
   /**
+   * A desktop is paired and its data is what the app renders. Distinct from
+   * demoMode rather than its inverse: a device can be neither (the door
+   * screen), and disconnecting must return to demo mode being available
+   * rather than implicitly entering it.
+   */
+  paired: boolean
+  /**
    * Version of the demo bundle ingested into SQLite, null before the first
    * import. Holding the version rather than a boolean means a republished
    * dataset is distinguishable from an imported one when that check lands.
@@ -34,6 +41,7 @@ export type AppState = {
   setTheme: (theme: ThemeSource) => void
   setLocale: (locale: SupportedLocale) => void
   setDemoMode: (demoMode: boolean) => void
+  setPaired: (paired: boolean) => void
   setDemoVersion: (demoVersion: string | null) => void
   setOtaEnabled: (otaEnabled: boolean) => void
 }
@@ -44,18 +52,20 @@ export const useAppStore = create<AppState>()(
       theme: 'system',
       locale: null,
       demoMode: false,
+      paired: false,
       demoVersion: null,
       otaEnabled: true,
       setTheme: (theme) => set({ theme }),
       setLocale: (locale) => set({ locale }),
       setDemoMode: (demoMode) => set({ demoMode }),
+      setPaired: (paired) => set({ paired }),
       setDemoVersion: (demoVersion) => set({ demoVersion }),
       setOtaEnabled: (otaEnabled) => set({ otaEnabled })
     }),
     {
       name: 'wolffish.app',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 4,
+      version: 5,
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as AppState & { demoImported?: boolean }
         // v3 replaced the demoImported boolean with the imported bundle's
@@ -66,16 +76,18 @@ export const useAppStore = create<AppState>()(
           const { demoImported: _demoImported, ...rest } = state
           return { ...rest, demoVersion: null } as AppState
         }
-        // v4 only added otaEnabled, and a key missing from the persisted blob
-        // falls back to the initializer's value — so later versions must NOT
-        // re-run the v3 branch, which would drop demoVersion and send an
-        // already-loaded device back through the whole demo download.
+        // v4 added otaEnabled and v5 added paired; a key missing from the
+        // persisted blob falls back to the initializer's value, so neither
+        // needs a branch. Later versions must NOT re-run the v3 branch, which
+        // would drop demoVersion and send an already-loaded device back
+        // through the whole demo download.
         return state
       },
       partialize: (state) => ({
         theme: state.theme,
         locale: state.locale,
         demoMode: state.demoMode,
+        paired: state.paired,
         demoVersion: state.demoVersion,
         otaEnabled: state.otaEnabled
       })

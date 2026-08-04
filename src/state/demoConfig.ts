@@ -2,6 +2,17 @@ import type { UsageDay } from '@/lib/usage/stats'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { useEffect, useState } from 'react'
+import {
+  captureOutboxState,
+  markOutboxEdited,
+  outboxKeysToKeepLocal,
+  pushVariables,
+  settleOutboxKey
+} from '@/lib/sync/outbox'
+import { tunnelClient } from '@/lib/tunnel/client'
+import { Rpc } from '@/lib/tunnel/protocol'
+import { useAppStore } from '@/state/appStore'
 
 /**
  * Demo-mode mirror of the desktop's config.json (workspace.ts
@@ -82,6 +93,10 @@ export type CompactionRunRecord = {
 export type CompactionRuns = {
   daily: CompactionRunRecord | null
   weekly: CompactionRunRecord | null
+  /** Nightly reflection pass — optional so persisted pre-feature stores parse. */
+  reflection?: CompactionRunRecord | null
+  /** Monthly deep reflection (internally `deepClean`). */
+  deepClean?: CompactionRunRecord | null
 }
 
 /** Model catalog for the demo — the models actually seen in the imported data. */
@@ -226,7 +241,12 @@ export type DemoConfigValues = {
   whatsappHideAutomations: boolean
   // --- services (remotely controllable values) ---
   braveEnabled: boolean
+  /** The Brave Search key — editable here, saved to the desktop's config. */
+  braveApiKey: string
   memesEnabled: boolean
+  imgflipUsername: string
+  imgflipPassword: string
+  giphyApiKey: string
   sttModel: string
   ttsVoice: string
   ttsSpeed: string
@@ -241,6 +261,11 @@ export type DemoConfigValues = {
   compactionDailyHour: number
   compactionWeeklyDay: number
   compactionWeeklyHour: number
+  reflectionHour: number
+  reflectionQuietHours: number
+  reflectionScoringInapp: boolean
+  reflectionScoringTelegram: boolean
+  reflectionScoringWhatsapp: boolean
   // --- collections ---
   capabilities: Record<string, boolean>
   mcpServers: Record<string, boolean>
@@ -300,7 +325,13 @@ const DEFAULTS: DemoConfigValues = {
   whatsappStaleHours: '12',
   whatsappHideAutomations: true,
   braveEnabled: true,
+  // Demo credentials: fake keys for a fake workspace, same posture as
+  // FALLBACK_API_KEYS — they authenticate nothing, they populate fields.
+  braveApiKey: 'BSAhxqNe83jP2nQvWwRt5KbAzYdMf',
   memesEnabled: true,
+  imgflipUsername: 'youneswolf',
+  imgflipPassword: 'imgflp-wlf-2861-pass',
+  giphyApiKey: 'gYq8HxTkP2nWvR5bZmA7c3DfLj9S',
   sttModel: 'large-v3-turbo',
   ttsVoice: 'af_heart',
   ttsSpeed: '1.0',
@@ -313,6 +344,12 @@ const DEFAULTS: DemoConfigValues = {
   compactionDailyHour: 23,
   compactionWeeklyDay: 0,
   compactionWeeklyHour: 23,
+  // Desktop DEFAULT_REFLECTION: 3 AM, 12 h quiet, every surface scored.
+  reflectionHour: 3,
+  reflectionQuietHours: 12,
+  reflectionScoringInapp: true,
+  reflectionScoringTelegram: true,
+  reflectionScoringWhatsapp: true,
   capabilities: DEFAULT_CAPABILITIES,
   mcpServers: DEFAULT_MCP_SERVERS,
   variables: [
@@ -335,6 +372,12 @@ export type DesktopInfo = {
   version: string | null
   /** Where it runs — 'macOS', 'Windows', 'Linux'. */
   platform: string | null
+  /**
+   * IANA zone the desktop's schedules fire in (e.g. 'Asia/Riyadh'). Null
+   * until a snapshot carries it — schedule cards then fall back to phone-
+   * local time rather than claiming a zone nobody reported.
+   */
+  timezone: string | null
   /** ISO timestamp the snapshot was taken: how fresh this mirror is. */
   syncedAt: string | null
 }
@@ -386,12 +429,33 @@ export type ConfigSnapshot = {
     github: ServiceConnection[]
     notion: ServiceConnection[]
     braveEnabled: boolean
+    /**
+     * The Brave key itself, editable on the phone. Absent in bundles and
+     * desktops from before credentials synced — those show the demo default.
+     * Real values ride only the end-to-end sealed tunnel.
+     */
+    braveApiKey?: string
     memesEnabled: boolean
+    /** Same contract as braveApiKey, for the Memes providers. */
+    memes?: {
+      imgflipUsername?: string
+      imgflipPassword?: string
+      giphyApiKey?: string
+    }
     sttModel: string
     ttsVoice: string
     ttsSpeed: string
     screenshotMaxWidth: string
     screenshotFormat: string
+    /**
+     * Computer use on the desktop — present by construction while the app
+     * runs there. Absent in bundles/desktops published before the service
+     * card synced; those keep the previous always-connected rendering.
+     */
+    computerUse?: {
+      connected?: boolean
+      connections?: ServiceConnection[]
+    }
     /** Absent in bundles published before the extension settings shipped. */
     browserExtension?: {
       port?: number
@@ -407,6 +471,8 @@ export type ConfigSnapshot = {
         os?: string
         profileEmail?: string
         extensionVersion?: string
+        /** Epoch ms; absent on desktops from before the connection card. */
+        connectedAt?: number | null
       }>
     }
   }
@@ -436,6 +502,12 @@ export type ConfigSnapshot = {
     chatMode: ChatMode
     localOnly: boolean
     restrictPowerfulModels: boolean
+    /**
+     * The Brain model's thinking level, when one has been chosen on the
+     * desktop. Absent in bundles published before thinking synced — those
+     * keep the device's last value rather than inventing a choice.
+     */
+    thinkingMode?: string
     local: {
       enabled: boolean
       model: string | null
@@ -470,6 +542,8 @@ export type ConfigSnapshot = {
   desktop?: {
     version?: string | null
     platform?: string | null
+    /** Absent in bundles/desktops from before the timezone rode along. */
+    timezone?: string | null
     syncedAt?: string | null
   }
   /**
@@ -497,7 +571,25 @@ export type ConfigSnapshot = {
     dailyHour?: number
     weeklyDay?: number
     weeklyHour?: number
-    runs?: { daily?: CompactionRunRecord | null; weekly?: CompactionRunRecord | null }
+    runs?: {
+      daily?: CompactionRunRecord | null
+      weekly?: CompactionRunRecord | null
+      /** The reflection jobs report through the same brainstem meta file.
+       *  Absent in bundles/desktops from before reflection shipped. */
+      reflection?: CompactionRunRecord | null
+      deepClean?: CompactionRunRecord | null
+    }
+  }
+  /**
+   * Reflection schedule + per-surface turn scoring. Absent in bundles or
+   * desktops from before reflection shipped — those render the desktop's own
+   * defaults (3 AM, 12 h quiet, every surface scored), which is exactly what
+   * an unset config means upstream.
+   */
+  reflection?: {
+    hour?: number
+    quietHours?: number
+    scoring?: { inapp?: boolean; telegram?: boolean; whatsapp?: boolean }
   }
   /**
    * The workspace usage ledger folded per (day × provider × model) — what the
@@ -506,11 +598,46 @@ export type ConfigSnapshot = {
    * zeros and an empty activity grid rather than inventing spend.
    */
   usage?: { days?: UsageDay[] }
+  /**
+   * The desktop app's own release notes — which months exist, newest first.
+   * Bodies deliberately do NOT ride the snapshot: the full set is hundreds of
+   * KB, so the phone fetches one month at a time (Rpc.changelogRead) when the
+   * reader actually opens it. Absent in bundles/desktops from before desktop
+   * notes synced; those render the What's-new desktop tab's empty state.
+   */
+  changelog?: { months?: string[] }
+}
+
+/**
+ * How a snapshot lands. `keepLocal` names keys whose local value must survive
+ * this application — the phone holds edits for them that the desktop has not
+ * acknowledged yet, or the fetch raced a write (lib/sync/outbox decides).
+ * Desktop truth for those keys returns on the next quiet refresh.
+ */
+export type ApplySnapshotOptions = {
+  keepLocal?: ReadonlyArray<keyof DemoConfigValues>
+}
+
+/** One connected browser, as the desktop's extension panel shows it. */
+export type ExtensionBrowser = {
+  /** Slug for the logo: chrome / brave / edge / chromium / firefox / safari. */
+  browser: string
+  name: string
+  browserVersion: string | null
+  os: string | null
+  profileEmail: string | null
+  extensionVersion: string | null
+  connectedAt: number | null
 }
 
 export type DemoConfigState = DemoConfigValues & {
   /** Read-only service surface state (desktop-managed). */
   services: ServiceStatus[]
+  /**
+   * Live browser-extension connections — desktop-managed, display only, the
+   * rows behind the Services screen's browser cards.
+   */
+  extensionBrowsers: ExtensionBrowser[]
   /** Capability descriptions from the real workspace's SKILL.md files. */
   capabilityInfo: Record<
     string,
@@ -547,12 +674,19 @@ export type DemoConfigState = DemoConfigValues & {
    * engine's state travels in the snapshot instead of being probed here.
    */
   ollamaRunning: boolean
+  /**
+   * Months the desktop's own release notes cover, newest first — the What's
+   * new screen's desktop tab. Display-only like `desktop`: the notes belong
+   * to that app's build, so the list travels in the snapshot and the bodies
+   * are fetched on demand (lib/changelog readDesktopChangelog).
+   */
+  desktopChangelogMonths: string[]
   /** The one write path — updates a single flat key. */
   setValue: <K extends keyof DemoConfigValues>(key: K, value: DemoConfigValues[K]) => void
   /** Toggle one entry inside a Record<string, boolean> collection. */
   setMapEntry: (key: 'capabilities' | 'mcpServers', name: string, enabled: boolean) => void
   /** Ingest the real-workspace snapshot — the demo's "sync" moment. */
-  applySnapshot: (snapshot: ConfigSnapshot) => void
+  applySnapshot: (snapshot: ConfigSnapshot, opts?: ApplySnapshotOptions) => void
   /**
    * Back to factory defaults, including this device's own edits. Used when a
    * republished bundle replaces the dataset (lib/demo/reset): applySnapshot
@@ -615,15 +749,30 @@ function sanitizeDesktopData(data: ConfigSnapshot['data']): DesktopData {
   }
 }
 
+/**
+ * Months the snapshot's changelog section names, cleaned to `YYYY-MM` keys,
+ * deduped, newest first. Same belt-and-braces as the sanitizers above: a
+ * malformed month must cost itself, not the whole What's-new tab.
+ */
+function sanitizeChangelogMonths(months: unknown): string[] {
+  if (!Array.isArray(months)) return []
+  const clean = months.filter(
+    (month): month is string => typeof month === 'string' && /^\d{4}-\d{2}$/.test(month)
+  )
+  return [...new Set(clean)].sort().reverse()
+}
+
 /** The store's initial, pre-snapshot shape — DEFAULTS plus what a snapshot fills. */
 const INITIAL_STATE = {
   ...DEFAULTS,
   services: READ_ONLY_SERVICES,
+  extensionBrowsers: [] as ExtensionBrowser[],
   capabilityInfo: {} as DemoConfigState['capabilityInfo'],
   compactionRuns: { daily: null, weekly: null } as CompactionRuns,
   usage: [] as UsageDay[],
-  desktop: { version: null, platform: null, syncedAt: null } as DesktopInfo,
+  desktop: { version: null, platform: null, timezone: null, syncedAt: null } as DesktopInfo,
   desktopData: sanitizeDesktopData(undefined),
+  desktopChangelogMonths: [] as string[],
   ollamaRunning: false
 }
 
@@ -635,8 +784,8 @@ export const useDemoConfig = create<DemoConfigState>()(
       setValue: (key, value) => set({ [key]: value } as Partial<DemoConfigState>),
       setMapEntry: (key, name, enabled) =>
         set((state) => ({ [key]: { ...state[key], [name]: enabled } }) as Partial<DemoConfigState>),
-      applySnapshot: (snapshot) =>
-        set(() => {
+      applySnapshot: (snapshot, opts) =>
+        set((state) => {
           const capabilities: Record<string, boolean> = {}
           const capabilityInfo: DemoConfigState['capabilityInfo'] = {}
           for (const capability of snapshot.capabilities) {
@@ -666,37 +815,81 @@ export const useDemoConfig = create<DemoConfigState>()(
             : localModel
               ? [localModel]
               : []
-          return {
+          const applied: Partial<DemoConfigState> = {
             capabilities,
             capabilityInfo,
             mcpServers,
             compactionDailyHour: compaction?.dailyHour ?? DEFAULTS.compactionDailyHour,
             compactionWeeklyDay: compaction?.weeklyDay ?? DEFAULTS.compactionWeeklyDay,
             compactionWeeklyHour: compaction?.weeklyHour ?? DEFAULTS.compactionWeeklyHour,
+            reflectionHour: snapshot.reflection?.hour ?? DEFAULTS.reflectionHour,
+            reflectionQuietHours: snapshot.reflection?.quietHours ?? DEFAULTS.reflectionQuietHours,
+            reflectionScoringInapp:
+              snapshot.reflection?.scoring?.inapp ?? DEFAULTS.reflectionScoringInapp,
+            reflectionScoringTelegram:
+              snapshot.reflection?.scoring?.telegram ?? DEFAULTS.reflectionScoringTelegram,
+            reflectionScoringWhatsapp:
+              snapshot.reflection?.scoring?.whatsapp ?? DEFAULTS.reflectionScoringWhatsapp,
             compactionRuns: {
               daily: compaction?.runs?.daily ?? null,
-              weekly: compaction?.runs?.weekly ?? null
+              weekly: compaction?.runs?.weekly ?? null,
+              reflection: compaction?.runs?.reflection ?? null,
+              deepClean: compaction?.runs?.deepClean ?? null
             },
             usage: sanitizeUsageDays(snapshot.usage?.days),
             desktop: {
               version: snapshot.desktop?.version ?? null,
               platform: snapshot.desktop?.platform ?? null,
+              timezone: snapshot.desktop?.timezone ?? null,
               syncedAt: snapshot.desktop?.syncedAt ?? null
             },
             desktopData: sanitizeDesktopData(snapshot.data),
-            variables: snapshot.variables,
+            desktopChangelogMonths: sanitizeChangelogMonths(snapshot.changelog?.months),
+            // Tolerate one protocol generation of drift: a desktop from
+            // before the shape fix sent `{key, value}` rows. The phone
+            // renders whichever field exists rather than a blank list.
+            // Nameless rows are this phone's drafts — added here but not yet
+            // named, so the desktop cannot hold them (its own panel refuses a
+            // nameless save, and the outbox never sends one). They ride along
+            // at the end instead of vanishing mid-compose.
+            variables: [
+              ...(snapshot.variables ?? [])
+                .map((variable) => ({
+                  name: variable.name ?? (variable as { key?: string }).key ?? '',
+                  value: variable.value ?? '',
+                  sensitive: variable.sensitive === true
+                }))
+                .filter((variable) => variable.name),
+              ...state.variables.filter((variable) => !variable.name.trim())
+            ],
             projects: snapshot.projects ?? [],
             brainProvider: snapshot.llm.brainProvider,
             brainModel: snapshot.llm.brainModel,
             chatMode: snapshot.llm.chatMode,
             localOnly: snapshot.llm.localOnly,
+            ...(THINKING_LEVELS.includes(snapshot.llm.thinkingMode as ThinkingLevel)
+              ? { thinkingMode: snapshot.llm.thinkingMode as ThinkingLevel }
+              : {}),
             localEnabled: snapshot.llm.local?.enabled ?? false,
             localModel,
             localModels,
             ollamaRunning: snapshot.llm.local?.running === true,
             ollamaModelsFolder:
               snapshot.preferences.ollamaModelsFolder ?? DEFAULTS.ollamaModelsFolder,
-            providers: snapshot.llm.providers ?? [],
+            // Same tolerance for providers: an older desktop sent
+            // `{id, model, connected}` — surface it as key presence with the
+            // chosen model as the whole catalog, never a broken card.
+            providers: (snapshot.llm.providers ?? []).map((provider) => ({
+              id: provider.id,
+              model: provider.model ?? null,
+              hasKey: provider.hasKey ?? (provider as { connected?: boolean }).connected === true,
+              apiKey: provider.apiKey ?? null,
+              models: provider.models?.length
+                ? provider.models
+                : provider.model
+                  ? [provider.model]
+                  : []
+            })),
             restrictPowerfulModels: snapshot.llm.restrictPowerfulModels,
             inappVerbose: snapshot.channels.inapp?.verbose ?? DEFAULTS.inappVerbose,
             launchAtStartup: snapshot.preferences.launchAtStartup,
@@ -717,7 +910,14 @@ export const useDemoConfig = create<DemoConfigState>()(
             whatsappVerbose: snapshot.channels.whatsapp.verbose,
             whatsappHideAutomations: snapshot.channels.whatsapp.hideAutomations,
             braveEnabled: services.braveEnabled,
+            // `?? DEFAULTS`: a desktop that HAS no key sends '' (kept); only a
+            // source from before credentials synced omits the field entirely,
+            // and those get the demo fakes exactly as before.
+            braveApiKey: services.braveApiKey ?? DEFAULTS.braveApiKey,
             memesEnabled: services.memesEnabled,
+            imgflipUsername: services.memes?.imgflipUsername ?? DEFAULTS.imgflipUsername,
+            imgflipPassword: services.memes?.imgflipPassword ?? DEFAULTS.imgflipPassword,
+            giphyApiKey: services.memes?.giphyApiKey ?? DEFAULTS.giphyApiKey,
             sttModel: services.sttModel,
             ttsVoice: services.ttsVoice,
             ttsSpeed: services.ttsSpeed,
@@ -728,6 +928,17 @@ export const useDemoConfig = create<DemoConfigState>()(
             browserScreenshotFormat:
               services.browserExtension?.screenshotFormat === 'png' ? 'png' : 'jpeg',
             browserScreenshotQuality: `${services.browserExtension?.screenshotQuality ?? DEFAULTS.browserScreenshotQuality}`,
+            // Raw connection entries for the desktop-style browser cards —
+            // slug for the logo, the identity lines, and when it connected.
+            extensionBrowsers: (services.browserExtension?.browsers ?? []).map((browser) => ({
+              browser: browser.browser ?? '',
+              name: browser.name ?? 'Browser',
+              browserVersion: browser.browserVersion ?? null,
+              os: browser.os ?? null,
+              profileEmail: browser.profileEmail ?? null,
+              extensionVersion: browser.extensionVersion ?? null,
+              connectedAt: typeof browser.connectedAt === 'number' ? browser.connectedAt : null
+            })),
             services: [
               {
                 key: 'google',
@@ -773,9 +984,23 @@ export const useDemoConfig = create<DemoConfigState>()(
                       }
                     ]
               },
-              { key: 'computerUse', connected: true, connections: [] }
+              {
+                key: 'computerUse',
+                // Synced when the desktop sends it; the historical constant
+                // otherwise, so old demo bundles render exactly as before.
+                connected: services.computerUse?.connected ?? true,
+                connections: services.computerUse?.connections ?? []
+              }
             ]
           }
+          // Keys mid-edit on this phone keep their local value — a snapshot
+          // that raced a write must not undo it under the user's thumb. The
+          // outbox names them (see refreshConfigSnapshot); desktop truth for
+          // those keys returns on the next quiet refresh.
+          for (const key of opts?.keepLocal ?? []) {
+            ;(applied as Record<string, unknown>)[key] = state[key]
+          }
+          return applied
         })
     }),
     {
@@ -788,10 +1013,12 @@ export const useDemoConfig = create<DemoConfigState>()(
       partialize: (state) => {
         const persisted: Record<string, unknown> = {
           capabilityInfo: state.capabilityInfo,
+          extensionBrowsers: state.extensionBrowsers,
           compactionRuns: state.compactionRuns,
           usage: state.usage,
           desktop: state.desktop,
           desktopData: state.desktopData,
+          desktopChangelogMonths: state.desktopChangelogMonths,
           ollamaRunning: state.ollamaRunning
         }
         for (const key of Object.keys(DEFAULTS) as Array<keyof DemoConfigValues>) {
@@ -812,7 +1039,174 @@ export function setConfigValue<K extends keyof DemoConfigValues>(
   key: K,
   value: DemoConfigValues[K]
 ): void {
+  // Paired settings belong to the desktop: this store is a copy of its
+  // snapshot, and the next refresh overwrites whatever was set here. Offline
+  // that refresh cannot happen, so an edit would sit on screen looking
+  // applied until the connection returned and silently undid it. Refusing is
+  // the honest answer — see useSettingsReadOnly, which says so in the UI.
+  if (settingsAreReadOnly()) return
   useDemoConfig.getState().setValue(key, value)
+  // Variables burst per keystroke and need coalescing plus echo protection —
+  // they travel through the outbox (whole array, debounced, one in flight),
+  // not the per-toggle path below. Demo mode has no tunnel; the outbox
+  // no-ops and the edit stays local, exactly as before.
+  if (key === 'variables') {
+    pushVariables(value as DemoVariable[])
+    return
+  }
+  void pushToDesktop(key, value)
+}
+
+/**
+ * The settings the desktop accepts from this device — the Rpc.configSet
+ * whitelist, mirrored. Every key here is written through the same desktop
+ * setters its own panel uses, so a flip on this screen and a flip there are
+ * the same change. Keys outside this set stay purely local (demo mode), or
+ * are desktop-owned mirrors a snapshot refresh will overwrite.
+ */
+const DESKTOP_EDITABLE: ReadonlySet<keyof DemoConfigValues> = new Set<keyof DemoConfigValues>([
+  'restrictPowerfulModels',
+  'bypassPermissions',
+  'blockCredentials',
+  'updatesEnabled',
+  // Services — the whole editable surface of that screen, credentials
+  // included. The extension PORT is deliberately absent on both sides:
+  // moving it restarts the desktop's local pairing server.
+  'braveEnabled',
+  'braveApiKey',
+  'memesEnabled',
+  'imgflipUsername',
+  'imgflipPassword',
+  'giphyApiKey',
+  'sttModel',
+  'ttsVoice',
+  'ttsSpeed',
+  'screenshotMaxWidth',
+  'screenshotFormat',
+  'browserScreenshotMaxWidth',
+  'browserScreenshotFormat',
+  'browserScreenshotQuality'
+])
+
+/**
+ * Write one edited setting through to the paired desktop.
+ *
+ * The local set has already happened (the row must move under the finger);
+ * this makes it true on the machine that owns it. Confirmation is the
+ * desktop's own config.changed push — it announces the write exactly as it
+ * announces an edit made in its panel, and the phone refetches the snapshot
+ * on that signal, so both screens converge on what the desktop persisted.
+ *
+ * On error the optimistic value is a lie this mirror must not keep telling:
+ * re-pull the snapshot so the row snaps back to the desktop's truth. If even
+ * that fails the link is gone, and the reconcile that runs on every reconnect
+ * settles it the same way.
+ */
+async function pushToDesktop<K extends keyof DemoConfigValues>(
+  key: K,
+  value: DemoConfigValues[K]
+): Promise<void> {
+  if (!DESKTOP_EDITABLE.has(key)) return
+  const tunnel = tunnelClient.active
+  if (!tunnel) return
+  // Dirty from this very tick: a snapshot request already in the air was
+  // answered before the desktop saw this write, and without the epoch moving
+  // it would put the old value back under the user's thumb — the flip would
+  // snap back for the second it takes the desktop's own confirmation push to
+  // arrive. Settled in both outcomes; the failure path's refresh IS desktop
+  // truth, so the key must be free to accept it.
+  markOutboxEdited(key)
+  try {
+    await tunnel.rpc(Rpc.configSet, { settings: { [key]: value } })
+    settleOutboxKey(key)
+  } catch {
+    settleOutboxKey(key)
+    try {
+      // Guarded, not raw: the revert must not also clobber some OTHER key
+      // the outbox still has in flight (a variables edit mid-typing, say).
+      await refreshConfigSnapshot()
+    } catch {
+      // Disconnected mid-revert — the on-reconnect reconcile pulls a fresh
+      // snapshot and corrects this row along with everything else.
+    }
+  }
+}
+
+/**
+ * Save one setting and wait for the desktop to accept it — the explicit path
+ * for credential fields, where the row shows the same saved/failed
+ * confirmation the desktop's own panels show. The fire-and-forget
+ * setConfigValue path is for switches and selects, whose confirmation is the
+ * value simply holding; a typed secret deserves an answer.
+ *
+ * Resolves true when the value is safely on the machine that owns it (or in
+ * demo mode, where local IS the whole truth); false reverts the row to
+ * desktop truth via the snapshot re-pull.
+ */
+export async function saveDesktopSetting<K extends keyof DemoConfigValues>(
+  key: K,
+  value: DemoConfigValues[K]
+): Promise<boolean> {
+  if (settingsAreReadOnly()) return false
+  useDemoConfig.getState().setValue(key, value)
+  const { paired } = useAppStore.getState()
+  if (!paired) return true
+  if (!DESKTOP_EDITABLE.has(key)) return false
+  const tunnel = tunnelClient.active
+  if (!tunnel || !tunnelClient.connected) return false
+  // Same in-flight guard as pushToDesktop: dirty for the round trip, so a
+  // racing snapshot cannot undo the row while the desktop's answer is due.
+  markOutboxEdited(key)
+  try {
+    await tunnel.rpc(Rpc.configSet, { settings: { [key]: value } })
+    settleOutboxKey(key)
+    return true
+  } catch {
+    settleOutboxKey(key)
+    try {
+      await refreshConfigSnapshot()
+    } catch {
+      // Disconnected mid-revert — the on-reconnect reconcile settles it.
+    }
+    return false
+  }
+}
+
+/**
+ * Fetch the desktop's snapshot and apply it with the outbox consulted: the
+ * epochs are captured before the fetch, and any key edited, acknowledged, or
+ * abandoned while the fetch was in the air — plus any key still dirty — keeps
+ * its local value this round. Every paired-mode snapshot application belongs
+ * here (lib/sync wraps this; the raw applySnapshot is for the demo pipeline,
+ * which has no outbox to race).
+ *
+ * Lives beside the store rather than in lib/sync because both need it and
+ * only this module sits below the two of them in the import graph.
+ */
+export async function refreshConfigSnapshot(): Promise<void> {
+  const tunnel = tunnelClient.active
+  if (!tunnel) return
+  const before = captureOutboxState()
+  const snapshot = (await tunnel.rpc(Rpc.configSnapshot)) as ConfigSnapshot
+  const keepLocal = outboxKeysToKeepLocal(before) as Array<keyof DemoConfigValues>
+  useDemoConfig.getState().applySnapshot(snapshot, keepLocal.length ? { keepLocal } : undefined)
+}
+
+/**
+ * Settings are the desktop's to change, and only reachable while connected.
+ * Demo mode owns its own config outright, so it is always writable.
+ */
+export function settingsAreReadOnly(): boolean {
+  const { paired } = useAppStore.getState()
+  return paired && !tunnelClient.connected
+}
+
+/** Reactive form of the above, for screens that need to disable their controls. */
+export function useSettingsReadOnly(): boolean {
+  const paired = useAppStore((state) => state.paired)
+  const [connected, setConnected] = useState(tunnelClient.connected)
+  useEffect(() => tunnelClient.subscribe((state) => setConnected(state.status === 'connected')), [])
+  return paired && !connected
 }
 
 /** The last daily/weekly compaction runs — null until one has actually run. */
@@ -833,6 +1227,11 @@ export function useDesktopInfo(): DesktopInfo {
 /** The desktop's Data-panel numbers — all-null until a snapshot has landed. */
 export function useDesktopData(): DesktopData {
   return useDemoConfig((state) => state.desktopData)
+}
+
+/** Desktop release-note months, newest first — empty until a snapshot lands. */
+export function useDesktopChangelogMonths(): string[] {
+  return useDemoConfig((state) => state.desktopChangelogMonths)
 }
 
 /**

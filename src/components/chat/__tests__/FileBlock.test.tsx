@@ -26,7 +26,14 @@ const FILES: Record<string, string> = {
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>',
   'files/book.xlsx': 'binary-xlsx',
   'files/letter.docx': 'binary-docx',
-  'files/archive.zip': 'binary-zip'
+  'files/archive.zip': 'binary-zip',
+  // A raw literal (not JSON.stringify): jest.mock factories may only
+  // reference this map while its initializer is entirely call-free.
+  'files/q3-revenue.chart.json':
+    '{"type":"column","title":"Q3 revenue","subtitle":"by product line",' +
+    '"footnote":"Source: finance close","categories":["Jul","Aug","Sep"],' +
+    '"series":[{"name":"Hardware","data":[12,14,17]}]}',
+  'files/broken.chart.json': 'not a chart spec'
 }
 
 jest.mock('@/lib/files/fileCache', () => ({
@@ -57,6 +64,15 @@ jest.mock('expo-image', () => {
   const { View } = jest.requireActual('react-native')
   return { Image: (props: object) => <View testID="image" {...props} /> }
 })
+
+// The chart host document is composed from bundled assets (ECharts, the page
+// runtime, the Plex face) — none of which exist in this faked filesystem.
+jest.mock('@/lib/charts/html', () => ({
+  ensureChartHostDocument: jest.fn(async () => ({
+    uri: 'file:///cache/chart-host/host.html',
+    directory: 'file:///cache/chart-host/'
+  }))
+}))
 
 jest.mock('react-native-webview', () => {
   const { View } = jest.requireActual('react-native')
@@ -216,6 +232,32 @@ describe('FileBlock — one delivered file per supported type', () => {
     expect(screen.getByText('name')).toBeTruthy()
     expect(screen.getByText('qty')).toBeTruthy()
     expect(screen.getByText(/3 rows/)).toBeTruthy()
+  })
+
+  it('renders a chart spec as a chart card with the data toggle', async () => {
+    await renderBlock(<FileBlock relPath="files/q3-revenue.chart.json" declared="chart" />)
+    // Chrome comes from the spec, not the filename — the desktop card's header.
+    await waitFor(() => expect(screen.getByText('Q3 revenue')).toBeTruthy())
+    expect(screen.getByText('by product line')).toBeTruthy()
+    expect(screen.getByText('Source: finance close')).toBeTruthy()
+    expect(screen.getByLabelText('Share as image')).toBeTruthy()
+
+    await fireEvent.press(screen.getByLabelText('Expand'))
+    await waitFor(() => expect(screen.getByLabelText('Close')).toBeTruthy())
+    // The sheet's chart view is the live plot frame…
+    expect(screen.getByTestId('webview')).toBeTruthy()
+
+    // …and the desktop's Chart ⇄ Data toggle shows the parsed spec as JSON.
+    await fireEvent.press(screen.getByLabelText('Data'))
+    await waitFor(() => expect(screen.getByText(/"type": "column"/)).toBeTruthy())
+    expect(screen.queryByTestId('webview')).toBeNull()
+  })
+
+  it('degrades an unparseable chart spec to the plain file card', async () => {
+    await renderBlock(<FileBlock relPath="files/broken.chart.json" declared="chart" />)
+    await waitFor(() => expect(screen.getByText('broken.chart.json')).toBeTruthy())
+    // No chart chrome — the generic card keeps the file shareable, nothing more.
+    expect(screen.queryByLabelText('Share as image')).toBeNull()
   })
 
   it.each([

@@ -1,4 +1,6 @@
 import type { SupportedLocale } from '@/lib/i18n'
+import { tunnelClient } from '@/lib/tunnel/client'
+import { Rpc } from '@/lib/tunnel/protocol'
 import { Asset } from 'expo-asset'
 import { File } from 'expo-file-system'
 // Relative, unlike everything else in src: the `@/` alias is resolved for
@@ -55,6 +57,42 @@ export async function readChangelog(
     const text = await new File(asset.localUri ?? asset.uri).text()
     cache.set(key, text)
     return text
+  } catch {
+    return null
+  }
+}
+
+// The desktop's pages, fetched over the tunnel and kept for the app run.
+// Session-lifetime on purpose: the content belongs to the desktop's build, so
+// a fresh run re-asks and a desktop updated mid-pairing serves its new notes.
+const desktopCache = new Map<string, string>()
+
+/**
+ * One month of the PAIRED DESKTOP's release notes, verbatim markdown — the
+ * live twin of readChangelog above. Which months exist comes from the config
+ * snapshot (useDesktopChangelogMonths); the body is fetched only when the
+ * reader opens it, because the full set is hundreds of KB. The desktop falls
+ * back to English for a month with no page in the requested language, same
+ * as the local reader. Null when the tunnel is down and the page is not
+ * already cached — the screen shows its connect-to-read empty state.
+ */
+export async function readDesktopChangelog(
+  month: string,
+  locale: SupportedLocale
+): Promise<string | null> {
+  const key = `${month}:${locale}`
+  const cached = desktopCache.get(key)
+  if (cached !== undefined) return cached
+  const tunnel = tunnelClient.active
+  if (!tunnel) return null
+  try {
+    const answer = (await tunnel.rpc(Rpc.changelogRead, { month, locale })) as {
+      markdown?: string | null
+    }
+    const markdown = typeof answer?.markdown === 'string' ? answer.markdown : null
+    if (!markdown) return null
+    desktopCache.set(key, markdown)
+    return markdown
   } catch {
     return null
   }

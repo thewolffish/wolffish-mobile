@@ -13,7 +13,7 @@ import * as SQLite from 'expo-sqlite'
 
 const DB_NAME = 'wolffish.db'
 
-const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 2
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null
 
@@ -64,6 +64,13 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
           ON cached_files(last_access_at ASC);
       `)
     }
+    if (current < 2) {
+      // When this conversation's messages were last pulled. Compared against
+      // the desktop's updated_at to know a cached body has fallen behind —
+      // without it, a conversation that grew while the phone was away keeps
+      // showing the stale copy, because it is no longer empty.
+      await tx.execAsync('ALTER TABLE conversations ADD COLUMN body_synced_at INTEGER')
+    }
     await tx.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`)
   })
 }
@@ -85,5 +92,10 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
 /** Test/dev helper: drop every row without deleting the database file. */
 export async function resetDb(): Promise<void> {
   const db = await getDb()
-  await db.execAsync('DELETE FROM messages; DELETE FROM conversations; DELETE FROM cached_files;')
+  await db.execAsync(
+    'DELETE FROM messages; DELETE FROM conversations; DELETE FROM cached_files; ' +
+      // Created lazily by sync.ts — the guard keeps the batch valid pre-sync.
+      'CREATE TABLE IF NOT EXISTS sync_meta (key TEXT PRIMARY KEY, value TEXT); ' +
+      'DELETE FROM sync_meta;'
+  )
 }

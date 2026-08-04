@@ -7,23 +7,39 @@ import {
   importDemoData,
   type DemoProgress
 } from '@/lib/demo/importer'
+import { purgeDemoState } from '@/lib/demo/reset'
+import { attachLiveUpdates, initialSync, type SyncProgress } from '@/lib/sync/sync'
+import { attachTurnStream } from '@/lib/sync/prompt'
+import { tunnelClient } from '@/lib/tunnel/client'
 import { useAppStore } from '@/state/appStore'
 import { useToast } from '@/providers/toast/useToast'
 import { useTokens } from '@/providers/theme/useTheme'
-import { invalidateConversationList } from '@/lib/conversations/hooks'
+import { invalidateConversationList } from '@/lib/conversations/cache'
 import { Image } from 'expo-image'
-import { router } from 'expo-router'
-import { useState } from 'react'
+import { Redirect, router, useLocalSearchParams } from 'expo-router'
+import { lazy, Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ActivityIndicator, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+/**
+ * Loaded on demand. The sheet pulls in expo-camera, and a static import would
+ * bind that native module while the home screen mounts — so a JS bundle
+ * running against a binary built before the camera landed would take the whole
+ * app down at launch instead of simply failing to scan.
+ */
+const PairSheet = lazy(async () => ({
+  default: (await import('@/components/pairing/PairSheet')).PairSheet
+}))
 
 /**
- * Home — deliberately blank: the fish, the name, and the Demo Mode door.
- * The first tap downloads the demo dataset from cdn.wolffi.sh (169 unique
- * conversations from three months of real desktop usage) and ingests it, under
- * a progress bar; every later tap opens straight into chat. The
- * desktop-pairing flow will slot in beside the demo button later.
+ * Home — the fish, the name, and the two doors in: pair with a desktop, or
+ * take the demo tour.
+ *
+ * Pairing is the primary path and demo mode stays exactly what it was: an
+ * independent, self-contained tour that works with no desktop, no account and
+ * no network beyond the CDN. Disconnecting a desktop returns the app here with
+ * demo mode still one tap away, which is why nothing in this screen couples
+ * the two.
  */
 export default function Home(): React.JSX.Element {
   const { t } = useTranslation()
@@ -33,8 +49,13 @@ export default function Home(): React.JSX.Element {
   const demoVersion = useAppStore((state) => state.demoVersion)
   const setDemoVersion = useAppStore((state) => state.setDemoVersion)
   const setDemoMode = useAppStore((state) => state.setDemoMode)
+  const setPaired = useAppStore((state) => state.setPaired)
+  const paired = useAppStore((state) => state.paired)
+  const params = useLocalSearchParams<{ stay?: string }>()
   const [progress, setProgress] = useState<DemoProgress | null>(null)
-  const busy = progress !== null
+  const [sync, setSync] = useState<SyncProgress | null>(null)
+  const [pairing, setPairing] = useState(false)
+  const busy = progress !== null || sync !== null
 
   /**
    * Is there a dataset to pull? Nothing imported yet, or the published bundle
@@ -75,8 +96,73 @@ export default function Home(): React.JSX.Element {
     // demo's stand-in for live sync's cached-then-refresh.
     void applyConfigSnapshot()
     setDemoMode(true)
-    router.push('/chat')
+    // replace, not push: this door is not somewhere to come back to. A back
+    // gesture from chat would otherwise land on the entry screen, where the
+    // next tap can drop a live connection by accident.
+    router.replace('/chat')
   }
+
+  /**
+   * Runs once the sheet has handed us a live tunnel: pull everything the app
+   * renders, under the same progress bar the demo import uses, then open chat
+   * against real data.
+   */
+  const afterPaired = async (): Promise<void> => {
+    setPairing(false)
+    setSync({ phase: 'connect', ratio: 0, imported: 0, total: 0 })
+    try {
+      // A pairing starts from a clean slate. Demo leftovers are not inert
+      // here: demo conversations linger in the list until a reconcile prunes
+      // them, and — worse — demo media cached under workspace-relative paths
+      // reads as a valid cache hit for a real file at the same path, which is
+      // how a paired phone can show a sample PDF against a real conversation.
+      // Demo mode loses nothing it cannot rebuild: the next demo entry
+      // re-imports the bundle exactly as a fresh install would.
+      await purgeDemoState()
+      const result = await initialSync(setSync)
+      attachLiveUpdates()
+      attachTurnStream()
+      setDemoMode(false)
+      setPaired(true)
+      toast.show({
+        tone: 'success',
+        message: t('pair.synced', { count: result.conversations })
+      })
+      router.replace('/chat')
+    } catch {
+      // The pairing itself survives a failed first sync — the Relay screen can
+      // retry it without scanning again.
+      toast.show({ tone: 'error', message: t('pair.syncFailed') })
+    } finally {
+      setSync(null)
+    }
+  }
+
+  const statusLine = ((): string | null => {
+    if (sync) {
+      if (sync.phase === 'connect') return t('pair.syncing.connect')
+      if (sync.phase === 'config') return t('pair.syncing.config')
+      if (sync.phase === 'usage') return t('pair.syncing.usage')
+      return sync.total === 0
+        ? t('pair.syncing.conversations')
+        : t('demo.progress', { done: sync.imported, total: sync.total })
+    }
+    if (progress) {
+      if (progress.phase === 'download') return t('demo.downloading')
+      if (progress.phase === 'reset') return t('demo.resetting')
+      return progress.total === 0
+        ? t('demo.downloading')
+        : t('demo.progress', { done: progress.imported, total: progress.total })
+    }
+    return null
+  })()
+
+  // A paired phone has somewhere to be. This screen exists to make a
+  // connection, and both of its controls can end the one that already exists
+  // — so it is the wrong place to land on every launch. `stay` is how the
+  // Relay screen reaches it deliberately, since the redirect would otherwise
+  // make it unreachable.
+  if (paired && params.stay !== '1') return <Redirect href="/chat?boot=1" />
 
   return (
     <View
@@ -93,33 +179,46 @@ export default function Home(): React.JSX.Element {
         <Text className="text-muted text-center font-sans text-sm leading-relaxed">
           {t('app.tagline')}
         </Text>
+
+        {/* Already paired: the primary action is to carry on into the app.
+            Re-pairing is still reachable, but demoted — reaching for it by
+            reflex is how a working connection gets replaced by accident. */}
         <Button
           size="lg"
           disabled={busy}
-          onPress={() => void enterDemo()}
+          onPress={() => (paired ? router.replace('/chat') : setPairing(true))}
           className="mt-4 self-center"
         >
-          {busy && <ActivityIndicator size="small" color={tokens.primaryFg} />}
-          {busy ? t('demo.importing') : t('home.demoMode')}
+          {sync !== null && <ActivityIndicator size="small" color={tokens.primaryFg} />}
+          {sync !== null ? t('pair.connecting') : paired ? t('home.continue') : t('pair.connect')}
         </Button>
 
+        {/* The secondary door. Unpaired that is demo mode — the only way in
+            without a desktop. Paired it is re-pairing, since demo mode would
+            mean tearing down the connection this screen is guarding. */}
+        <Pressable
+          disabled={busy}
+          onPress={() => (paired ? setPairing(true) : void enterDemo())}
+          className="py-1"
+        >
+          <Text className="text-muted font-sans text-sm underline">
+            {paired
+              ? t('home.connectOther')
+              : progress !== null
+                ? t('demo.importing')
+                : t('home.demoMode')}
+          </Text>
+        </Pressable>
+
         {/* Progress takes the hint's slot rather than pushing it around. */}
-        {progress ? (
+        {statusLine ? (
           <View className="w-64 items-center gap-2">
-            <ProgressBar value={progress.ratio} />
-            <Text className="text-muted text-center font-sans text-xs leading-5">
-              {progress.phase === 'download'
-                ? t('demo.downloading')
-                : progress.phase === 'reset'
-                  ? t('demo.resetting')
-                  : progress.total === 0
-                    ? t('demo.downloading')
-                    : t('demo.progress', { done: progress.imported, total: progress.total })}
-            </Text>
+            <ProgressBar value={sync?.ratio ?? progress?.ratio ?? 0} />
+            <Text className="text-muted text-center font-sans text-xs leading-5">{statusLine}</Text>
           </View>
         ) : (
           <Text className="text-muted max-w-64 text-center font-sans text-xs leading-5">
-            {t('home.demoHint')}
+            {t('pair.hint')}
           </Text>
         )}
       </View>
@@ -127,6 +226,23 @@ export default function Home(): React.JSX.Element {
       <View className="items-center">
         <BuildInfo />
       </View>
+
+      {pairing && (
+        <Suspense fallback={null}>
+          <PairSheet
+            visible={pairing}
+            onClose={() => setPairing(false)}
+            onPaired={() => void afterPaired()}
+          />
+        </Suspense>
+      )}
     </View>
   )
+}
+
+/** Reconnect a stored pairing at launch, before the user touches anything. */
+export async function resumePairing(): Promise<boolean> {
+  const resumed = await tunnelClient.resume()
+  if (resumed) attachLiveUpdates()
+  return resumed
 }

@@ -1,4 +1,4 @@
-import { invalidateConversation } from '@/lib/conversations/hooks'
+import { invalidateConversation } from '@/lib/conversations/cache'
 import {
   appendMessage,
   createConversation,

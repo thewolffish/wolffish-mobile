@@ -25,6 +25,12 @@ export function extOf(pathOrName) {
 
 /** The published sample extension serving this path, or null when there is none. */
 export function sampleExtFor(pathOrName) {
+  // `.chart.json` is its own type (a chart spec, not a plain .json) — the
+  // same special case as the app's sampleFiles.ts, which this must mirror.
+  const base = (pathOrName.split(/[/\\]/).pop() ?? '').toLowerCase()
+  if (base.endsWith('.chart.json')) {
+    return EXTS.has('chart.json') ? 'chart.json' : null
+  }
   const ext = extOf(pathOrName)
   if (!ext) return null
   if (EXTS.has(ext)) return ext

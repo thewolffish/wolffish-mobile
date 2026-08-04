@@ -1,11 +1,22 @@
+import { useFreshConfig } from '@/lib/sync/useFreshConfig'
+import { BrowserLogo } from '@/components/core/browserLogos'
+import { Button } from '@/components/core/Button'
 import { Input } from '@/components/core/Input'
 import type { SelectOption } from '@/components/core/Select'
 import { SERVICE_LOGOS } from '@/components/core/providerLogos'
 import { ConfigSelectRow, ConfigSwitchRow, ConfigTextRow } from '@/components/settings/ConfigRows'
 import { PanelScreen, Section, StatusDot } from '@/components/settings/SettingsUI'
+import { useToast } from '@/providers/toast/useToast'
 import { cn } from '@/lib/utils/cn'
-import { useDemoConfig } from '@/state/demoConfig'
-import { useMemo } from 'react'
+import {
+  saveDesktopSetting,
+  useConfigValue,
+  useDemoConfig,
+  useSettingsReadOnly,
+  type DemoConfigValues,
+  type ExtensionBrowser
+} from '@/state/demoConfig'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Text, View } from 'react-native'
 
@@ -95,28 +106,112 @@ function ServiceHeader({
   )
 }
 
+/** The credential keys the phone edits — each row binds to exactly one. */
+type SecretField = Extract<
+  keyof DemoConfigValues,
+  'braveApiKey' | 'imgflipUsername' | 'imgflipPassword' | 'giphyApiKey'
+>
+
 /**
- * A credential field, deliberately NOT bound to the config store: secrets
- * belong in the desktop's keychain, never in this device's AsyncStorage. It
- * renders the same masked affordance the desktop shows for a stored key so
- * the surface is complete — same posture as the provider key on Model.
+ * A credential field, bound and editable: the value is the desktop's own
+ * (synced in the snapshot), and Save writes it back through Rpc.configSet —
+ * the same setter the desktop's panel calls — with the same saved/failed
+ * confirmation that panel shows. The draft lives locally until saved, so a
+ * snapshot refresh mid-typing cannot yank the text out from under the user.
  */
 function SecretRow({
+  field,
   label,
   secure = true
 }: {
+  field: SecretField
   label: string
   secure?: boolean
 }): React.JSX.Element {
   const { t } = useTranslation()
+  const toast = useToast()
+  const readOnly = useSettingsReadOnly()
+  const stored = useConfigValue(field)
+  const [draft, setDraft] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const dirty = draft !== null && draft !== stored
+
+  const save = async (): Promise<void> => {
+    if (!dirty || draft === null || busy) return
+    setBusy(true)
+    const saved = await saveDesktopSetting(field, draft)
+    setBusy(false)
+    toast.show({
+      tone: saved ? 'success' : 'error',
+      message: saved ? t('settings.services.keySaved') : t('settings.services.keySaveFailed')
+    })
+    if (saved) setDraft(null)
+  }
+
   return (
-    <Input
-      label={label}
-      placeholder={t('settings.services.secretPlaceholder')}
-      secureTextEntry={secure}
-      autoCapitalize="none"
-      autoCorrect={false}
-    />
+    <View className="flex-col gap-1.5">
+      <Input
+        label={label}
+        value={draft ?? stored}
+        onChangeText={setDraft}
+        placeholder={t('settings.services.secretPlaceholder')}
+        editable={!readOnly && !busy}
+        secureTextEntry={secure}
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
+      {dirty ? (
+        <Button
+          size="sm"
+          onPress={() => void save()}
+          disabled={busy}
+          className="self-start"
+          accessibilityLabel={t('settings.services.saveKey')}
+        >
+          {busy ? t('settings.services.saving') : t('settings.services.saveKey')}
+        </Button>
+      ) : null}
+    </View>
+  )
+}
+
+/**
+ * One connected browser, exactly as the desktop's extension panel draws it:
+ * the browser's mark, its name with the major version, and the identity line
+ * (profile · OS · connected time), with the extension version as a chip.
+ */
+function BrowserCard({ browser }: { browser: ExtensionBrowser }): React.JSX.Element {
+  const { t } = useTranslation()
+  const major = browser.browserVersion ? browser.browserVersion.split('.')[0] : null
+  const connectedAt = browser.connectedAt
+    ? t('settings.services.browserExtension.connectedAtTime', {
+        time: new Date(browser.connectedAt).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      })
+    : null
+  const detail = [browser.profileEmail, browser.os, connectedAt].filter(Boolean).join(' · ')
+  return (
+    <View className="bg-bg flex-row items-center gap-3 rounded-xl px-3 py-2.5">
+      <BrowserLogo browser={browser.browser} size={20} />
+      <View className="min-w-0 flex-1 flex-col">
+        <Text numberOfLines={1} className="text-fg font-sans-medium text-left text-sm">
+          {browser.name}
+          {major ? <Text className="text-muted font-sans"> {major}</Text> : null}
+        </Text>
+        {detail ? (
+          <Text numberOfLines={1} className="text-muted text-left font-sans text-xs">
+            {detail}
+          </Text>
+        ) : null}
+      </View>
+      {browser.extensionVersion ? (
+        <Text className="bg-surface text-muted rounded px-1.5 py-0.5 font-mono text-[11px]">
+          v{browser.extensionVersion}
+        </Text>
+      ) : null}
+    </View>
   )
 }
 
@@ -130,8 +225,12 @@ function DesktopNote(): React.JSX.Element {
 }
 
 export default function ServicesScreen(): React.JSX.Element {
+  // Desktop-owned values: pull the current ones when this screen opens.
+  useFreshConfig()
   const { t } = useTranslation()
   const services = useDemoConfig((state) => state.services)
+  const extensionBrowsers = useDemoConfig((state) => state.extensionBrowsers)
+  const port = useConfigValue('browserExtensionPort')
   const byKey = new Map(services.map((service) => [service.key, service]))
 
   const voiceOptions = useMemo<readonly SelectOption<string>[]>(
@@ -184,7 +283,7 @@ export default function ServicesScreen(): React.JSX.Element {
           label={t('settings.channels.enabled')}
           description={t('settings.services.brave.description')}
         />
-        <SecretRow label={t('settings.services.brave.apiKey')} />
+        <SecretRow field="braveApiKey" label={t('settings.services.brave.apiKey')} />
         <Text className="text-muted text-left font-sans text-xs leading-5">
           {t('settings.services.secretNote')}
         </Text>
@@ -197,9 +296,13 @@ export default function ServicesScreen(): React.JSX.Element {
           label={t('settings.channels.enabled')}
           description={t('settings.services.memes.description')}
         />
-        <SecretRow label={t('settings.services.memes.imgflipUsername')} secure={false} />
-        <SecretRow label={t('settings.services.memes.imgflipPassword')} />
-        <SecretRow label={t('settings.services.memes.giphyKey')} />
+        <SecretRow
+          field="imgflipUsername"
+          label={t('settings.services.memes.imgflipUsername')}
+          secure={false}
+        />
+        <SecretRow field="imgflipPassword" label={t('settings.services.memes.imgflipPassword')} />
+        <SecretRow field="giphyApiKey" label={t('settings.services.memes.giphyKey')} />
         <Text className="text-muted text-left font-sans text-xs leading-5">
           {t('settings.services.secretNote')}
         </Text>
@@ -258,12 +361,20 @@ export default function ServicesScreen(): React.JSX.Element {
           serviceKey="browserExtension"
           connected={byKey.get('browserExtension')?.connected ?? false}
         />
-        {connectionRows('browserExtension')}
-        <ConfigTextRow
-          field="browserExtensionPort"
-          label={t('settings.services.browserExtension.port')}
-          keyboardType="number-pad"
-        />
+        {extensionBrowsers.map((browser, index) => (
+          <BrowserCard key={`${browser.browser}-${index}`} browser={browser} />
+        ))}
+        {/* The port stays the desktop's: moving it restarts the pairing
+            server that extension connections dial into. */}
+        <View className="flex-col gap-1.5">
+          <Text className="text-muted font-sans-medium text-left text-sm">
+            {t('settings.services.browserExtension.port')}
+          </Text>
+          <Input value={port} editable={false} />
+          <Text className="text-muted text-left font-sans text-xs leading-5">
+            {t('settings.services.browserExtension.portManagedOnDesktop')}
+          </Text>
+        </View>
         <ConfigSelectRow
           field="browserScreenshotMaxWidth"
           label={t('settings.services.screenshotMaxWidth')}
