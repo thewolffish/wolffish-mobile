@@ -140,6 +140,65 @@ describe('a socket that stops answering', () => {
   })
 })
 
+describe('a side parked at the rendezvous', () => {
+  /**
+   * peerWaitMs: null is the parked host's contract: sit at the rendezvous for
+   * as long as it takes, because the phone being away is the ordinary state,
+   * not a failure. A `??` at the call site quietly turned null into a minute —
+   * the host then cycled (wait, throw, tear down, back off) and was absent
+   * from the rendezvous during every backoff gap, which is exactly when the
+   * phone tends to arrive. This pins the contract: past the old one-minute
+   * mark the same socket is still open, still waiting, still keeping alive.
+   */
+  it('outlasts the old 60s default on one socket when peerWaitMs is null', async () => {
+    const tunnel = makeTunnel()
+    void tunnel.start()
+    const socket = FakeSocket.last
+    socket?.open()
+    for (let i = 0; i < 4; i += 1) await Promise.resolve()
+    expect(tunnel.getState().status).toBe('waiting-for-peer')
+
+    // 150 parked seconds, answering every keepalive. The flushes matter: the
+    // old timeout rejected into a microtask, so a synchronous advance never
+    // saw the teardown it caused.
+    for (let round = 0; round < 6; round += 1) {
+      jest.advanceTimersByTime(25_000)
+      socket?.emit('message', { data: 'pong' })
+      for (let i = 0; i < 6; i += 1) await Promise.resolve()
+    }
+
+    // Same socket, never closed, no replacement dialled — and the keepalive
+    // kept proving the wait alive the whole time.
+    expect(socket?.closed).toBe(false)
+    expect(FakeSocket.last).toBe(socket)
+    expect(tunnel.getState().status).toBe('waiting-for-peer')
+    expect(socket?.sent.filter((data) => data === 'ping').length).toBeGreaterThanOrEqual(6)
+  })
+
+  /**
+   * Parking is a settled outcome, not a pending one. Reaching the rendezvous
+   * IS this tunnel's steady state — the peer may be hours away — so a caller
+   * awaiting start() must get its answer here. Before this settled, launch
+   * resume and the reconnect button's busy flag hung for as long as the
+   * desktop stayed asleep.
+   */
+  it('start() resolves once parked, not when the peer eventually arrives', async () => {
+    const tunnel = makeTunnel()
+    let resolved = false
+    const started = tunnel.start().then(() => {
+      resolved = true
+    })
+
+    FakeSocket.last?.open()
+    for (let i = 0; i < 8; i += 1) await Promise.resolve()
+
+    expect(tunnel.getState().status).toBe('waiting-for-peer')
+    expect(resolved).toBe(true)
+    await started
+    expect(tunnel.alive).toBe(true)
+  })
+})
+
 describe('alive', () => {
   it('is false once stopped, so a caller knows to build a new one', () => {
     const tunnel = makeTunnel()

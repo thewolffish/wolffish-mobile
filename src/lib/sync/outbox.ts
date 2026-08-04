@@ -67,6 +67,17 @@ export function captureOutboxState(): ReadonlyMap<string, number> {
 }
 
 /**
+ * Does this key hold local edits the desktop has not acknowledged? The
+ * instantaneous form of the guard, for pushes that arrive WITH their payload:
+ * no fetch window to bracket, so dirty-right-now is the whole question — a
+ * push landing mid-edit loses to the edit, and the ack that settles it is
+ * what lets the next push (or refresh) land desktop truth.
+ */
+export function outboxIsDirty(key: string): boolean {
+  return dirtyKeys.has(key)
+}
+
+/**
  * Which keys the snapshot fetched after `before` must NOT overwrite: keys
  * still dirty, plus keys whose epoch moved while the fetch was in the air.
  */

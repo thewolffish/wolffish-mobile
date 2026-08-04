@@ -32,7 +32,7 @@
     "verbose": {
       "label": "Verbose task results",
       "description": "Show every tool call and step.",
-      "channelDescription": "Relay every tool call and step to the chat. Off (the default) sends a clean feed — only agent replies and the files it sends."
+      "channelDescription": "Relay every tool call and step to the chat. Off sends only agent replies and files."
     },
     "tabs": {
       "model": "Model",

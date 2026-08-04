@@ -22,6 +22,7 @@ import { resetOutboxForTests } from '@/lib/sync/outbox'
 import { Rpc } from '@/lib/tunnel/protocol'
 import { useAppStore } from '@/state/appStore'
 import {
+  applyVariablesPush,
   refreshConfigSnapshot,
   setConfigValue,
   useDemoConfig,
@@ -180,5 +181,49 @@ describe('demoConfig variables sync', () => {
     await jest.advanceTimersByTimeAsync(400)
     expect(useDemoConfig.getState().variables).toEqual([])
     expect(mockRpc).not.toHaveBeenCalled()
+  })
+
+  // The targeted variables.changed push — the payload goes straight into the
+  // store, so these pin the same contract the snapshot path has: desktop rows
+  // land, drafts survive, legacy shapes normalize, and a push racing this
+  // phone's own typing loses to it.
+  it('a variables push lands directly and keeps local drafts', () => {
+    useDemoConfig.setState({
+      variables: [named('STALE'), { name: '', value: 'half-typed', sensitive: false }]
+    })
+    applyVariablesPush([
+      named('FROM_DESKTOP'),
+      // One generation of drift: {key, value} rows still render.
+      { key: 'LEGACY', value: 'old-shape' } as unknown as DemoVariable
+    ])
+    expect(useDemoConfig.getState().variables).toEqual([
+      named('FROM_DESKTOP'),
+      { name: 'LEGACY', value: 'old-shape', sensitive: false },
+      { name: '', value: 'half-typed', sensitive: false }
+    ])
+  })
+
+  it('a variables push arriving mid-edit loses to the edit', async () => {
+    // Typing in progress: the local edit queued but not yet acknowledged.
+    let resolveSend!: (value: unknown) => void
+    mockRpc.mockImplementationOnce(() => new Promise((resolve) => (resolveSend = resolve)))
+    setConfigValue('variables', [named('TYPED_HERE')])
+
+    applyVariablesPush([named('PUSHED_MEANWHILE')])
+    expect(useDemoConfig.getState().variables).toEqual([named('TYPED_HERE')])
+
+    // Acknowledged — the dirty window closes and the next push lands.
+    await jest.advanceTimersByTimeAsync(400)
+    resolveSend({ ok: true })
+    await jest.advanceTimersByTimeAsync(0)
+    applyVariablesPush([named('PUSHED_AFTER')])
+    expect(useDemoConfig.getState().variables).toEqual([named('PUSHED_AFTER')])
+  })
+
+  it('a malformed variables push changes nothing', () => {
+    useDemoConfig.setState({ variables: [named('KEEP')] })
+    applyVariablesPush({ not: 'an array' })
+    applyVariablesPush(undefined)
+    expect(useDemoConfig.getState().variables).toEqual([named('KEEP')])
   })
 })

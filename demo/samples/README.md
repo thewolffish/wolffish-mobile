@@ -7,7 +7,7 @@ is listed in src/lib/files/publishedSamples.json (the manifest is the single
 source of truth for what is published; the app and the demo build scripts
 both read it).
 
-Note this is a different target from demo-data/bundle/, which uploads to
+Note this is a different target from demo/bundle/, which uploads to
 cdn.wolffi.sh/demo.
 
 - `wolffish-sample.chart.json` — the interactive chart card spec (matches the

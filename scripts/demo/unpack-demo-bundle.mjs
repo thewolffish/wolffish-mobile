@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
- * Unpack a published demo bundle into demo-data/ — the committed source of
+ * Unpack a published demo bundle into demo/ — the committed source of
  * truth for demo content.
  *
  * The inverse of build-demo-bundle.mjs. Reads a bundle directory (the shape
  * cdn.wolffi.sh/demo serves: manifest.json + config-snapshot.json +
  * conversations-NNN.json shards) and writes:
  *
- *   demo-data/conversations/<id>.json   one file per conversation, pretty-printed
- *   demo-data/config-snapshot.json      copied byte-for-byte
+ *   demo/conversations/<id>.json   one file per conversation, pretty-printed
+ *   demo/config-snapshot.json      copied byte-for-byte
  *
  * Conversations are pretty-printed so they can be edited by hand — demo
  * content evolves by editing these files directly, never by deriving from a
@@ -17,17 +17,17 @@
  * bundle's version hash exactly. The config snapshot is hashed as raw bytes,
  * which is why it is copied verbatim rather than re-serialized.
  *
- *   node scripts/demo/unpack-demo-bundle.mjs [BUNDLE_DIR]   # default demo-data/bundle
+ *   node scripts/demo/unpack-demo-bundle.mjs [BUNDLE_DIR]   # default demo/bundle
  *
- * Rarely needed — demo-data/ lives in git and edits happen there — but kept
+ * Rarely needed — demo/ lives in git and edits happen there — but kept
  * for re-deriving the editable files from a bundle. Reads nothing outside the
  * repo.
  */
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
-const BUNDLE_DIR = process.argv[2] ?? path.join(process.cwd(), 'demo-data', 'bundle')
-const OUT_DIR = process.env.DEMO_OUT ?? path.join(process.cwd(), 'demo-data')
+const BUNDLE_DIR = process.argv[2] ?? path.join(process.cwd(), 'demo', 'bundle')
+const OUT_DIR = process.env.DEMO_OUT ?? path.join(process.cwd(), 'demo')
 
 /** Conversation ids become filenames — refuse anything that couldn't be one. */
 const SAFE_ID = /^[A-Za-z0-9._-]+$/

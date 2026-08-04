@@ -182,6 +182,14 @@ export const Event = {
   turnScored: 'turn.scored',
   /** Any config section changed on the desktop. */
   configChanged: 'config.changed',
+  /**
+   * The variables array changed, whoever wrote it — payload carries the whole
+   * array (`{ variables }`), so the phone renders it straight into its store
+   * with no snapshot round trip. A debounced config.changed still follows for
+   * everything that rebuilds from the full snapshot, and a phone that predates
+   * this topic converges through that path alone.
+   */
+  variablesChanged: 'variables.changed',
   /** Usage counters moved. */
   usageChanged: 'usage.changed'
 } as const

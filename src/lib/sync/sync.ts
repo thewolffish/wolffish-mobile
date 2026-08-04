@@ -4,7 +4,12 @@ import { getDb } from '@/lib/db/database'
 import { resolveWorkspaceFile } from '@/lib/files/fileCache'
 import { tunnelClient } from '@/lib/tunnel/client'
 import { Event, Rpc, type ConversationMeta } from '@/lib/tunnel/protocol'
-import { refreshConfigSnapshot, useDemoConfig, type ConfigSnapshot } from '@/state/demoConfig'
+import {
+  applyVariablesPush,
+  refreshConfigSnapshot,
+  useDemoConfig,
+  type ConfigSnapshot
+} from '@/state/demoConfig'
 import { pushCapability, setOutboxRefreshHook } from '@/lib/sync/outbox'
 import { useAppStore } from '@/state/appStore'
 import { invalidateConversation, invalidateConversationList } from '@/lib/conversations/cache'
@@ -332,6 +337,14 @@ export function attachLiveUpdates(): () => void {
 
   tunnel.onEvent(Event.configChanged, () => {
     scheduleConfigRefresh()
+  })
+
+  // Variables arrive with their payload — straight into the store, no
+  // snapshot fetch, so an edit on the desktop is on this screen in the
+  // push's own latency. The debounced config.changed that follows the same
+  // save is then a no-op for this key and truth for everything else.
+  tunnel.onEvent(Event.variablesChanged, (payload) => {
+    applyVariablesPush((payload as { variables?: unknown })?.variables)
   })
 
   // Usage moves on every scored turn from any channel. The desktop has always

@@ -1,6 +1,7 @@
 import { upsertConversation } from '@/lib/conversations/repo'
 import type { ConversationFile } from '@/lib/conversations/types'
 import { purgeDemoState } from '@/lib/demo/reset'
+import { seedWorkspaceFile } from '@/lib/files/fileCache'
 import { useDemoConfig, type ConfigSnapshot } from '@/state/demoConfig'
 import { Directory, File, Paths } from 'expo-file-system'
 
@@ -36,6 +37,21 @@ export const DEMO_BASE_URL = process.env.EXPO_PUBLIC_DEMO_BASE_URL ?? 'https://c
 
 /** One packed slice of the dataset. `bytes` is the uncompressed shard size. */
 export type DemoShard = { file: string; bytes: number; conversations: number }
+
+/**
+ * A bundle conversation. `files` is a demo-bundle extension of the desktop's
+ * conversation shape: most demo media stays metadata-only and resolves to the
+ * published per-type sample on first view (lib/files/sampleFiles.ts) — right
+ * for photos and PDFs, where "a real file of that type" is the point. Chart
+ * specs are the exception: by-extension every `.chart.json` would render the
+ * same sample spec, so a showcase of the eleven chart types would draw the
+ * same column chart eleven times. A conversation that needs per-path bytes
+ * carries them inline (relPath → text, a few KB of JSON), written into the
+ * workspace at import time so the cards work offline and never hit the
+ * by-extension fallback. Storage never sees the key: upsertConversation
+ * projects the fields it knows.
+ */
+export type DemoConversationFile = ConversationFile & { files?: Record<string, string> }
 
 export type DemoManifest = {
   /** Content hash of the bundle — changes only when the dataset changes. */
@@ -164,6 +180,21 @@ export async function applyConfigSnapshot(): Promise<boolean> {
   }
 }
 
+/**
+ * Materialize a conversation's inline files (see DemoConversationFile) into
+ * the workspace. Best-effort by design: a failed or rejected write costs one
+ * card its per-path bytes — the viewer falls back to the by-extension sample
+ * — never the conversation.
+ */
+function seedConversationFiles(conversation: DemoConversationFile): void {
+  const files = conversation.files
+  if (!files || typeof files !== 'object') return
+  for (const [relPath, content] of Object.entries(files)) {
+    if (typeof content !== 'string') continue
+    seedWorkspaceFile(relPath, content)
+  }
+}
+
 /** Persist the snapshot beside the conversations it describes. */
 function saveConfigSnapshot(raw: string): void {
   const snapshot = JSON.parse(raw) as ConfigSnapshot
@@ -244,7 +275,7 @@ export async function importDemoData(
   let processed = 0
   const expected = total || manifest.shards.reduce((sum, shard) => sum + shard.conversations, 0)
   for (const [index, shard] of manifest.shards.entries()) {
-    const payload = JSON.parse(bodies[index]) as { conversations: ConversationFile[] }
+    const payload = JSON.parse(bodies[index]) as { conversations: DemoConversationFile[] }
     bodies[index] = '' // The parsed copy is the live one from here on.
     if (!Array.isArray(payload.conversations)) throw new Error(`malformed shard: ${shard.file}`)
 
@@ -254,6 +285,7 @@ export async function importDemoData(
           throw new Error('malformed conversation')
         }
         await upsertConversation(conversation)
+        seedConversationFiles(conversation)
         imported += 1
       } catch {
         // One unreadable conversation must not cost the other 168.

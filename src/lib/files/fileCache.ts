@@ -71,6 +71,31 @@ function scratchFile(relPath: string): File {
   return new File(new Directory(Paths.cache, DOWNLOAD_DIR), name)
 }
 
+/**
+ * Write text content directly into the workspace at `relPath` — the demo
+ * importer's path for files whose bytes ship inside the bundle (per-path
+ * chart specs) instead of resolving to the per-type CDN sample. Deliberately
+ * not recorded in cached_files: the LRU must never prune one (the re-fetch
+ * would silently swap it for the generic sample), and purgeDemoState deletes
+ * the whole workspace directory, so nothing can leak. Returns false on a
+ * traversal-shaped path or a failed write.
+ */
+export function seedWorkspaceFile(relPath: string, content: string): boolean {
+  // The bundle is our own content, but a malformed path must not escape the
+  // workspace directory.
+  const segments = relPath.split('/')
+  if (segments.some((part) => part === '' || part === '.' || part === '..')) return false
+  try {
+    ensureParent(workspaceRoot(), relPath)
+    const target = fileAt(workspaceRoot(), relPath)
+    if (target.exists) target.delete()
+    target.write(content)
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** In-flight downloads, keyed by workspace-relative path. */
 const inFlight = new Map<string, Promise<string | null>>()
 

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import {
   captureOutboxState,
   markOutboxEdited,
+  outboxIsDirty,
   outboxKeysToKeepLocal,
   pushVariables,
   settleOutboxKey
@@ -762,6 +763,33 @@ function sanitizeChangelogMonths(months: unknown): string[] {
   return [...new Set(clean)].sort().reverse()
 }
 
+/**
+ * Desktop-sent variable rows folded onto this phone's list — the one shape
+ * both ingest paths share (the full snapshot and the targeted
+ * variables.changed push), so the two can never render differently.
+ *
+ * Tolerates one protocol generation of drift ({key, value} rows), and keeps
+ * this phone's nameless draft rows: added here but not yet named, so the
+ * desktop cannot hold them (its own panel refuses a nameless save, and the
+ * outbox never sends one). They ride along at the end instead of vanishing
+ * mid-compose.
+ */
+function mergeVariablesFromDesktop(
+  rows: ConfigSnapshot['variables'] | undefined,
+  local: DemoVariable[]
+): DemoVariable[] {
+  return [
+    ...(rows ?? [])
+      .map((variable) => ({
+        name: variable.name ?? (variable as { key?: string }).key ?? '',
+        value: variable.value ?? '',
+        sensitive: variable.sensitive === true
+      }))
+      .filter((variable) => variable.name),
+    ...local.filter((variable) => !variable.name.trim())
+  ]
+}
+
 /** The store's initial, pre-snapshot shape — DEFAULTS plus what a snapshot fills. */
 const INITIAL_STATE = {
   ...DEFAULTS,
@@ -845,23 +873,7 @@ export const useDemoConfig = create<DemoConfigState>()(
             },
             desktopData: sanitizeDesktopData(snapshot.data),
             desktopChangelogMonths: sanitizeChangelogMonths(snapshot.changelog?.months),
-            // Tolerate one protocol generation of drift: a desktop from
-            // before the shape fix sent `{key, value}` rows. The phone
-            // renders whichever field exists rather than a blank list.
-            // Nameless rows are this phone's drafts — added here but not yet
-            // named, so the desktop cannot hold them (its own panel refuses a
-            // nameless save, and the outbox never sends one). They ride along
-            // at the end instead of vanishing mid-compose.
-            variables: [
-              ...(snapshot.variables ?? [])
-                .map((variable) => ({
-                  name: variable.name ?? (variable as { key?: string }).key ?? '',
-                  value: variable.value ?? '',
-                  sensitive: variable.sensitive === true
-                }))
-                .filter((variable) => variable.name),
-              ...state.variables.filter((variable) => !variable.name.trim())
-            ],
+            variables: mergeVariablesFromDesktop(snapshot.variables, state.variables),
             projects: snapshot.projects ?? [],
             brainProvider: snapshot.llm.brainProvider,
             brainModel: snapshot.llm.brainModel,
@@ -1190,6 +1202,24 @@ export async function refreshConfigSnapshot(): Promise<void> {
   const snapshot = (await tunnel.rpc(Rpc.configSnapshot)) as ConfigSnapshot
   const keepLocal = outboxKeysToKeepLocal(before) as Array<keyof DemoConfigValues>
   useDemoConfig.getState().applySnapshot(snapshot, keepLocal.length ? { keepLocal } : undefined)
+}
+
+/**
+ * A targeted variables push landed — the desktop sent the array itself, so it
+ * goes straight into the store and onto the screen, no snapshot round trip.
+ *
+ * The instantaneous outbox check is the whole race story here: mid-edit the
+ * local array wins (this phone's write is already on its way to the desktop,
+ * whose arrival order decides), and once the edit is acknowledged the next
+ * push or refresh lands desktop truth. Same drift tolerance and draft
+ * preservation as the snapshot path, via the shared merge.
+ */
+export function applyVariablesPush(rows: unknown): void {
+  if (!Array.isArray(rows)) return
+  if (outboxIsDirty('variables')) return
+  useDemoConfig.setState((state) => ({
+    variables: mergeVariablesFromDesktop(rows as ConfigSnapshot['variables'], state.variables)
+  }))
 }
 
 /**

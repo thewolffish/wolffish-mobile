@@ -26,6 +26,12 @@ jest.mock('@/lib/demo/reset', () => ({
   purgeDemoState: () => mockPurge()
 }))
 
+const mockSeed = jest.fn<boolean, [string, string]>().mockReturnValue(true)
+
+jest.mock('@/lib/files/fileCache', () => ({
+  seedWorkspaceFile: (relPath: string, content: string) => mockSeed(relPath, content)
+}))
+
 jest.mock('expo-file-system', () => ({
   Paths: { document: 'file:///doc' },
   Directory: class {
@@ -100,6 +106,7 @@ describe('demo bundle import', () => {
     mockUpsert.mockClear().mockResolvedValue(undefined)
     mockPurge.mockClear().mockResolvedValue(undefined)
     mockCreated.mockClear()
+    mockSeed.mockClear().mockReturnValue(true)
     mockWritten.length = 0
   })
 
@@ -226,5 +233,43 @@ describe('demo bundle import', () => {
     serve({ 'manifest.json': { ...MANIFEST, version: '' } })
     await expect(importDemoData()).rejects.toThrow('no version')
     expect(mockPurge).not.toHaveBeenCalled()
+  })
+
+  /**
+   * Conversations may carry per-path file bytes inline (the chart showcase's
+   * specs — see DemoConversationFile): each entry is written into the
+   * workspace so the card renders its own spec instead of the by-extension
+   * sample.
+   */
+  it('materializes inline conversation files into the workspace', async () => {
+    const charty = {
+      ...conversation('a'),
+      files: {
+        'files/charts/one.chart.json': '{"type":"line"}',
+        'files/charts/two.chart.json': '{"type":"pie"}'
+      }
+    }
+    serve({ 'conversations-000.json': { conversations: [charty, conversation('b')] } })
+    const result = await importDemoData()
+
+    expect(mockSeed.mock.calls).toEqual([
+      ['files/charts/one.chart.json', '{"type":"line"}'],
+      ['files/charts/two.chart.json', '{"type":"pie"}']
+    ])
+    expect(result).toMatchObject({ imported: 3, failed: 0 })
+  })
+
+  it('skips non-string inline entries and survives a rejected write', async () => {
+    const charty = {
+      ...conversation('a'),
+      files: { 'files/charts/ok.chart.json': '{}', 'files/charts/bad.chart.json': 7 }
+    }
+    serve({ 'conversations-000.json': { conversations: [charty] } })
+    mockSeed.mockReturnValue(false) // full disk, traversal-shaped path — card falls back
+    const result = await importDemoData()
+
+    expect(mockSeed.mock.calls).toEqual([['files/charts/ok.chart.json', '{}']])
+    // A missing spec costs the card its bytes, never the conversation.
+    expect(result).toMatchObject({ imported: 2, failed: 0 })
   })
 })

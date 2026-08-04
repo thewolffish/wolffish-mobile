@@ -247,9 +247,12 @@ export class Tunnel {
     // resolves only when the connection DIES. Every caller that awaits
     // start() (pairing, the reconnect button) would hang precisely while
     // everything worked, holding its busy flag forever. Resolve at the first
-    // settle instead: connected, the first scheduled retry, or stop(). That
-    // is the moment the old single-session cycle returned at, and the
-    // contract callers were written against.
+    // settle instead: connected, the first scheduled retry, stop() — or
+    // parked, for the caller that chose to park. A null peerWaitMs makes
+    // waiting-for-peer the steady state, reached in seconds and held for as
+    // long as the peer is away; a caller awaiting arrival there would hang
+    // launch resume and busy flags for hours. Bounded waits keep the old
+    // contract — their timeout turns parking into a settle soon enough.
     const settled = new Promise<void>((resolve) => {
       let done = false
       const unsubscribe = this.onState((state) => {
@@ -258,7 +261,8 @@ export class Tunnel {
           this.stopped ||
           state.status === 'connected' ||
           state.status === 'reconnecting' ||
-          state.status === 'error'
+          state.status === 'error' ||
+          (state.status === 'waiting-for-peer' && this.options.peerWaitMs === null)
         ) {
           done = true
           // Deferred: onState replays synchronously inside subscription, so
@@ -283,7 +287,10 @@ export class Tunnel {
       // sides a window in which to miss each other. The guard is socket
       // identity: once this socket is replaced or closed, the loop is over.
       while (!this.stopped && this.ws === socket) {
-        await this.waitForPeer(this.options.peerWaitMs ?? 60_000)
+        // Not `??`: null means park indefinitely and must reach waitForPeer
+        // intact. Only an absent option falls back to the parameter's bounded
+        // default.
+        await this.waitForPeer(this.options.peerWaitMs)
         if (this.stopped || this.ws !== socket) return
         await this.performHandshake(mode)
         this.attempt = 0

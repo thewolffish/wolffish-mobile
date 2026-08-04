@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build a "one file of every supported type" conversation into demo-data/, for
+ * Build a "one file of every supported type" conversation into demo/, for
  * exercising the chat file viewers end-to-end on a device.
  *
  * Writes no files: every path below resolves to the published sample for its
@@ -8,7 +8,7 @@
  * script emits a single conversation JSON and nothing else, and each card shows
  * a real file of that type — the same one for every user.
  *
- *   node scripts/demo/build-file-showcase.mjs        # writes into demo-data/
+ *   node scripts/demo/build-file-showcase.mjs        # writes into demo/
  *   node scripts/demo/build-demo-bundle.mjs          # pack for the CDN
  *
  * The conversation delivers each file exactly the way the desktop does — a
@@ -20,7 +20,7 @@ import path from 'node:path'
 import { sampleExtFor } from './sample-exts.mjs'
 
 const ROOT = path.join(path.dirname(new URL(import.meta.url).pathname), '..', '..')
-const DEMO = process.env.DEMO_OUT ?? path.join(ROOT, 'demo-data')
+const DEMO = process.env.DEMO_OUT ?? path.join(ROOT, 'demo')
 const SHOWCASE_DIR = 'files/showcase'
 const CONV_ID = 'file-showcase'
 
@@ -198,7 +198,7 @@ async function main() {
   )
 
   console.log(`showcase: ${DELIVERED.length} delivered + ${ATTACHED.length} attached, 0 bytes`)
-  console.log(`conversation: demo-data/conversations/conv-${CONV_ID}.json`)
+  console.log(`conversation: demo/conversations/conv-${CONV_ID}.json`)
 }
 
 main().catch((error) => {

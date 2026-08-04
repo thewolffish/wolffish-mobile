@@ -53,6 +53,67 @@ function Chip({
   )
 }
 
+/** One placeholder line. Callers own every dimension. */
+function Bar({ className }: { className: string }): React.JSX.Element {
+  return <View className={cn('bg-border rounded-full', className)} />
+}
+
+/**
+ * A month page's worth of placeholder blocks, shaped the way a real month
+ * reads: version header, a titled change, a paragraph of prose. Widths vary
+ * because a column of identical bars reads as one line loading nine times.
+ */
+const SKELETON_BLOCKS = [
+  {
+    version: 'w-44',
+    title: 'w-56',
+    lines: ['w-full', 'w-full', 'w-[93%]', 'w-full', 'w-[71%]']
+  },
+  {
+    version: 'w-40',
+    title: 'w-36',
+    lines: ['w-full', 'w-[96%]', 'w-full', 'w-[88%]', 'w-full', 'w-[42%]']
+  },
+  {
+    version: 'w-44',
+    title: 'w-48',
+    lines: ['w-full', 'w-[90%]', 'w-[57%]']
+  }
+] as const
+
+/**
+ * The page while its markdown is on the way — the real page's rhythm in bars
+ * (MarkdownView's own metrics: 21px body lines, 8px paragraph gaps, heading
+ * blocks with their margins), so real text lands as a fill, not a reflow.
+ * Bars are solid `bg-border` dimmed with `opacity-*`, never `bg-border/60` —
+ * NativeWind drops `/opacity` on var() colours (see HistorySkeleton).
+ */
+function PageSkeleton(): React.JSX.Element {
+  return (
+    // One pulse for the whole page rather than one per bar, and hidden from
+    // the screen reader — it is picture, not content.
+    <View accessibilityElementsHidden className="animate-pulse flex-col">
+      {SKELETON_BLOCKS.map((block, blockIndex) => (
+        <View key={blockIndex} className="flex-col">
+          <View className="my-[8px] h-[25px] justify-center">
+            <Bar className={cn('h-3.5', block.version)} />
+          </View>
+          <View className="my-[6px] h-[22px] justify-center">
+            <Bar className={cn('h-3', block.title)} />
+          </View>
+          <View className="mb-[8px] flex-col">
+            {block.lines.map((width, lineIndex) => (
+              <View key={lineIndex} className="h-[21px] justify-center">
+                <Bar className={cn('h-3 opacity-60', width)} />
+              </View>
+            ))}
+          </View>
+        </View>
+      ))}
+    </View>
+  )
+}
+
 export default function ChangelogScreen(): React.JSX.Element {
   const { t } = useTranslation()
   const { locale } = useLocale()
@@ -139,9 +200,7 @@ export default function ChangelogScreen(): React.JSX.Element {
 
       <Section>
         {activeMonth && page.loading ? (
-          <View className="py-8">
-            <Text className="text-muted text-center font-sans text-sm">{t('common.loading')}</Text>
-          </View>
+          <PageSkeleton />
         ) : page.text ? (
           <MarkdownView>{page.text}</MarkdownView>
         ) : (

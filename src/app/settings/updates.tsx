@@ -89,6 +89,12 @@ export default function UpdatesScreen(): React.JSX.Element {
 
   return (
     <PanelScreen title={t('settings.tabs.updates')} subtitle={t('settings.updates.subtitle')}>
+      <NavRow
+        label={t('settings.changelog.title')}
+        description={t('settings.changelog.subtitle')}
+        onPress={() => router.push('/settings/changelog')}
+      />
+
       <Section title={t('settings.updates.thisAppTitle')}>
         <Text className="text-muted text-left font-sans text-xs leading-5">
           {t('settings.updates.thisAppDescription')}
@@ -139,15 +145,6 @@ export default function UpdatesScreen(): React.JSX.Element {
           description={t('settings.updates.desktopAutoDescription')}
         />
       </Section>
-
-      {/* Under the desktop card on purpose: the screen reads top-down as
-          this app → the desktop → what shipped on either. The page behind it
-          carries both apps' notes, the desktop's synced verbatim. */}
-      <NavRow
-        label={t('settings.changelog.title')}
-        description={t('settings.changelog.subtitle')}
-        onPress={() => router.push('/settings/changelog')}
-      />
     </PanelScreen>
   )
 }
