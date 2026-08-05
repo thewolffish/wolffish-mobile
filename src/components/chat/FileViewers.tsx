@@ -21,7 +21,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { WebView } from 'react-native-webview'
-import { DownloadGlyph, DownloadStatus } from './DownloadStatus'
+import { DownloadGlyph, DownloadStatus } from '@/components/chat/DownloadStatus'
 import {
   CardFooter,
   CardHeader,
@@ -31,8 +31,8 @@ import {
   RenderGuard,
   shareFile,
   type Align
-} from './FileChrome'
-import { MarkdownView } from './MarkdownView'
+} from '@/components/chat/FileChrome'
+import { MarkdownView } from '@/components/chat/MarkdownView'
 
 /**
  * Inline file viewers — the mobile counterparts of the desktop's

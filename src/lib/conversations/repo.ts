@@ -5,7 +5,7 @@ import type {
   ConversationMessage,
   ConversationMeta,
   ConversationStats
-} from './types'
+} from '@/lib/conversations/types'
 
 /**
  * SQLite-backed conversation repository — the mobile mirror of the desktop's

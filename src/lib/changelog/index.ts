@@ -3,11 +3,12 @@ import { tunnelClient } from '@/lib/tunnel/client'
 import { Rpc } from '@/lib/tunnel/protocol'
 import { Asset } from 'expo-asset'
 import { File } from 'expo-file-system'
-// Relative, unlike everything else in src: the `@/` alias is resolved for
-// source modules, and these are assets — a path Metro must follow at bundle
-// time to pack the file into the binary.
-import ar202607 from '../../changelog/2026-07/ar.md'
-import en202607 from '../../changelog/2026-07/en.md'
+// Assets, not source: Metro follows these at bundle time to pack the markdown
+// into the binary (the `md` asset extension is registered in metro.config.js).
+// The `@/` alias resolves them the same as any module — Metro applies
+// tsconfig paths before it decides source-vs-asset.
+import ar202607 from '@/changelog/2026-07/ar.md'
+import en202607 from '@/changelog/2026-07/en.md'
 
 /**
  * Release notes — one markdown page per month per locale, the desktop's

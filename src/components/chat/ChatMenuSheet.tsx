@@ -8,8 +8,8 @@ import { useDemoConfig, useProject } from '@/state/demoConfig'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScrollView, Text, useWindowDimensions, View } from 'react-native'
-import { ContextMeterCard, ModeAndThinkingControls } from './ChatControls'
-import { ModelSelector, ModelSwitch } from './ModelSwitch'
+import { ContextMeterCard, ModeAndThinkingControls } from '@/components/chat/ChatControls'
+import { ModelSelector, ModelSwitch } from '@/components/chat/ModelSwitch'
 
 /** The unfiled option's value — Select keys on strings, so null needs one. */
 const NO_PROJECT = ''

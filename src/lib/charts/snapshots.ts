@@ -1,5 +1,5 @@
-import type { ChartSpec } from './spec'
-import type { ChartTheme } from './theme'
+import type { ChartSpec } from '@/lib/charts/spec'
+import type { ChartTheme } from '@/lib/charts/theme'
 
 /**
  * Chart snapshot service — the queue between chart cards and the single

@@ -102,6 +102,7 @@
       "**/__tests__/**/*.test.[jt]s?(x)"
     ],
     "moduleNameMapper": {
+      "^@/assets/(.*)$": "<rootDir>/assets/$1",
       "^@/(.*)$": "<rootDir>/src/$1"
     },
     "transformIgnorePatterns": [

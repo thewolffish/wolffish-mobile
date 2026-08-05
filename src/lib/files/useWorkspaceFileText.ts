@@ -1,6 +1,6 @@
 import { File } from 'expo-file-system'
 import { useEffect, useMemo, useState } from 'react'
-import { resolveWorkspaceFile, statCachedFile } from './fileCache'
+import { resolveWorkspaceFile, statCachedFile } from '@/lib/files/fileCache'
 
 /**
  * Read a workspace file's text through the file cache, with the desktop's

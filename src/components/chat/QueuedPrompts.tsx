@@ -8,7 +8,7 @@ import {
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio'
 import { useTranslation } from 'react-i18next'
 import { Pressable, ScrollView, Text, View } from 'react-native'
-import type { ComposerSubmit } from './Composer'
+import type { ComposerSubmit } from '@/components/chat/Composer'
 
 /**
  * Messages written while a turn was still running, waiting for it to end.

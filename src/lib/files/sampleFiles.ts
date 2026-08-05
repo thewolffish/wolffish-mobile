@@ -1,5 +1,5 @@
-import { fileExt, fileName } from './fileKinds'
-import published from './publishedSamples.json'
+import { fileExt, fileName } from '@/lib/files/fileKinds'
+import published from '@/lib/files/publishedSamples.json'
 
 /**
  * CDN sample files — where demo-mode file bytes come from.

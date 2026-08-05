@@ -1,16 +1,16 @@
 import { classifyFile, isPlayable, type DeclaredFileKind } from '@/lib/files/fileKinds'
 import { useMemo } from 'react'
 import { Platform } from 'react-native'
-import { ChartFileCard } from './ChartCard'
-import type { Align } from './FileChrome'
+import { ChartFileCard } from '@/components/chat/ChartCard'
+import type { Align } from '@/components/chat/FileChrome'
 import {
   GenericFileCard,
   HtmlFileCard,
   PdfFileCard,
   SheetFileCard,
   TextFileCard
-} from './FileViewers'
-import { AudioBlock, ImageBlock, VideoBlock } from './MediaBlocks'
+} from '@/components/chat/FileViewers'
+import { AudioBlock, ImageBlock, VideoBlock } from '@/components/chat/MediaBlocks'
 
 /**
  * The one place a file becomes a viewer. Both delivered files (send_file's

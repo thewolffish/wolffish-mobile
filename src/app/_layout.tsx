@@ -1,6 +1,6 @@
 if (__DEV__) {
   // Initialize Reactotron before anything else in development.
-  require('../ReactotronConfig')
+  require('@/ReactotronConfig')
 }
 
 // Must load before anything touches @noble: Hermes has no crypto.getRandomValues,

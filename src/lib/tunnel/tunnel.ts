@@ -23,7 +23,7 @@ import {
   RecordType,
   type EventTopic,
   type RpcMethod
-} from './protocol'
+} from '@/lib/tunnel/protocol'
 import {
   CipherState,
   InitiatorIK,
@@ -31,8 +31,8 @@ import {
   ResponderIK,
   ResponderXX,
   type Keypair
-} from './noise'
-import { fingerprint, toHex } from './pairing'
+} from '@/lib/tunnel/noise'
+import { fingerprint, toHex } from '@/lib/tunnel/pairing'
 
 const encoder = new TextEncoder()
 const decoder = new TextDecoder()
@@ -887,5 +887,5 @@ export class Tunnel {
   }
 }
 
-export { Event, Rpc } from './protocol'
+export { Event, Rpc } from '@/lib/tunnel/protocol'
 export { CloseCode }

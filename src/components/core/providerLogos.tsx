@@ -9,7 +9,7 @@ import {
   Video01Icon,
   VolumeHighIcon,
   type IconProps
-} from './icons'
+} from '@/components/core/icons'
 
 /**
  * Provider brand logomarks, extracted verbatim from the Wolffish desktop app:

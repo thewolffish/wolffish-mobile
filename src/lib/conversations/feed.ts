@@ -1,5 +1,5 @@
 import type { LiveStream } from '@/state/chatRuntime'
-import type { ConversationMessage } from './types'
+import type { ConversationMessage } from '@/lib/conversations/types'
 
 /**
  * The chat feed's row list: the stored transcript with the in-flight turn laid
@@ -50,12 +50,7 @@ export type BuildFeedInput = {
   sending?: boolean
 }
 
-export function buildFeed({
-  messages,
-  live,
-  pendingUser,
-  sending
-}: BuildFeedInput): FeedItem[] {
+export function buildFeed({ messages, live, pendingUser, sending }: BuildFeedInput): FeedItem[] {
   const items: FeedItem[] = []
   const stored = new Set<string>()
   for (const message of messages ?? []) {

@@ -25,11 +25,11 @@ import {
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pressable, Text, TextInput, View } from 'react-native'
-import { AttachSheet, AttachmentTray } from './AttachmentPicker'
-import { ChatMenuSheet } from './ChatMenuSheet'
-import { PromptEditorModal } from './PromptEditorModal'
-import { QueuedPromptTray, type QueuedPrompt } from './QueuedPrompts'
-import { RainbowBorder } from './RainbowBorder'
+import { AttachSheet, AttachmentTray } from '@/components/chat/AttachmentPicker'
+import { ChatMenuSheet } from '@/components/chat/ChatMenuSheet'
+import { PromptEditorModal } from '@/components/chat/PromptEditorModal'
+import { QueuedPromptTray, type QueuedPrompt } from '@/components/chat/QueuedPrompts'
+import { RainbowBorder } from '@/components/chat/RainbowBorder'
 
 /**
  * The chat composer — desktop grammar mapped to touch: fixed-height surface

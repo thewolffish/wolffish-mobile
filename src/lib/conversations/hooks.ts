@@ -4,8 +4,8 @@ import { fetchConversationBody, isBodyStale, refreshSync } from '@/lib/sync/sync
 import { tunnelClient } from '@/lib/tunnel/client'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { deleteConversation, getConversation, listConversations } from './repo'
-import type { ConversationFile, ConversationMeta } from './types'
+import { deleteConversation, getConversation, listConversations } from '@/lib/conversations/repo'
+import type { ConversationFile, ConversationMeta } from '@/lib/conversations/types'
 
 /**
  * Read layer over the SQLite store. These queries are local — instant, never

@@ -6,7 +6,7 @@ import type {
   ToolResultStatus,
   ToolTiming,
   WorkflowSnapshot
-} from './types'
+} from '@/lib/conversations/types'
 
 /**
  * Pure transforms from the persisted segment stream to what the feed renders.

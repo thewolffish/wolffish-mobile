@@ -13,9 +13,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ActivityIndicator, PixelRatio, Pressable, Text, View } from 'react-native'
 import { WebView } from 'react-native-webview'
-import { DownloadStatus } from './DownloadStatus'
-import { CardFooter, CardShell, IconAction, shareFile, type Align } from './FileChrome'
-import { ExpandAction, ShareAction, SourceBody, type FileViewerProps } from './FileViewers'
+import { DownloadStatus } from '@/components/chat/DownloadStatus'
+import {
+  CardFooter,
+  CardShell,
+  IconAction,
+  shareFile,
+  type Align
+} from '@/components/chat/FileChrome'
+import {
+  ExpandAction,
+  ShareAction,
+  SourceBody,
+  type FileViewerProps
+} from '@/components/chat/FileViewers'
 
 /**
  * Interactive chart card for delivered `.chart.json` specs — the mobile

@@ -1,4 +1,4 @@
-import type { ConversationMeta } from './types'
+import type { ConversationMeta } from '@/lib/conversations/types'
 
 /**
  * Recency buckets for conversation lists — the desktop's

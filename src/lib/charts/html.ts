@@ -1,11 +1,12 @@
 import { Asset } from 'expo-asset'
 import { Directory, File, Paths } from 'expo-file-system'
-// Relative, unlike everything else in src: the `@/` alias is resolved for
-// source modules, and these are assets — a path Metro must follow at bundle
-// time to pack the file into the binary (same note as lib/changelog).
-import chartPageJs from '../../../assets/charts/chart-page.webjs'
-import echartsJs from '../../../assets/charts/echarts.min.webjs'
-import plexRegular from '../../../assets/fonts/IBMPlexSansArabic-Regular.ttf'
+// Assets, not source: Metro follows these at bundle time to pack them into the
+// binary (same note as lib/changelog). `@/assets/*` is its own tsconfig path
+// mapping to the repo-root assets/ — it wins over `@/*` because the longer
+// prefix matches first, in Metro and in tsc alike.
+import chartPageJs from '@/assets/charts/chart-page.webjs'
+import echartsJs from '@/assets/charts/echarts.min.webjs'
+import plexRegular from '@/assets/fonts/IBMPlexSansArabic-Regular.ttf'
 
 /**
  * The chart WebView's host document. Everything is inlined — the vendored

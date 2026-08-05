@@ -20,14 +20,20 @@ import * as Clipboard from 'expo-clipboard'
 import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pressable, Text, View } from 'react-native'
-import { ApprovalCard } from './ApprovalCard'
-import { CompactionCard, ModelChip, PathCard, TurnEndCard, WorkflowCard } from './InlineCards'
-import { FileBlock } from './FileBlock'
-import { MarkdownView, markdownHasTable } from './MarkdownView'
-import { QuestionCard } from './QuestionCard'
-import { TaskCard } from './TaskCard'
-import { ThinkingIndicator } from './ThinkingIndicator'
-import { ToolCard } from './ToolCard'
+import { ApprovalCard } from '@/components/chat/ApprovalCard'
+import {
+  CompactionCard,
+  ModelChip,
+  PathCard,
+  TurnEndCard,
+  WorkflowCard
+} from '@/components/chat/InlineCards'
+import { FileBlock } from '@/components/chat/FileBlock'
+import { MarkdownView, markdownHasTable } from '@/components/chat/MarkdownView'
+import { QuestionCard } from '@/components/chat/QuestionCard'
+import { TaskCard } from '@/components/chat/TaskCard'
+import { ThinkingIndicator } from '@/components/chat/ThinkingIndicator'
+import { ToolCard } from '@/components/chat/ToolCard'
 
 /**
  * Feed message renderers. User prompts are right-aligned primary bubbles;

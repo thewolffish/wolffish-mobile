@@ -11,7 +11,7 @@
  */
 import { hmac } from '@noble/hashes/hmac.js'
 import { sha256 } from '@noble/hashes/sha2.js'
-import { PAIRING_PREFIX, type PairingPayload } from './protocol'
+import { PAIRING_PREFIX, type PairingPayload } from '@/lib/tunnel/protocol'
 
 const encoder = new TextEncoder()
 

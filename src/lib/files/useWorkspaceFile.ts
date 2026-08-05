@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { resolveWorkspaceFile, statCachedFile } from './fileCache'
+import { resolveWorkspaceFile, statCachedFile } from '@/lib/files/fileCache'
 
 export type WorkspaceFileState = {
   /** Local file URI once cached; null while loading or when missing. */

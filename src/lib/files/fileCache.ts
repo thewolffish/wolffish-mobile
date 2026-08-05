@@ -19,9 +19,9 @@ import { Directory, File, Paths } from 'expo-file-system'
  * — nothing is bundled or pushed, and that behavior is unchanged.
  */
 
-import { beginDownload, endDownload, reportDownload } from './downloadProgress'
-import { selectPrunable, type CachedFileRow } from './lru'
-import { sampleUrlFor } from './sampleFiles'
+import { beginDownload, endDownload, reportDownload } from '@/lib/files/downloadProgress'
+import { selectPrunable, type CachedFileRow } from '@/lib/files/lru'
+import { sampleUrlFor } from '@/lib/files/sampleFiles'
 
 /** Default budget — release content beyond 10 GB, per product requirement. */
 export const DEFAULT_CACHE_BUDGET_BYTES = 10 * 1024 * 1024 * 1024

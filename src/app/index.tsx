@@ -171,7 +171,7 @@ export default function Home(): React.JSX.Element {
     >
       <View className="flex-1 items-center justify-center gap-4">
         <Image
-          source={require('../../assets/images/icon-trans.png')}
+          source={require('@/assets/images/icon-trans.png')}
           style={{ width: 96, height: 96 }}
           contentFit="contain"
         />

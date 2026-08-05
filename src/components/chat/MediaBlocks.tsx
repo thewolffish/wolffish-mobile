@@ -11,8 +11,8 @@ import { useVideoPlayer, VideoView } from 'expo-video'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pressable, Text, useWindowDimensions, View } from 'react-native'
-import { DownloadGlyph, DownloadStatus } from './DownloadStatus'
-import { IconAction, MissingCard, shareFile, type Align } from './FileChrome'
+import { DownloadGlyph, DownloadStatus } from '@/components/chat/DownloadStatus'
+import { IconAction, MissingCard, shareFile, type Align } from '@/components/chat/FileChrome'
 
 /**
  * Media renderers — the mobile counterparts of the desktop's ImageViewer /

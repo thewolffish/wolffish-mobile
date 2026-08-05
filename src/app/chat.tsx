@@ -537,7 +537,7 @@ export default function ChatScreen(): React.JSX.Element {
           {empty && !loading ? (
             <View className="flex-1 items-center justify-center gap-4 px-8">
               <Image
-                source={require('../../assets/images/icon-trans.png')}
+                source={require('@/assets/images/icon-trans.png')}
                 style={{ width: 80, height: 80 }}
                 contentFit="contain"
               />
