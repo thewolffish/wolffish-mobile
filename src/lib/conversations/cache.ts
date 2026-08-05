@@ -41,9 +41,7 @@ export function invalidateConversationList(): void {
  * window with the message in neither place.
  */
 export async function refetchConversation(id: string): Promise<void> {
-  await queryClient
-    .refetchQueries({ queryKey: conversationKeys.detail(id) })
-    .catch(() => undefined)
+  await queryClient.refetchQueries({ queryKey: conversationKeys.detail(id) }).catch(() => undefined)
   void queryClient.invalidateQueries({ queryKey: conversationKeys.list })
 }
 

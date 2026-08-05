@@ -115,7 +115,9 @@ describe('demoConfig variables sync', () => {
   })
 
   it('applies snapshot variables and carries local nameless drafts along', () => {
-    useDemoConfig.setState({ variables: [named('OLD'), { name: '', value: 'half-typed', sensitive: true }] })
+    useDemoConfig.setState({
+      variables: [named('OLD'), { name: '', value: 'half-typed', sensitive: true }]
+    })
     useDemoConfig.getState().applySnapshot(snapshotWith({ variables: [named('FROM_DESKTOP')] }))
     expect(useDemoConfig.getState().variables).toEqual([
       named('FROM_DESKTOP'),
@@ -127,9 +129,12 @@ describe('demoConfig variables sync', () => {
     useDemoConfig.setState({ variables: [named('MINE', 'local-truth')] })
     useDemoConfig
       .getState()
-      .applySnapshot(snapshotWith({ variables: [named('THEIRS')], brainModel: 'claude-sonnet-5' }), {
-        keepLocal: ['variables']
-      })
+      .applySnapshot(
+        snapshotWith({ variables: [named('THEIRS')], brainModel: 'claude-sonnet-5' }),
+        {
+          keepLocal: ['variables']
+        }
+      )
     expect(useDemoConfig.getState().variables).toEqual([named('MINE', 'local-truth')])
     expect(useDemoConfig.getState().brainModel).toBe('claude-sonnet-5')
   })
@@ -137,9 +142,7 @@ describe('demoConfig variables sync', () => {
   it('a snapshot fetched across an edit keeps the edit; the next quiet one applies', async () => {
     // The fetch is already in the air when the user types.
     let resolveFetch!: (value: unknown) => void
-    mockRpc.mockImplementationOnce(
-      () => new Promise((resolve) => (resolveFetch = resolve))
-    )
+    mockRpc.mockImplementationOnce(() => new Promise((resolve) => (resolveFetch = resolve)))
     const raced = refreshConfigSnapshot()
     setConfigValue('variables', [named('TYPED')])
     resolveFetch(snapshotWith({ variables: [named('STALE')] }))

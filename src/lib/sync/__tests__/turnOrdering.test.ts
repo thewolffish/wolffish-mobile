@@ -468,10 +468,7 @@ describe('a turn started from this phone', () => {
     attachTurnStream() // what a reconnect does
     await flush()
 
-    expect(render(screen)).toEqual([
-      'user(hi)',
-      'assistant(text(finished while you were away))'
-    ])
+    expect(render(screen)).toEqual(['user(hi)', 'assistant(text(finished while you were away))'])
     expect(useChatRuntime.getState().streams[CONVERSATION]).toBeUndefined()
   })
 

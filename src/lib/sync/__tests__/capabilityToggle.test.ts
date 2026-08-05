@@ -69,7 +69,11 @@ import {
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
 
 /** A promise the test resolves by hand, to hold an RPC in flight. */
-function deferred<T>(): { promise: Promise<T>; resolve: (v: T) => void; reject: (e: unknown) => void } {
+function deferred<T>(): {
+  promise: Promise<T>
+  resolve: (v: T) => void
+  reject: (e: unknown) => void
+} {
   let resolve!: (v: T) => void
   let reject!: (e: unknown) => void
   const promise = new Promise<T>((res, rej) => {
