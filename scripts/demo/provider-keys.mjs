@@ -1,7 +1,7 @@
 /**
  * Synthetic API keys for the demo dataset.
  *
- * Every key in demo-data/config-snapshot.json came from demoApiKey(id): fake,
+ * Every key in demo/config-snapshot.json came from demoApiKey(id): fake,
  * shaped like that provider's public key format. The only input is the
  * provider id — a public string — so no real secret is ever an ingredient, and
  * re-minting produces byte-identical keys instead of churning the snapshot.

@@ -32,14 +32,26 @@ export type DesktopAttachment = {
  * the whole file landed; false when the desktop is unreachable, the path is
  * unknown, or the transfer broke — the caller keeps its cache untouched then,
  * and the next resolution simply tries again.
+ *
+ * `onProgress` is called with the size before the first chunk and after every
+ * one after it, which is what lets a file card show a real bar rather than a
+ * spinner. It is advisory: throwing from it would fail the transfer, so the
+ * caller keeps it cheap.
  */
-export async function fetchDesktopFileInto(relPath: string, scratch: File): Promise<boolean> {
+export async function fetchDesktopFileInto(
+  relPath: string,
+  scratch: File,
+  onProgress?: (receivedBytes: number, totalBytes: number) => void
+): Promise<boolean> {
   const tunnel = tunnelClient.active
   if (!tunnel || !tunnelClient.connected) return false
 
   try {
     const stat = (await tunnel.rpc(Rpc.fileStat, { path: relPath })) as FileStat
     if (!stat?.exists) return false
+    // The size is known a full round-trip before any bytes are — publish it
+    // now so the bar is sized correctly from its first frame.
+    onProgress?.(0, stat.sizeBytes)
 
     scratch.create({ intermediates: true, overwrite: true })
     const handle = scratch.open(FileMode.Append)
@@ -57,6 +69,7 @@ export async function fetchDesktopFileInto(relPath: string, scratch: File): Prom
         if (bytes.length === 0) return false
         handle.writeBytes(bytes)
         offset += bytes.length
+        onProgress?.(offset, stat.sizeBytes)
       }
       return true
     } finally {

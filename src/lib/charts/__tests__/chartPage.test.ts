@@ -27,7 +27,8 @@ type Obj = Record<string, any>
 type Internals = {
   deepMerge: (base: Obj, patch: Obj) => Obj
   formatChartValue: (value: number, unit?: Obj) => string
-  chartSpecToOption: (spec: ChartSpec, theme: Obj) => Obj
+  chartSpecToOption: (spec: ChartSpec, theme: Obj, width?: number) => Obj
+  chartLegendRows: (spec: ChartSpec, width?: number) => number
   adaptOptionForWidth: (option: Obj, spec: ChartSpec, width: number) => Obj
 }
 
@@ -42,7 +43,8 @@ function loadInternals(): Internals {
   return sandbox.__wolffishChartInternals as Internals
 }
 
-const { deepMerge, formatChartValue, chartSpecToOption, adaptOptionForWidth } = loadInternals()
+const { deepMerge, formatChartValue, chartSpecToOption, chartLegendRows, adaptOptionForWidth } =
+  loadInternals()
 const light = chartThemeFor(false)
 const dark = chartThemeFor(true)
 
@@ -53,11 +55,11 @@ function spec(json: Obj): ChartSpec {
 }
 
 describe('the published chart sample', () => {
-  it('demo-data/samples/wolffish-sample.chart.json parses and renders', () => {
+  it('demo/samples/wolffish-sample.chart.json parses and renders', () => {
     // The spec every demo `.chart.json` path resolves to — if this stops
     // parsing, every demo chart card silently becomes a plain file card.
     const text = readFileSync(
-      join(__dirname, '..', '..', '..', '..', 'demo-data', 'samples', 'wolffish-sample.chart.json'),
+      join(__dirname, '..', '..', '..', '..', 'demo', 'samples', 'wolffish-sample.chart.json'),
       'utf8'
     )
     const sample = parseChartSpec(text)
@@ -321,6 +323,56 @@ describe('chartSpecToOption', () => {
     expect(adaptOptionForWidth(chartSpecToOption(line, light), line, 340).series[0].type).toBe(
       'line'
     )
+  })
+
+  it('reserves a grid row per wrapped legend row at narrow widths', () => {
+    // The on-device repro (2026-08-04): three long series names on a ~370pt
+    // plot wrap the bottom legend to two rows, and a single-row grid inset
+    // put the top row on the x-axis labels.
+    const long = spec({
+      type: 'area',
+      series: [
+        { name: 'Auto-archived', data: [1] },
+        { name: 'Drafted reply', data: [2] },
+        { name: 'Flagged for me', data: [3] }
+      ]
+    })
+    expect(chartLegendRows(long, 370)).toBe(2)
+    expect(chartSpecToOption(long, light, 370).grid.bottom).toBe(58)
+    // The same names fit one row on a wide desktop plot.
+    expect(chartLegendRows(long, 700)).toBe(1)
+    expect(chartSpecToOption(long, light, 700).grid.bottom).toBe(34)
+    // Unknown width keeps the pre-existing single-row inset.
+    expect(chartSpecToOption(long, light).grid.bottom).toBe(34)
+
+    // The showcase's shortened names stay on one row at the same width.
+    const short = spec({
+      type: 'area',
+      series: [
+        { name: 'Archived', data: [1] },
+        { name: 'Replied', data: [2] },
+        { name: 'Flagged', data: [3] }
+      ]
+    })
+    expect(chartSpecToOption(short, light, 370).grid.bottom).toBe(34)
+
+    // No legend, no inset — width is irrelevant.
+    const single = spec({ series: [{ data: [1] }] })
+    expect(chartSpecToOption(single, light, 200).grid.bottom).toBe(10)
+    expect(chartLegendRows(single, 200)).toBe(1)
+    // Non-cartesian types never inset a grid, whatever the width.
+    const donut = spec({
+      type: 'donut',
+      series: [
+        {
+          data: [
+            { name: 'a long slice name', value: 1 },
+            { name: 'another long slice name', value: 2 }
+          ]
+        }
+      ]
+    })
+    expect(chartLegendRows(donut, 200)).toBe(1)
   })
 
   it('deep-merges the echarts passthrough last, winning field-by-field', () => {

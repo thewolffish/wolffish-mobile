@@ -1064,6 +1064,29 @@ export function PaintBoardIcon(props: IconProps): React.JSX.Element {
 // them as fill="currentColor", so the fill on the Path overrides IconBase's
 // fill="none" and picks up the surrounding text color.
 
+/** The conversations-started-here badge — the glyph the desktop's Mobile
+ *  settings tab and its ChannelIcon both use. */
+export function SmartPhone01Icon(props: IconProps): React.JSX.Element {
+  return (
+    <IconBase {...props}>
+      <Path
+        d="M12 19H12.01"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M13.5 2H10.5C8.14298 2 6.96447 2 6.23223 2.73223C5.5 3.46447 5.5 4.64298 5.5 7V17C5.5 19.357 5.5 20.5355 6.23223 21.2678C6.96447 22 8.14298 22 10.5 22H13.5C15.857 22 17.0355 22 17.7678 21.2678C18.5 20.5355 18.5 19.357 18.5 17V7C18.5 4.64298 18.5 3.46447 17.7678 2.73223C17.0355 2 15.857 2 13.5 2Z"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </IconBase>
+  )
+}
+
 export function TelegramLogo(props: IconProps): React.JSX.Element {
   return (
     <IconBase {...props}>
@@ -1208,6 +1231,25 @@ export function Table01Icon(props: IconProps): React.JSX.Element {
         strokeLinejoin="round"
         strokeWidth={1.5}
       />
+    </IconBase>
+  )
+}
+
+export function Video01Icon(props: IconProps): React.JSX.Element {
+  return (
+    <IconBase {...props}>
+      <Path
+        d="M2 11C2 7.70017 2 6.05025 3.02513 5.02513C4.05025 4 5.70017 4 9 4H10C13.2998 4 14.9497 4 15.9749 5.02513C17 6.05025 17 7.70017 17 11V13C17 16.2998 17 17.9497 15.9749 18.9749C14.9497 20 13.2998 20 10 20H9C5.70017 20 4.05025 20 3.02513 18.9749C2 17.9497 2 16.2998 2 13V11Z"
+        stroke="currentColor"
+        strokeWidth={1.5}
+      />
+      <Path
+        d="M17 8.90585L17.1259 8.80196C19.2417 7.05623 20.2996 6.18336 21.1498 6.60482C22 7.02628 22 8.42355 22 11.2181V12.7819C22 15.5765 22 16.9737 21.1498 17.3952C20.2996 17.8166 19.2417 16.9438 17.1259 15.198L17 15.0941"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth={1.5}
+      />
+      <Circle cx={11.5} cy={9.5} r={1.5} stroke="currentColor" strokeWidth={1.5} />
     </IconBase>
   )
 }
@@ -1581,6 +1623,51 @@ export function HelpCircleIcon(props: IconProps): React.JSX.Element {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={1.8}
+      />
+    </IconBase>
+  )
+}
+
+export function MessageQuestionIcon(props: IconProps): React.JSX.Element {
+  return (
+    <IconBase {...props}>
+      <Path
+        d="M14.1706 20.8905C18.3536 20.6125 21.6856 17.2332 21.9598 12.9909C22.0134 12.1607 22.0134 11.3009 21.9598 10.4707C21.6856 6.22838 18.3536 2.84913 14.1706 2.57107C12.7435 2.47621 11.2536 2.47641 9.8294 2.57107C5.64639 2.84913 2.31441 6.22838 2.04024 10.4707C1.98659 11.3009 1.98659 12.1607 2.04024 12.9909C2.1401 14.536 2.82343 15.9666 3.62791 17.1746C4.09501 18.0203 3.78674 19.0758 3.30021 19.9978C2.94941 20.6626 2.77401 20.995 2.91484 21.2351C3.05568 21.4752 3.37026 21.4829 3.99943 21.4982C5.24367 21.5285 6.08268 21.1757 6.74868 20.6846C7.1264 20.4061 7.31527 20.2668 7.44544 20.2508C7.5756 20.2348 7.83177 20.3403 8.34401 20.5513C8.8044 20.7409 9.33896 20.8579 9.8294 20.8905C11.2536 20.9852 12.7435 20.9854 14.1706 20.8905Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <Path
+        d="M10.5 9.53846C10.5 8.68879 11.1716 8 12 8C12.8284 8 13.5 8.68879 13.5 9.53846C13.5 9.84473 13.4127 10.1301 13.2623 10.3698C12.8141 11.0844 12 11.7657 12 12.6154V13"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth={1.5}
+      />
+      <Path
+        d="M12 15H12.009"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+    </IconBase>
+  )
+}
+
+export function SentIcon(props: IconProps): React.JSX.Element {
+  return (
+    <IconBase {...props}>
+      <Path
+        d="M21.0477 3.05293C18.8697 0.707363 2.48648 6.4532 2.50001 8.551C2.51535 10.9299 8.89809 11.6617 10.6672 12.1581C11.7311 12.4565 12.016 12.7625 12.2613 13.8781C13.3723 18.9305 13.9301 21.4435 15.2014 21.4996C17.2278 21.5892 23.1733 5.342 21.0477 3.05293Z"
+        stroke="currentColor"
+        strokeWidth={1.5}
+      />
+      <Path
+        d="M11.4999 12.5L14.9999 9"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
       />
     </IconBase>
   )

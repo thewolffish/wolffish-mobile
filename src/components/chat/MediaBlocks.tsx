@@ -10,7 +10,8 @@ import { Image } from 'expo-image'
 import { useVideoPlayer, VideoView } from 'expo-video'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ActivityIndicator, Pressable, Text, useWindowDimensions, View } from 'react-native'
+import { Pressable, Text, useWindowDimensions, View } from 'react-native'
+import { DownloadGlyph, DownloadStatus } from './DownloadStatus'
 import { IconAction, MissingCard, shareFile, type Align } from './FileChrome'
 
 /**
@@ -50,14 +51,14 @@ export function ImageBlock({
   const name = displayName ?? fileName(relPath)
 
   if (loading) {
+    // The thumbnail's exact footprint, not an arbitrary box: the bytes landing
+    // must swap the image in without resizing anything around it.
     return (
       <View
-        className={cn(
-          'bg-surface border-border h-40 w-56 items-center justify-center rounded-2xl border',
-          align === 'end' ? 'self-end' : 'self-start'
-        )}
+        className={cn('bg-border overflow-hidden', align === 'end' ? 'self-end' : 'self-start')}
+        style={{ width: THUMB_WIDTH, height: THUMB_HEIGHT, borderRadius: 16 }}
       >
-        <ActivityIndicator />
+        <DownloadStatus relPath={relPath} expectedBytes={sizeBytes} />
       </View>
     )
   }
@@ -143,17 +144,29 @@ export function VideoBlock({
   const name = displayName ?? fileName(relPath)
 
   if (loading) {
+    // Same footprint the loaded card starts at — the 16/9 stage AND the name
+    // row under it — so resolving the cache doesn't jog the transcript. A clip
+    // whose track reports a different ratio still settles once; its natural
+    // size arrives with the decoder, not with the file, so there is nothing to
+    // reserve it from (the desktop's VideoPlayer holds aspect-video the same
+    // way for the same reason).
     return (
       <View
         className={cn(
-          'bg-surface border-border w-[85%] items-center justify-center rounded-2xl border',
+          'bg-surface border-border w-[85%] flex-col overflow-hidden rounded-2xl border',
           align === 'end' ? 'self-end' : 'self-start'
         )}
-        // Same footprint the loaded card starts at, so resolving the cache
-        // doesn't jog the transcript sideways.
-        style={{ aspectRatio: DEFAULT_VIDEO_ASPECT }}
       >
-        <ActivityIndicator />
+        <View className="bg-border w-full" style={{ aspectRatio: DEFAULT_VIDEO_ASPECT }}>
+          <DownloadStatus relPath={relPath} />
+        </View>
+        <View className="flex-row items-center gap-2 px-3 py-2">
+          <View className="bg-border h-2.5 w-24 rounded-full opacity-40" />
+          <View className="flex-1" />
+          {/* m-1.5 + 14pt is IconAction's own box (p-1.5 + a 14pt icon) — the
+              share button is what sets this row's height. */}
+          <View className="bg-border m-1.5 h-3.5 w-3.5 rounded opacity-40" />
+        </View>
       </View>
     )
   }
@@ -224,14 +237,30 @@ export function AudioBlock({
   const status = useAudioPlayerStatus(player)
 
   if (loading) {
+    // The transport's own shape — same container, same 36pt button, same
+    // three-line column — so the height is identical before and after the
+    // bytes land and the row below never moves. The transport's own parts,
+    // too: the name is known already, and the download bar sits exactly where
+    // the playback bar will, with the transfer status where the timecode goes.
     return (
       <View
         className={cn(
-          'bg-surface border-border h-14 w-[85%] items-center justify-center rounded-xl border',
+          'bg-surface border-border w-[85%] flex-row items-center gap-3 rounded-xl border px-3 py-2.5',
           align === 'end' ? 'self-end' : 'self-start'
         )}
       >
-        <ActivityIndicator />
+        <View className="bg-border/60 h-9 w-9 items-center justify-center rounded-full">
+          <DownloadGlyph size={16} />
+        </View>
+        <View className="flex-1 flex-col gap-1.5">
+          <Text numberOfLines={1} className="text-fg font-sans-medium text-left text-xs">
+            {displayName ?? fileName(relPath)}
+          </Text>
+          {/* gap-1.5 is 6pt — the column's own gap, so the three rows keep the
+              spacing the loaded transport has. */}
+          <DownloadStatus relPath={relPath} variant="row" rowGap={6} />
+        </View>
+        <View className="bg-border m-1.5 h-3.5 w-3.5 rounded opacity-40" />
       </View>
     )
   }

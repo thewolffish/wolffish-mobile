@@ -1,6 +1,5 @@
-import { File } from 'expo-file-system'
-import { useEffect, useState } from 'react'
-import { resolveWorkspaceFile } from './fileCache'
+import { useEffect, useMemo, useState } from 'react'
+import { resolveWorkspaceFile, statCachedFile } from './fileCache'
 
 export type WorkspaceFileState = {
   /** Local file URI once cached; null while loading or when missing. */
@@ -12,45 +11,52 @@ export type WorkspaceFileState = {
   missing: boolean
 }
 
+const PENDING: WorkspaceFileState = { uri: null, sizeBytes: 0, loading: true, missing: false }
+const ABSENT: WorkspaceFileState = { uri: null, sizeBytes: 0, loading: false, missing: false }
+
 /**
  * Resolve a workspace-relative media path through the file cache. The first
- * view of a file copies it out of the demo source (later: downloads it from
- * the desktop) — subsequent views hit the cache instantly.
+ * view of a file copies it out of the demo source (or downloads it from the
+ * desktop) — subsequent views hit the cache instantly.
+ *
+ * "Instantly" is load-bearing, not a nicety: a file already on disk resolves
+ * during render, so its card mounts at full size in the same frame as the rest
+ * of the message. Going through the effect instead would mount a placeholder
+ * first and grow a frame later, which shifts every message below it and pulls
+ * the feed's scroll position with it — the jump this hook exists to avoid.
  */
 export function useWorkspaceFile(
   relPath: string | null,
   conversationId?: string
 ): WorkspaceFileState {
-  const [state, setState] = useState<WorkspaceFileState>({
-    uri: null,
-    sizeBytes: 0,
-    loading: relPath !== null,
-    missing: false
-  })
+  // A stat, not a read — see statCachedFile. Re-run only when the path
+  // changes, so a re-render never re-hits the filesystem.
+  const cached = useMemo(() => (relPath ? statCachedFile(relPath) : null), [relPath])
+  // Tagged with the path it answers for: the reset below lands after the
+  // render that changed `relPath`, so an untagged result would show the
+  // previous file for one frame.
+  const [fetched, setFetched] = useState<{ path: string; state: WorkspaceFileState } | null>(null)
 
   useEffect(() => {
+    // Already on disk, or nothing asked for: no fetch, and nothing to reset —
+    // the render-time value below is the whole answer.
+    if (!relPath || cached) return
     let alive = true
-    if (!relPath) {
-      setState({ uri: null, sizeBytes: 0, loading: false, missing: false })
-      return
-    }
-    setState({ uri: null, sizeBytes: 0, loading: true, missing: false })
     void resolveWorkspaceFile(relPath, conversationId).then((uri) => {
       if (!alive) return
-      let sizeBytes = 0
-      if (uri) {
-        try {
-          sizeBytes = new File(uri).size ?? 0
-        } catch {
-          // Size is cosmetic — a stat failure must not hide the file.
-        }
-      }
-      setState({ uri, sizeBytes, loading: false, missing: uri === null })
+      const stat = uri ? statCachedFile(relPath) : null
+      setFetched({
+        path: relPath,
+        state: { uri, sizeBytes: stat?.sizeBytes ?? 0, loading: false, missing: uri === null }
+      })
     })
     return () => {
       alive = false
     }
-  }, [relPath, conversationId])
+  }, [relPath, conversationId, cached])
 
-  return state
+  if (!relPath) return ABSENT
+  if (cached)
+    return { uri: cached.uri, sizeBytes: cached.sizeBytes, loading: false, missing: false }
+  return fetched?.path === relPath ? fetched.state : PENDING
 }

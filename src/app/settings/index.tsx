@@ -13,8 +13,23 @@ import {
   PaintBoardIcon,
   PuzzleIcon
 } from '@/components/core/icons'
-import { NavRow, PanelScreen } from '@/components/settings/SettingsUI'
-import { useConfigValue } from '@/state/demoConfig'
+import {
+  AppearanceSummary,
+  CapabilitiesSummary,
+  ChannelsSummary,
+  DataSummary,
+  KnowledgeSummary,
+  McpSummary,
+  ModelSummary,
+  PreferencesSummary,
+  ServicesSummary,
+  UpdatesSummary,
+  UsageSummary,
+  VariablesSummary
+} from '@/components/settings/TabSummaries'
+import { NavRow, PanelScreen, type StatusTone } from '@/components/settings/SettingsUI'
+import { useFreshConfig } from '@/lib/sync/useFreshConfig'
+import { useTunnelStatus } from '@/lib/tunnel/useTunnelStatus'
 import { useAppStore } from '@/state/appStore'
 import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -23,19 +38,32 @@ import { View } from 'react-native'
 /**
  * Settings root — the desktop's settings sidebar as a nav list: same tab
  * order, same hugeicons per tab (Settings.tsx TABS), live state summaries.
+ *
+ * Every row ends in the one figure or state that tab is about, so the list
+ * answers "is anything worth opening?" on its own — the desktop sidebar can
+ * afford bare labels beside the panel it is already showing; a phone screen
+ * that only shows the labels is a menu you have to walk to read.
  */
 export default function SettingsScreen(): React.JSX.Element {
   const { t } = useTranslation()
-  const brainModel = useConfigValue('brainModel')
+  // The summaries below are the desktop's values, so this list now needs the
+  // same on-focus refresh every screen rendering them takes.
+  useFreshConfig()
   // The one screen with no demo equivalent: in demo mode there is no tunnel
   // to describe, so the row is absent rather than showing an empty state.
   const paired = useAppStore((state) => state.paired)
+  // The link's state is the one thing on this list worth knowing before you
+  // tap anything: a stale phone explains every other screen, and the
+  // connecting overlay is dismissible, so "not connected" has to be legible
+  // from here rather than only from inside Relay.
+  const relayStatus = useTunnelStatus()
 
   const rows: Array<{
     key: string
     href: string
     icon: React.JSX.Element
-    description?: string
+    trailing?: React.JSX.Element
+    status?: { tone: StatusTone; label: string }
   }> = [
     ...(paired
       ? [
@@ -44,7 +72,8 @@ export default function SettingsScreen(): React.JSX.Element {
             href: '/settings/relay',
             // The globe the pairing sheet uses for the relay row — and no
             // longer the brain, which belongs to Model two rows down.
-            icon: <Globe02Icon size={18} className="text-muted" />
+            icon: <Globe02Icon size={18} className="text-muted" />,
+            status: { tone: relayStatus.tone, label: relayStatus.label }
           }
         ]
       : []),
@@ -52,58 +81,73 @@ export default function SettingsScreen(): React.JSX.Element {
       key: 'model',
       href: '/settings/model',
       icon: <NeuralNetworkIcon size={18} className="text-muted" />,
-      description: brainModel
+      trailing: <ModelSummary />
     },
     {
       key: 'channels',
       href: '/settings/channels',
-      icon: <BubbleChatIcon size={18} className="text-muted" />
+      icon: <BubbleChatIcon size={18} className="text-muted" />,
+      trailing: <ChannelsSummary />
     },
     {
       key: 'services',
       href: '/settings/services',
-      icon: <PuzzleIcon size={18} className="text-muted" />
+      icon: <PuzzleIcon size={18} className="text-muted" />,
+      trailing: <ServicesSummary />
     },
-    { key: 'mcp', href: '/settings/mcp', icon: <McpServerIcon size={18} className="text-muted" /> },
+    {
+      key: 'mcp',
+      href: '/settings/mcp',
+      icon: <McpServerIcon size={18} className="text-muted" />,
+      trailing: <McpSummary />
+    },
     {
       key: 'variables',
       href: '/settings/variables',
-      icon: <Key01Icon size={18} className="text-muted" />
+      icon: <Key01Icon size={18} className="text-muted" />,
+      trailing: <VariablesSummary />
     },
     {
       key: 'capabilities',
       href: '/settings/capabilities',
-      icon: <BrainIcon size={18} className="text-muted" />
+      icon: <BrainIcon size={18} className="text-muted" />,
+      trailing: <CapabilitiesSummary />
     },
     {
       key: 'knowledge',
       href: '/settings/knowledge',
-      icon: <DnaIcon size={18} className="text-muted" />
+      icon: <DnaIcon size={18} className="text-muted" />,
+      trailing: <KnowledgeSummary />
     },
     {
       key: 'usage',
       href: '/settings/usage',
-      icon: <AnalyticsUpIcon size={18} className="text-muted" />
+      icon: <AnalyticsUpIcon size={18} className="text-muted" />,
+      trailing: <UsageSummary />
     },
     {
       key: 'data',
       href: '/settings/data',
-      icon: <Database02Icon size={18} className="text-muted" />
+      icon: <Database02Icon size={18} className="text-muted" />,
+      trailing: <DataSummary />
     },
     {
       key: 'updates',
       href: '/settings/updates',
-      icon: <ArrowUp02Icon size={18} className="text-muted" />
+      icon: <ArrowUp02Icon size={18} className="text-muted" />,
+      trailing: <UpdatesSummary />
     },
     {
       key: 'preferences',
       href: '/settings/preferences',
-      icon: <AiMagicIcon size={18} className="text-muted" />
+      icon: <AiMagicIcon size={18} className="text-muted" />,
+      trailing: <PreferencesSummary />
     },
     {
       key: 'appearance',
       href: '/settings/appearance',
-      icon: <PaintBoardIcon size={18} className="text-muted" />
+      icon: <PaintBoardIcon size={18} className="text-muted" />,
+      trailing: <AppearanceSummary />
     }
   ]
 
@@ -114,8 +158,9 @@ export default function SettingsScreen(): React.JSX.Element {
           <NavRow
             key={row.key}
             label={t(`settings.tabs.${row.key}`)}
-            description={row.description}
             icon={row.icon}
+            status={row.status}
+            trailing={row.trailing}
             onPress={() => router.push(row.href as never)}
           />
         ))}

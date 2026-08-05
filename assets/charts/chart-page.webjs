@@ -141,12 +141,64 @@
     }
   }
 
-  function baseGrid(hasLegend) {
+  /**
+   * Estimated rows the bottom legend wraps to at a plot width. ECharts wraps
+   * a horizontal legend at layout time, but the grid inset is fixed at option
+   * time — an unaccounted second row lands on the x-axis labels (seen at
+   * phone-card widths with three long series names). Text is estimated at
+   * fontSize 11 as ~7.5px per Latin glyph, ~11px otherwise — calibrated a
+   * touch wide against on-device wrapping, so a borderline row wraps in the
+   * estimate before it wraps on canvas; the overshoot costs one row of plot
+   * height, an underestimate recreates the overlap. Unknown width reports one
+   * row, the pre-existing inset.
+   */
+  function legendRows(names, width) {
+    if (!width || width <= 0 || names.length === 0) return 1
+    const usable = Math.max(width - 16, 40)
+    let rows = 1
+    let x = 0
+    for (const name of names) {
+      let text = 0
+      for (const ch of name) text += (ch.codePointAt(0) || 0) <= 0x2ff ? 7.5 : 11
+      const item = 14 + 5 + Math.ceil(text) // icon + icon-text gap + label
+      if (x === 0) x = item
+      else if (x + 16 + item <= usable) x += 16 + item // itemGap between items
+      else {
+        rows += 1
+        x = item
+      }
+    }
+    return rows
+  }
+
+  const CARTESIAN_TYPES = ['column', 'bar', 'line', 'area', 'scatter']
+
+  /**
+   * Rows this spec's bottom legend needs at this width — the resize boundary
+   * at which the grid inset (and so the whole option) must be rebuilt. Only
+   * cartesian charts inset a grid; every other type reports 1 so width
+   * changes never force a rebuild.
+   */
+  function chartLegendRows(spec, width) {
+    if (CARTESIAN_TYPES.indexOf(spec.type) === -1) return 1
+    const show = spec.legend === undefined ? spec.series.length > 1 : spec.legend
+    if (!show) return 1
+    return legendRows(
+      spec.series.map(function (series) {
+        return series.name
+      }),
+      width
+    )
+  }
+
+  function baseGrid(hasLegend, legendRowCount) {
+    const rows = legendRowCount === undefined ? 1 : legendRowCount
     return {
       left: 8,
       right: 16,
       top: 14,
-      bottom: hasLegend ? 34 : 10,
+      // One row keeps the long-standing 34; each wrapped row adds its height.
+      bottom: hasLegend ? 10 + rows * 24 : 10,
       containLabel: true
     }
   }
@@ -248,7 +300,7 @@
     })
   }
 
-  function cartesianOption(spec, theme) {
+  function cartesianOption(spec, theme, width) {
     const horizontal = spec.type === 'bar'
     const boundaryGap = spec.type === 'column' || spec.type === 'bar'
     const legend = baseLegend(spec, theme)
@@ -266,7 +318,7 @@
       color: theme.palette,
       tooltip: baseTooltip(spec, theme, spec.type === 'scatter' ? 'item' : 'axis'),
       legend: legend,
-      grid: baseGrid(legend.show === true),
+      grid: baseGrid(legend.show === true, chartLegendRows(spec, width)),
       xAxis: xAxis,
       yAxis: yAxis,
       series: cartesianSeries(spec, theme)
@@ -516,7 +568,7 @@
     '#0d366b'
   ]
 
-  function chartSpecToOption(spec, theme) {
+  function chartSpecToOption(spec, theme, width) {
     let option
     switch (spec.type) {
       case 'pie':
@@ -536,7 +588,7 @@
         option = funnelOption(spec, theme)
         break
       default:
-        option = cartesianOption(spec, theme)
+        option = cartesianOption(spec, theme, width)
     }
     option.textStyle = { fontFamily: theme.fontFamily }
     option.animationDuration = 400
@@ -591,7 +643,7 @@
 
   function liveOption(msg, el) {
     const option = adaptOptionForWidth(
-      chartSpecToOption(msg.spec, msg.theme),
+      chartSpecToOption(msg.spec, msg.theme, el.clientWidth),
       msg.spec,
       el.clientWidth
     )
@@ -652,7 +704,11 @@
       el.remove()
     }
     try {
-      const option = adaptOptionForWidth(chartSpecToOption(msg.spec, msg.theme), msg.spec, msg.width)
+      const option = adaptOptionForWidth(
+        chartSpecToOption(msg.spec, msg.theme, msg.width),
+        msg.spec,
+        msg.width
+      )
       // A snapshot is the final frame — never a mid-animation one. Applied
       // after the passthrough merge so it always wins.
       option.animation = false
@@ -709,6 +765,7 @@
     deepMerge: deepMerge,
     formatChartValue: formatChartValue,
     chartSpecToOption: chartSpecToOption,
+    chartLegendRows: chartLegendRows,
     adaptOptionForWidth: adaptOptionForWidth
   }
 

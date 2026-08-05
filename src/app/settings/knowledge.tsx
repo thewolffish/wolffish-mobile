@@ -5,6 +5,7 @@ import { PanelScreen, Section, SwitchRow } from '@/components/settings/SettingsU
 import { pushReflectionConfig, runReflectionJob } from '@/lib/sync/reflection'
 import { useFreshConfig } from '@/lib/sync/useFreshConfig'
 import { formatTokens } from '@/lib/utils/formatTokens'
+import { minutesUntilHour } from '@/lib/utils/schedule'
 import { useToast } from '@/providers/toast/useToast'
 import {
   setConfigValue,
@@ -106,6 +107,21 @@ export default function KnowledgeScreen(): React.JSX.Element {
 
   return (
     <PanelScreen title={t('settings.tabs.knowledge')} subtitle={t('settings.knowledge.subtitle')}>
+      {/* The desktop's clock, first: every schedule on this page — compaction,
+          consolidation, reflection — fires in ITS timezone, so the zone is the
+          frame for everything below. Absent until a snapshot carries the zone —
+          never a guessed clock. */}
+      {desktop.timezone ? (
+        <Section className="gap-3">
+          <View className="flex-row items-center justify-between gap-3">
+            <Text className="text-fg font-sans-medium text-left text-sm">
+              {formatDesktopTime(now, locale, desktop.timezone)}
+            </Text>
+            <Chip>{desktop.timezone}</Chip>
+          </View>
+        </Section>
+      ) : null}
+
       <Section title={t('settings.knowledge.dailyTitle')}>
         <Select<string>
           label={t('settings.knowledge.dailyHour')}
@@ -153,19 +169,6 @@ export default function KnowledgeScreen(): React.JSX.Element {
           {t('settings.knowledge.reflection.subtitle')}
         </Text>
       </View>
-
-      {/* The desktop's clock: schedules below fire in ITS timezone. Absent
-          until a snapshot carries the zone — never a guessed clock. */}
-      {desktop.timezone ? (
-        <Section className="gap-3">
-          <View className="flex-row items-center justify-between gap-3">
-            <Text className="text-fg font-sans-medium text-left text-sm">
-              {formatDesktopTime(now, locale, desktop.timezone)}
-            </Text>
-            <Chip>{desktop.timezone}</Chip>
-          </View>
-        </Section>
-      ) : null}
 
       <Section title={t('settings.knowledge.reflection.nightly.label')}>
         <Text className="text-muted text-left font-sans text-xs leading-5">
@@ -461,36 +464,6 @@ function formatDesktopTime(now: number, locale: string, timezone: string): strin
       return new Date(now).toISOString().slice(11, 16)
     }
   }
-}
-
-/**
- * Minutes until the next daily firing of `hour` — computed in the desktop's
- * zone when known (the schedule is that machine's), phone-local otherwise.
- * Exactly at the hour counts as tomorrow, matching the desktop's nextDailyMs.
- */
-function minutesUntilHour(hour: number, timezone: string | null, nowMs: number): number {
-  let nowHour: number
-  let nowMinute: number
-  try {
-    if (!timezone) throw new Error('no zone')
-    const parts = new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: false,
-      timeZone: timezone
-    }).formatToParts(nowMs)
-    nowHour = Number(parts.find((part) => part.type === 'hour')?.value)
-    nowMinute = Number(parts.find((part) => part.type === 'minute')?.value)
-    if (!Number.isFinite(nowHour) || !Number.isFinite(nowMinute)) throw new Error('bad parts')
-  } catch {
-    const d = new Date(nowMs)
-    nowHour = d.getHours()
-    nowMinute = d.getMinutes()
-  }
-  // Intl renders midnight as "24" under hour12:false in some engines.
-  nowHour = nowHour % 24
-  const remaining = (hour * 60 - (nowHour * 60 + nowMinute) + 1440) % 1440
-  return remaining === 0 ? 1440 : remaining
 }
 
 /** The desktop's formatFromNow: relative-time wording, plain fallback. */

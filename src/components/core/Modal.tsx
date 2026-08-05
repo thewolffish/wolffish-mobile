@@ -15,6 +15,14 @@ export type ModalProps = {
   dismissable?: boolean
   /** Extra classes for the dialog panel. */
   className?: string
+  /**
+   * Fired once the dialog has finished going away — iOS only, which is the
+   * only platform that needs it. A dialog is a presented view controller
+   * there, so anything else that presents one (a system picker, a share
+   * sheet) must wait for this: started during the dismissal it is torn down
+   * with the dialog, silently. `onClose` is the intent, this is the fact.
+   */
+  onDismiss?: () => void
 }
 
 /**
@@ -28,7 +36,8 @@ export function Modal({
   children,
   footer,
   dismissable = true,
-  className
+  className,
+  onDismiss
 }: ModalProps): React.JSX.Element {
   const { isDark } = useTheme()
   return (
@@ -36,6 +45,7 @@ export function Modal({
       visible={open}
       transparent
       animationType="fade"
+      onDismiss={onDismiss}
       onRequestClose={() => {
         if (dismissable) onClose()
       }}

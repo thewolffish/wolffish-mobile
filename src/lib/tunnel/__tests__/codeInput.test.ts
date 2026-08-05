@@ -1,3 +1,9 @@
+// client.ts pulls in the notifications module (push registration rides the
+// tunnel), whose AsyncStorage native module does not exist under jest.
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+)
+
 import { autoDashPairingCode, formatPairingCode, pairingCodeIssue } from '@/lib/tunnel/client'
 import { generateCode, normalizeCode } from '@/lib/tunnel/pairing'
 

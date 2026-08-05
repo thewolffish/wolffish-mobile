@@ -6,6 +6,7 @@ import {
   IconBase,
   Mic01Icon,
   SmileDizzyIcon,
+  Video01Icon,
   VolumeHighIcon,
   type IconProps
 } from './icons'
@@ -278,6 +279,7 @@ export const SERVICE_LOGOS: Record<string, ComponentType<IconProps>> = {
   notion: NotionLogo,
   brave: BraveLogo,
   memes: SmileDizzyIcon,
+  video: Video01Icon,
   stt: Mic01Icon,
   tts: VolumeHighIcon,
   computerUse: ComputerIcon,

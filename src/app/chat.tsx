@@ -1,6 +1,8 @@
 import { AssistantMessageView, UserBubble } from '@/components/chat/MessageBubbles'
+import { ChatFeed, FEED_FADE_MS, type ChatFeedHandle } from '@/components/chat/ChatFeed'
 import { ChatSkeleton } from '@/components/chat/ChatSkeleton'
 import { Composer, type ComposerSubmit } from '@/components/chat/Composer'
+import type { QueuedPrompt } from '@/components/chat/QueuedPrompts'
 import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
@@ -8,23 +10,27 @@ import {
   PlusSignIcon,
   Settings02Icon
 } from '@/components/core/icons'
+import { buildFeed } from '@/lib/conversations/feed'
 import { useConversation } from '@/lib/conversations/hooks'
-import type { ConversationMessage } from '@/lib/conversations/types'
-import { ensureDemoConversation, sendDemoPrompt, stopDemoTurn } from '@/lib/demo/agent'
+import { mintMessageId, type ConversationMessage } from '@/lib/conversations/types'
+import { deriveTitle, ensureDemoConversation, sendDemoPrompt, stopDemoTurn } from '@/lib/demo/agent'
 import { importLocalFile } from '@/lib/files/fileCache'
+import type { PickedFile } from '@/lib/files/pickAttachments'
 import { useChatRuntime } from '@/state/chatRuntime'
 import { useConfigValue } from '@/state/demoConfig'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
+import { abortTurn, beginTurn, sendPrompt } from '@/lib/sync/prompt'
 import {
-  abortTurn,
-  isTurnRunning,
-  onStreamingText,
-  onTurnState,
-  sendPrompt,
-  streamingTextFor
-} from '@/lib/sync/prompt'
+  discardStaged,
+  fileLocally,
+  stageForSend,
+  stagedAttachment,
+  uploadForSend
+} from '@/lib/sync/attachments'
 import { uploadFileToDesktop } from '@/lib/sync/files'
+import { tunnelClient } from '@/lib/tunnel/client'
+import { useToast } from '@/providers/toast/useToast'
 import { useAppStore } from '@/state/appStore'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -33,10 +39,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
+  StyleSheet,
   Text,
   View
 } from 'react-native'
+import Animated, { FadeOut } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 /**
@@ -53,88 +60,257 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
  *   is unreliable.
  * Conversations are small (median 2, max 30 messages in three months of
  * real data), so full rendering is cheap and bottom-pinning deterministic.
+ * Everything about WHERE that ScrollView sits lives in ChatFeed.
+ *
+ * The screen has four display states and exactly one transition between any
+ * two of them, because the alternative — letting each state appear as soon as
+ * its data happens to arrive — is what made opening a conversation flash the
+ * hero, then the top of the transcript, then snap to the end:
+ *
+ *   new chat        no id, nothing to load          → hero, immediately
+ *   opening         id, transcript not laid out yet → skeleton
+ *   open            transcript pinned to its end    → feed, faded in
+ *   empty           id, but genuinely no messages   → hero
+ *
+ * The skeleton covers the whole "opening" window — reading SQLite, downloading
+ * the body over the tunnel, laying the messages out, pinning to the end — so
+ * the transcript is never seen anywhere but at its final position.
+ *
+ * SENDING adds a fifth state that none of those four can express, and getting
+ * it wrong is what made a prompt sent from here disappear into nothing: a new
+ * chat has no conversation to load, so it is neither "opening" (no skeleton)
+ * nor "empty" (the hero is gone the moment the user sends) for the whole round
+ * trip in which the desktop mints one. The prompt is therefore rendered from
+ * local state for exactly that window — `pendingUser` — and handed to the live
+ * turn the moment there is an id to file it under. Neither the hero nor a bare
+ * feed is ever shown while a turn is in flight.
+ *
+ * SENDING MID-TURN is the desktop's queue, ported whole: a submit that arrives
+ * while a turn is running is not refused and does not enter the feed — it waits
+ * in a cancelable row above the composer and is sent, through this very same
+ * path, when the turn ends. See `queued` below.
  */
 
-type FeedItem = { key: string; message: ConversationMessage; streaming: boolean }
+/** Identity for a queued row. Local and disposable — the queue never leaves
+ *  this screen, so these ids never have to agree with anything. */
+let queueSequence = 0
 
 export default function ChatScreen(): React.JSX.Element {
   const { t } = useTranslation()
+  const toast = useToast()
   const insets = useSafeAreaInsets()
   const params = useLocalSearchParams<{ id?: string }>()
-  const listRef = useRef<ScrollView>(null)
+  const feedRef = useRef<ChatFeedHandle>(null)
   const [conversationId, setConversationId] = useState<string | null>(params.id ?? null)
-  const paired = useAppStore((state) => state.paired)
-  // Assistant text arriving from the desktop before the message is final, so
-  // the feed shows it being written rather than appearing all at once.
-  const [remoteStream, setRemoteStream] = useState<string>('')
-  // Whether the desktop is running a turn for this conversation right now —
-  // what puts the composer in its stop state before the first token arrives.
-  const [remoteRunning, setRemoteRunning] = useState(false)
+  // The conversation this screen was OPENED on — History, a deep link, a
+  // notification. Distinct from `conversationId`, which also moves when a new
+  // chat gets its id on first send: that transition must not re-gate a feed
+  // the user is already looking at.
+  const openedId = params.id ?? null
+  const [feedRevealed, setFeedRevealed] = useState(openedId === null)
   useEffect(() => {
-    if (!paired || !conversationId) return
-    setRemoteStream(streamingTextFor(conversationId) ?? '')
-    setRemoteRunning(isTurnRunning(conversationId))
-    const offText = onStreamingText((id, text) => {
-      if (id === conversationId) setRemoteStream(text)
-    })
-    const offTurn = onTurnState((id, running) => {
-      if (id === conversationId) setRemoteRunning(running)
-    })
-    return () => {
-      offText()
-      offTurn()
-    }
-  }, [paired, conversationId])
+    setFeedRevealed(openedId === null)
+    // Messages queued for the conversation being left do not follow the user
+    // into the next one — they were written as replies to a turn that is no
+    // longer on screen. The desktop wipes its queue on the same transition.
+    setQueued([])
+  }, [openedId])
+  const paired = useAppStore((state) => state.paired)
   const { data: conversation, isFetching: conversationFetching } = useConversation(conversationId)
-  const stream = useChatRuntime((state) =>
+  // The turn being written into this conversation right now, from whichever
+  // side started it — this phone, the desktop, a channel. One store for demo
+  // and paired alike, so the feed has one streaming shape rather than two.
+  const live = useChatRuntime((state) =>
     conversationId ? state.streams[conversationId] : undefined
   )
+  // A prompt sent from a chat with no id yet, held for the round trip that
+  // mints one. Cleared as it is handed to the live turn below.
+  const [pendingUser, setPendingUser] = useState<ConversationMessage | null>(null)
+  const [sending, setSending] = useState(false)
+  // Submits held back because a turn was running when they arrived. In memory
+  // only, and never written anywhere: a queued row is a message that has not
+  // been sent, and the app has exactly one place for messages that have.
+  const [queued, setQueued] = useState<QueuedPrompt[]>([])
   // One flag for both ends: the desktop's `inapp.verbose`. The feed is a
   // display preference of the workspace, not of the device rendering it.
   const verbose = useConfigValue('inappVerbose')
 
-  const streaming = stream !== undefined || (paired && (remoteRunning || remoteStream.length > 0))
+  const streaming = live?.status === 'streaming' || sending
 
-  const feed = useMemo<FeedItem[]>(() => {
-    const items: FeedItem[] = []
-    for (const message of conversation?.messages ?? []) {
-      items.push({ key: message.id ?? `${message.timestamp}`, message, streaming: false })
-    }
-    if (stream) {
-      items.push({
-        key: stream.message.id ?? 'live',
-        message: stream.message,
-        streaming: stream.status === 'streaming'
-      })
-    }
-    // Paired mode has no local turn runner — the desktop is writing, and its
-    // text arrives as deltas. Render them as the same kind of live row the
-    // demo agent produces so the feed has one streaming shape, not two.
-    if (paired && remoteStream) {
-      items.push({
-        key: 'remote-live',
-        message: {
-          id: 'remote-live',
-          role: 'assistant',
-          content: remoteStream,
-          timestamp: Date.now()
-        } as ConversationMessage,
-        streaming: true
-      })
-    }
-    return items
-  }, [conversation, stream, paired, remoteStream])
+  const feed = useMemo(
+    () => buildFeed({ messages: conversation?.messages, live, pendingUser, sending }),
+    [conversation, live, pendingUser, sending]
+  )
 
-  const handleSubmit = useCallback(
+  /**
+   * A send that will not happen, taken back down. The live turn opened at the
+   * tap has to come with it, or the thinking words run against a desktop that
+   * was never asked — the same take-back sendPrompt does when its own RPC
+   * throws.
+   */
+  const abandon = useCallback(
+    (settle: (id?: string) => void): void => {
+      if (conversationId) useChatRuntime.getState().endStream(conversationId)
+      settle()
+    },
+    [conversationId]
+  )
+
+  /**
+   * A message carrying files.
+   *
+   * The desktop copies an attachment into the workspace at the PICK and sends
+   * the path; a phone cannot, because the workspace is on the other side of a
+   * relay. So the bytes travel here, at the send, and the ordering is what
+   * keeps the two surfaces identical:
+   *
+   *   stage  — the picked files move into the local workspace, and the bubble
+   *            is re-published with them, so the message on screen carries its
+   *            pictures while the upload is still running
+   *   upload — one file at a time; the desktop names each one and, for a first
+   *            message, mints the conversation it lands in
+   *   send   — the prompt goes with the desktop's own attachment metadata, so
+   *            the stored message is byte-for-byte what a desktop send makes
+   *
+   * A file that fails says so and costs only itself; the prompt and the rest
+   * of the files still go, exactly as a bad file costs only itself when it is
+   * dropped on the desktop composer.
+   */
+  const sendWithFiles = useCallback(
+    async (text: string, files: PickedFile[], settle: (id?: string) => void): Promise<void> => {
+      const staged = await stageForSend(files)
+      const optimistic = staged.map(stagedAttachment)
+      if (optimistic.length > 0) {
+        const user: ConversationMessage = {
+          id: mintMessageId(),
+          role: 'user',
+          content: text,
+          timestamp: Date.now(),
+          attachments: optimistic
+        }
+        // A conversation that exists gets the row through the live turn, not
+        // through the screen's own copy: buildFeed prefers `live.user`, and a
+        // stream left over from a turn whose stored copy never arrived would
+        // otherwise keep showing the PREVIOUS prompt for the whole upload.
+        // A chat with no id yet has no stream to file it under.
+        if (conversationId) beginTurn(conversationId, user)
+        else setPendingUser(user)
+      }
+      // Every file failed to even reach the workspace, and there is no prompt
+      // to send without them: there is no message here.
+      if (staged.length === 0 && !text) {
+        toast.show({ tone: 'error', message: t('chat.attach.error') })
+        abandon(settle)
+        return
+      }
+
+      try {
+        if (paired && tunnelClient.connected) {
+          const result = await uploadForSend(staged, conversationId)
+          if (result.failed.length > 0) {
+            toast.show({
+              tone: 'error',
+              message: t('chat.attach.failed', { names: result.failed.join(', ') })
+            })
+          }
+          // Nothing landed and nothing was typed — sending would be an empty
+          // prompt, which the desktop refuses anyway.
+          if (result.attachments.length === 0 && !text) {
+            abandon(settle)
+            return
+          }
+          const sent = await sendPrompt({
+            conversationId: result.conversationId ?? conversationId,
+            text,
+            attachments: result.attachments
+          })
+          settle(sent.conversationId)
+          return
+        }
+
+        // Demo, or a paired phone that cannot reach its desktop right now: the
+        // files are filed under the conversation's own uploads folder, in the
+        // shape the desktop would have produced, so the feed has one kind of
+        // attachment rather than two. Offline, sendPrompt writes the reply
+        // that says why nothing answered and the desktop's copy replaces the
+        // whole conversation once the link is back.
+        let id = conversationId
+        if (!id) id = await ensureDemoConversation(deriveTitle(text, optimistic))
+        const attachments = await fileLocally(staged, id)
+        if (paired) {
+          const sent = await sendPrompt({ conversationId: id, text, attachments })
+          settle(sent.conversationId)
+          return
+        }
+        await sendDemoPrompt({ conversationId: id, text, attachments })
+        settle(id)
+      } catch {
+        discardStaged(staged)
+        abandon(settle)
+      }
+    },
+    [conversationId, paired, toast, t, abandon]
+  )
+
+  /**
+   * Send one submit, now. The queue calls this too — a queued row is sent by
+   * exactly the path it would have taken had it been written a moment later,
+   * which is the whole reason the queue holds the composer's payload verbatim
+   * rather than anything half-sent.
+   */
+  const performSubmit = useCallback(
     (payload: ComposerSubmit): void => {
+      // The one case CSS can't cover on the desktop either: sending while
+      // scrolled up. Re-pin at the send, before the message exists, so the
+      // user always sees their own prompt and the reply that follows it.
+      feedRef.current?.scrollToEnd()
+      const attaching = payload.kind === 'text' && payload.files.length > 0
+      // Everything visible about the send happens in THIS tick — before any
+      // await — so the prompt and the thinking words are on screen from the tap
+      // rather than from the reply. For a conversation that already exists,
+      // sendPrompt opens the live turn itself; a new chat has nowhere to file
+      // one yet, so the screen holds the prompt for that one round trip.
+      //
+      // Files make that round trip long — a video is a minute of chunks — and
+      // they make it long for an EXISTING conversation too, since nothing is
+      // sent until the last byte lands. So a message with attachments is always
+      // held here, and re-published a moment later with its files (below) once
+      // they have a path to render from.
+      if (payload.kind === 'text' && (conversationId === null || attaching)) {
+        setPendingUser({
+          id: mintMessageId(),
+          role: 'user',
+          content: payload.text,
+          timestamp: Date.now()
+        })
+      }
+      setSending(true)
+      // Handing over is one state change, not three: by the time this runs the
+      // live turn carries the prompt under the conversation's own id, so the
+      // row the screen was holding is released in the same frame its
+      // replacement appears.
+      const settle = (id?: string): void => {
+        setPendingUser(null)
+        setSending(false)
+        if (id) setConversationId(id)
+      }
       void (async () => {
+        if (payload.kind === 'text' && !attaching) {
+          try {
+            // Paired: the desktop runs the turn and streams it back. Demo: the
+            // on-device stand-in answers. Same call site, same result shape.
+            const id = paired
+              ? (await sendPrompt({ conversationId, text: payload.text })).conversationId
+              : await sendDemoPrompt({ conversationId, text: payload.text })
+            settle(id)
+          } catch {
+            settle()
+          }
+          return
+        }
+
         if (payload.kind === 'text') {
-          // Paired: the desktop runs the turn and streams it back. Demo: the
-          // on-device stand-in answers. Same call site, same result shape.
-          const id = paired
-            ? (await sendPrompt({ conversationId, text: payload.text })).conversationId
-            : await sendDemoPrompt({ conversationId, text: payload.text })
-          setConversationId(id)
+          await sendWithFiles(payload.text, payload.files, settle)
           return
         }
         // Voice note. Paired, the desktop owns the workspace: upload the
@@ -144,64 +320,116 @@ export default function ChatScreen(): React.JSX.Element {
         // it. The desktop transcribes and runs the turn from there.
         const timestamp = Date.now()
         const name = `voice-${timestamp}.m4a`
-        if (paired) {
-          let uploaded: Awaited<ReturnType<typeof uploadFileToDesktop>> = null
-          try {
-            uploaded = await uploadFileToDesktop(payload.uri, name, 'audio/mp4', conversationId)
-          } catch {
-            uploaded = null // a broken transfer keeps the recording local, like offline
+        try {
+          if (paired) {
+            let uploaded: Awaited<ReturnType<typeof uploadFileToDesktop>> = null
+            try {
+              uploaded = await uploadFileToDesktop(payload.uri, name, 'audio/mp4', conversationId)
+            } catch {
+              uploaded = null // a broken transfer keeps the recording local, like offline
+            }
+            if (uploaded) {
+              await importLocalFile(
+                payload.uri,
+                uploaded.attachment.filePath,
+                uploaded.conversationId
+              )
+              const result = await sendPrompt({
+                conversationId: uploaded.conversationId,
+                text: '',
+                attachments: [{ ...uploaded.attachment, durationSeconds: payload.durationSeconds }],
+                voicePrompt: true
+              })
+              settle(result.conversationId)
+              return
+            }
           }
-          if (uploaded) {
-            await importLocalFile(
-              payload.uri,
-              uploaded.attachment.filePath,
-              uploaded.conversationId
-            )
+          // Demo — or a paired phone that cannot reach its desktop right now:
+          // file the recording locally under the conversation's uploads dir and
+          // send the same attachment shape. Offline the reply says why nothing
+          // answers, and the local conversation is pruned when the real list
+          // resyncs.
+          let id = conversationId
+          if (!id) id = await ensureDemoConversation(t('chat.voice.record'))
+          const relPath = `uploads/conv-${id}/${name}`
+          await importLocalFile(payload.uri, relPath, id)
+          const attachments = [
+            {
+              type: 'audio' as const,
+              filePath: relPath,
+              originalName: name,
+              mimeType: 'audio/mp4',
+              sizeBytes: 0,
+              durationSeconds: payload.durationSeconds
+            }
+          ]
+          if (paired) {
             const result = await sendPrompt({
-              conversationId: uploaded.conversationId,
+              conversationId: id,
               text: '',
-              attachments: [{ ...uploaded.attachment, durationSeconds: payload.durationSeconds }],
+              attachments,
               voicePrompt: true
             })
-            setConversationId(result.conversationId)
+            settle(result.conversationId)
             return
           }
+          await sendDemoPrompt({ conversationId: id, text: '', attachments, voicePrompt: true })
+          settle(id)
+        } catch {
+          settle()
         }
-        // Demo — or a paired phone that cannot reach its desktop right now:
-        // file the recording locally under the conversation's uploads dir and
-        // send the same attachment shape. Offline the reply says why nothing
-        // answers, and the local conversation is pruned when the real list
-        // resyncs.
-        let id = conversationId
-        if (!id) id = await ensureDemoConversation(t('chat.voice.record'))
-        const relPath = `uploads/conv-${id}/${name}`
-        await importLocalFile(payload.uri, relPath, id)
-        const attachments = [
-          {
-            type: 'audio' as const,
-            filePath: relPath,
-            originalName: name,
-            mimeType: 'audio/mp4',
-            sizeBytes: 0,
-            durationSeconds: payload.durationSeconds
-          }
-        ]
-        if (paired) {
-          const result = await sendPrompt({
-            conversationId: id,
-            text: '',
-            attachments,
-            voicePrompt: true
-          })
-          setConversationId(result.conversationId)
-          return
-        }
-        await sendDemoPrompt({ conversationId: id, text: '', attachments, voicePrompt: true })
-        setConversationId(id)
       })()
     },
-    [conversationId, paired, t]
+    [conversationId, paired, t, sendWithFiles]
   )
+
+  /**
+   * What the composer hands over. Idle it goes; mid-turn it waits.
+   *
+   * "Mid-turn" is `streaming`, which is both a turn running in this
+   * conversation — this phone's, the desktop's, a channel's — and a send of
+   * this screen's own that has not come back yet. That second half matters:
+   * without it a fast second tap would race the first send's round trip, and
+   * the two prompts would reach the desktop in whichever order the network
+   * settled on.
+   */
+  const handleSubmit = useCallback(
+    (payload: ComposerSubmit): void => {
+      if (streaming) {
+        queueSequence += 1
+        setQueued((prev) => [...prev, { ...payload, id: `q_${queueSequence}` }])
+        return
+      }
+      performSubmit(payload)
+    },
+    [streaming, performSubmit]
+  )
+
+  const cancelQueued = useCallback((id: string): void => {
+    setQueued((prev) => prev.filter((item) => item.id !== id))
+  }, [])
+
+  /**
+   * The flush: while nothing is running and something is waiting, the head of
+   * the queue goes. One per idle moment, not the whole queue — each send makes
+   * the screen busy again, and the next row leaves when THAT turn ends, so the
+   * conversation stays one ordered transcript.
+   *
+   * Stated as an invariant ("idle and non-empty ⇒ send") rather than as a
+   * reaction to the turn ending, because the edge is missable: a prompt
+   * submitted in the same frame the turn finishes would be queued just after
+   * the transition it was waiting for, and would then sit there until some
+   * later turn happened to end. Every path out of a turn — finished, stopped,
+   * failed, offline — lands here the same way.
+   */
+  useEffect(() => {
+    if (streaming || queued.length === 0) return
+    const [next, ...rest] = queued
+    setQueued(rest)
+    // Synchronous: performSubmit marks the screen sending in this same commit,
+    // so this effect cannot run again on the render it causes.
+    performSubmit(next)
+  }, [streaming, queued, performSubmit])
 
   const handleStop = useCallback((): void => {
     if (!conversationId) return
@@ -215,6 +443,9 @@ export default function ChatScreen(): React.JSX.Element {
   const title =
     conversation?.title && conversation.title !== 'Untitled' ? conversation.title : t('app.name')
 
+  // Emptiness is a property of the FEED, not of the stored transcript: a turn
+  // in flight is on screen whether or not anything has been saved for it yet,
+  // and that is what keeps a fresh send out of both the hero and the skeleton.
   const empty = feed.length === 0
   // Reading the conversation out of SQLite is async, so an opened conversation
   // has no messages for a frame or two. Show placeholders rather than letting
@@ -228,6 +459,13 @@ export default function ChatScreen(): React.JSX.Element {
   // genuinely empty stays empty while a background refresh runs.
   const loading =
     empty && conversationId !== null && (conversation === undefined || conversationFetching)
+
+  // The skeleton stands in for the whole opening sequence, not just the read:
+  // it stays up while the body arrives AND while the laid-out feed is pinning
+  // itself to the end behind it (ChatFeed.onReady). A conversation that turns
+  // out to have no messages resolves to the hero instead — `loading` is false
+  // and there is nothing to lay out.
+  const showSkeleton = !feedRevealed && (loading || !empty)
 
   return (
     <View className="bg-bg flex-1" style={{ paddingTop: insets.top }}>
@@ -273,7 +511,17 @@ export default function ChatScreen(): React.JSX.Element {
           accessibilityRole="button"
           accessibilityLabel={t('chat.newChat')}
           hitSlop={8}
-          onPress={() => setConversationId(null)}
+          onPress={() => {
+            // A turn still running in the conversation being left keeps its own
+            // live entry, keyed by its id — leaving is not stopping. What must
+            // not follow the user to the empty chat is this screen's copy of the
+            // last prompt, or messages queued behind a turn they are walking
+            // away from.
+            setPendingUser(null)
+            setSending(false)
+            setQueued([])
+            setConversationId(null)
+          }}
           className="h-9 w-9 items-center justify-center rounded-lg active:bg-border/40"
         >
           <PlusSignIcon size={18} className="text-fg" />
@@ -285,57 +533,66 @@ export default function ChatScreen(): React.JSX.Element {
         className="flex-1"
         keyboardVerticalOffset={0}
       >
-        {loading ? (
-          <ChatSkeleton />
-        ) : empty ? (
-          <View className="flex-1 items-center justify-center gap-4 px-8">
-            <Image
-              source={require('../../assets/images/icon-trans.png')}
-              style={{ width: 80, height: 80 }}
-              contentFit="contain"
-            />
-            <Text className="text-fg font-sans-semibold text-center text-2xl">
-              {t('chat.empty.title')}
-            </Text>
-            <Text className="text-muted text-center font-sans text-sm leading-relaxed">
-              {t('chat.empty.subtitle')}
-            </Text>
-          </View>
-        ) : (
-          <ScrollView
-            ref={listRef}
-            onContentSizeChange={() => {
-              listRef.current?.scrollToEnd({ animated: false })
-            }}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16, gap: 16 }}
-            keyboardDismissMode="interactive"
-            keyboardShouldPersistTaps="handled"
-          >
-            {feed.map((item) =>
-              item.message.role === 'user' ? (
-                <UserBubble
-                  key={item.key}
-                  message={item.message}
-                  conversationId={conversationId ?? undefined}
-                />
-              ) : (
-                <AssistantMessageView
-                  key={item.key}
-                  message={item.message}
-                  conversationId={conversationId ?? undefined}
-                  verbose={verbose}
-                  streaming={item.streaming}
-                />
-              )
-            )}
-          </ScrollView>
-        )}
+        <View className="flex-1">
+          {empty && !loading ? (
+            <View className="flex-1 items-center justify-center gap-4 px-8">
+              <Image
+                source={require('../../assets/images/icon-trans.png')}
+                style={{ width: 80, height: 80 }}
+                contentFit="contain"
+              />
+              <Text className="text-fg font-sans-semibold text-center text-2xl">
+                {t('chat.empty.title')}
+              </Text>
+              <Text className="text-muted text-center font-sans text-sm leading-relaxed">
+                {t('chat.empty.subtitle')}
+              </Text>
+            </View>
+          ) : (
+            <ChatFeed
+              // A different conversation is a different scroll position and a
+              // different gate; keying on the opened id restarts both.
+              key={openedId ?? 'new'}
+              ref={feedRef}
+              gated={openedId !== null}
+              onReady={() => setFeedRevealed(true)}
+            >
+              {feed.map((item) =>
+                item.message.role === 'user' ? (
+                  <UserBubble
+                    key={item.key}
+                    message={item.message}
+                    conversationId={conversationId ?? undefined}
+                  />
+                ) : (
+                  <AssistantMessageView
+                    key={item.key}
+                    message={item.message}
+                    conversationId={conversationId ?? undefined}
+                    verbose={verbose}
+                    streaming={item.streaming}
+                  />
+                )
+              )}
+            </ChatFeed>
+          )}
+          {showSkeleton && (
+            // Fades out as the feed fades in — one cross-dissolve, so the
+            // placeholders resolve into the messages they stood in for
+            // instead of being replaced by them.
+            <Animated.View exiting={FadeOut.duration(FEED_FADE_MS)} style={StyleSheet.absoluteFill}>
+              <ChatSkeleton />
+            </Animated.View>
+          )}
+        </View>
 
         <View style={{ paddingBottom: insets.bottom }}>
           <Composer
             streaming={streaming}
             conversation={conversation}
+            queued={queued}
             onSubmit={handleSubmit}
+            onCancelQueued={cancelQueued}
             onStop={handleStop}
           />
         </View>

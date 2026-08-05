@@ -1,16 +1,31 @@
 import { Copy01Icon, Tick02Icon } from '@/components/core/icons'
 import { buildRenderBlocks, messageText, toWorkspaceRelative } from '@/lib/conversations/segments'
-import type { ConversationMessage, MessageAttachment } from '@/lib/conversations/types'
+import type { RenderBlock } from '@/lib/conversations/segments'
+import { respondApproval, respondAsk } from '@/lib/sync/cards'
+import type {
+  ApprovalDecision,
+  AskUserResponse,
+  ConversationMessage,
+  MessageAttachment
+} from '@/lib/conversations/types'
 import { cn } from '@/lib/utils/cn'
 import { formatRelativeTime } from '@/lib/utils/relativeTime'
+import {
+  selectCards,
+  useChatRuntime,
+  type ApprovalCardState,
+  type AskCardState
+} from '@/state/chatRuntime'
 import * as Clipboard from 'expo-clipboard'
 import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pressable, Text, View } from 'react-native'
+import { ApprovalCard } from './ApprovalCard'
 import { CompactionCard, ModelChip, PathCard, TurnEndCard, WorkflowCard } from './InlineCards'
 import { FileBlock } from './FileBlock'
 import { MarkdownView, markdownHasTable } from './MarkdownView'
 import { QuestionCard } from './QuestionCard'
+import { TaskCard } from './TaskCard'
 import { ThinkingIndicator } from './ThinkingIndicator'
 import { ToolCard } from './ToolCard'
 
@@ -127,16 +142,46 @@ export const AssistantMessageView = memo(function AssistantMessageView({
 }): React.JSX.Element {
   const blocks = useMemo(() => buildRenderBlocks(message), [message])
   const fullText = useMemo(() => messageText(message), [message])
+  // Cards the desktop is holding this turn open for. Live state wins over the
+  // persisted record for the same tool call: the two describe one approval,
+  // and the live one is the one that can still be acted on.
+  const live = useChatRuntime(selectCards(conversationId))
+  const approvals: Record<string, ApprovalCardState> = useMemo(
+    () => ({ ...(message.approvals ?? {}), ...live.approvals }),
+    [message.approvals, live.approvals]
+  )
+  const asks = live.asks
 
   const visible = blocks.filter((block) => {
-    if (block.type === 'tool' || block.type === 'model' || block.type === 'compaction') {
-      return verbose
-    }
+    // An approval always renders — the user must be able to act on a pending
+    // tool call whatever the verbose preference says. Same rule as the desktop.
+    if (block.type === 'tool') return verbose || !!approvals[block.call.toolCallId]
+    if (block.type === 'model' || block.type === 'compaction') return verbose
+    // ask_user renders as its card while the turn is parked on it and once it
+    // has been answered; with neither there is nothing to show yet.
+    if (block.type === 'question') return !!asks[block.call.toolCallId] || !!block.result
     return true
   })
 
-  // Nothing renderable while the turn streams → typed thinking words.
-  if (streaming && visible.every((block) => block.type !== 'text')) {
+  // A card whose tool_call segment never reached this phone still has to be
+  // answerable: the live mirror strips tool calls from the clean feed, and the
+  // parked card is the whole reason the turn stopped. Anchored where the
+  // segment exists (the desktop's inline placement), appended at the tail
+  // where it doesn't — which mid-turn is the same position, since a parked
+  // turn has written nothing after it.
+  const anchored = new Set(
+    blocks.flatMap((block) =>
+      block.type === 'tool' || block.type === 'question' ? [block.call.toolCallId] : []
+    )
+  )
+  const orphans = [
+    ...Object.values(asks).filter((ask) => !anchored.has(ask.toolCallId)),
+    ...Object.values(live.approvals).filter((approval) => !anchored.has(approval.toolCallId))
+  ]
+
+  // Nothing renderable while the turn streams → typed thinking words. A parked
+  // card counts as renderable: the turn is waiting on the user, not thinking.
+  if (streaming && orphans.length === 0 && visible.every((block) => block.type !== 'text')) {
     return <ThinkingIndicator />
   }
 
@@ -144,7 +189,14 @@ export const AssistantMessageView = memo(function AssistantMessageView({
     <View className="flex-col gap-2">
       {visible.map((block) => (
         <View key={block.key} className="flex-col">
-          {renderBlock(block, conversationId)}
+          {renderBlock(block, conversationId, approvals, live.approvals, asks, verbose)}
+        </View>
+      ))}
+      {orphans.map((card) => (
+        <View key={`live:${card.toolCallId}`} className="flex-col">
+          {'askId' in card
+            ? renderAsk(card, conversationId)
+            : renderApproval(card, conversationId, true)}
         </View>
       ))}
       {!streaming && fullText.trim().length > 0 && (
@@ -154,9 +206,61 @@ export const AssistantMessageView = memo(function AssistantMessageView({
   )
 })
 
+/** The question card, live: answering it resolves the desktop's parked turn. */
+function renderAsk(ask: AskCardState, conversationId?: string): React.ReactNode {
+  return (
+    <QuestionCard
+      call={{ toolCallId: ask.toolCallId, name: 'ask_user', args: {} }}
+      ask={ask}
+      onRespond={
+        conversationId
+          ? (askId: string, response: AskUserResponse) =>
+              void respondAsk(conversationId, askId, ask.toolCallId, response)
+          : undefined
+      }
+    />
+  )
+}
+
+/**
+ * The approval card. Actionable ONLY when `live` — i.e. when the request came
+ * from the desktop's push and is sitting in the store waiting for an answer.
+ *
+ * The distinction matters because the same card arrives by two other routes
+ * that look identical: the assistant message the desktop mirrors mid-turn
+ * carries the approval record too (undecided, since it hasn't been), and the
+ * saved transcript carries it decided. Wiring buttons to either would produce
+ * a control that does nothing when tapped — the request it names is not one
+ * this phone is holding.
+ */
+function renderApproval(
+  approval: ApprovalCardState,
+  conversationId: string | undefined,
+  live: boolean
+): React.ReactNode {
+  return (
+    <ApprovalCard
+      state={approval}
+      onDecision={
+        live && conversationId && approval.decision === undefined
+          ? (decision: ApprovalDecision) => void respondApproval(conversationId, approval, decision)
+          : undefined
+      }
+    />
+  )
+}
+
 function renderBlock(
-  block: ReturnType<typeof buildRenderBlocks>[number],
-  conversationId?: string
+  block: RenderBlock,
+  conversationId: string | undefined,
+  /** Every approval this message can show — the persisted record merged
+   *  under whatever is live right now. */
+  approvals: Record<string, ApprovalCardState>,
+  /** Only the ones the desktop is holding open, which is what makes a card
+   *  a control rather than a record. */
+  liveApprovals: Record<string, ApprovalCardState>,
+  asks: Record<string, AskCardState>,
+  verbose: boolean
 ): React.ReactNode {
   switch (block.type) {
     case 'text':
@@ -176,10 +280,39 @@ function renderBlock(
       )
     case 'media':
       return <FileBlock relPath={block.relPath} conversationId={conversationId} declared="image" />
-    case 'tool':
-      return <ToolCard call={block.call} result={block.result} timing={block.timing} />
-    case 'question':
-      return <QuestionCard call={block.call} result={block.result} />
+    case 'tool': {
+      // A flagged call shows its approval card in place of the tool card, and
+      // keeps the tool card underneath once decided — verbose only, because
+      // by then it is mechanics again. The desktop makes the same swap.
+      const approval = approvals[block.call.toolCallId]
+      if (!approval) {
+        return <ToolCard call={block.call} result={block.result} timing={block.timing} />
+      }
+      return (
+        <View className="flex-col gap-2">
+          {renderApproval(approval, conversationId, !!liveApprovals[block.call.toolCallId])}
+          {approval.decision !== undefined && verbose ? (
+            <ToolCard call={block.call} result={block.result} timing={block.timing} />
+          ) : null}
+        </View>
+      )
+    }
+    case 'question': {
+      const ask = asks[block.call.toolCallId]
+      return (
+        <QuestionCard
+          call={block.call}
+          result={block.result}
+          ask={ask}
+          onRespond={
+            ask && conversationId
+              ? (askId: string, response: AskUserResponse) =>
+                  void respondAsk(conversationId, askId, ask.toolCallId, response)
+              : undefined
+          }
+        />
+      )
+    }
     case 'file':
       // The marker's kind is only a hint — the extension decides which viewer
       // renders, exactly as on the desktop.
@@ -192,6 +325,10 @@ function renderBlock(
       return <PathCard path={block.path} kind={block.kind} />
     case 'workflow':
       return <WorkflowCard snapshot={block.snapshot} />
+    case 'task':
+      // Generic async-generation card (video). Deliberately outside the
+      // verbose gate above — like workflow, it is output FOR the user.
+      return <TaskCard snapshot={block.snapshot} conversationId={conversationId} />
     case 'compaction':
       return <CompactionCard block={block} />
     case 'turnEnd':

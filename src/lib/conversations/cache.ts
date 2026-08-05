@@ -30,3 +30,35 @@ export function invalidateConversation(id: string): void {
 export function invalidateConversationList(): void {
   void queryClient.invalidateQueries({ queryKey: conversationKeys.list })
 }
+
+/**
+ * Re-read one conversation and RESOLVE ONCE THE QUERY HOLDS THE RESULT — the
+ * awaitable half of `invalidateConversation`, which only schedules the work.
+ *
+ * The difference matters exactly once: at the end of a turn, where the live
+ * overlay may only be released after the stored transcript is actually in hand
+ * (see sync/prompt.ts). Invalidation would return before the read, leaving a
+ * window with the message in neither place.
+ */
+export async function refetchConversation(id: string): Promise<void> {
+  await queryClient
+    .refetchQueries({ queryKey: conversationKeys.detail(id) })
+    .catch(() => undefined)
+  void queryClient.invalidateQueries({ queryKey: conversationKeys.list })
+}
+
+/**
+ * Is this message in the copy the chat screen is currently rendering?
+ *
+ * Read from the query cache rather than SQLite deliberately: the question a
+ * caller is really asking is "has the stored row taken over on screen yet",
+ * and the screen draws what the query holds. A row that is on disk but not yet
+ * read back is not yet visible, and releasing a live overlay against it would
+ * leave a gap.
+ */
+export function conversationHasMessage(id: string, messageId: string): boolean {
+  const data = queryClient.getQueryData<{ messages?: Array<{ id?: string }> } | null>(
+    conversationKeys.detail(id)
+  )
+  return (data?.messages ?? []).some((message) => message.id === messageId)
+}

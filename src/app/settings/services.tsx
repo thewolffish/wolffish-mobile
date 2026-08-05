@@ -109,7 +109,7 @@ function ServiceHeader({
 /** The credential keys the phone edits — each row binds to exactly one. */
 type SecretField = Extract<
   keyof DemoConfigValues,
-  'braveApiKey' | 'imgflipUsername' | 'imgflipPassword' | 'giphyApiKey'
+  'braveApiKey' | 'videoApiKey' | 'imgflipUsername' | 'imgflipPassword' | 'giphyApiKey'
 >
 
 /**
@@ -284,6 +284,30 @@ export default function ServicesScreen(): React.JSX.Element {
           description={t('settings.services.brave.description')}
         />
         <SecretRow field="braveApiKey" label={t('settings.services.brave.apiKey')} />
+        <Text className="text-muted text-left font-sans text-xs leading-5">
+          {t('settings.services.secretNote')}
+        </Text>
+      </Section>
+
+      {/* Video generation (MiniMax H3). Its own key on purpose — the desktop
+          keeps it independent of the MiniMax chat provider so switching
+          brains never silently kills video generation. */}
+      <Section>
+        <ServiceHeader serviceKey="video" />
+        <ConfigSwitchRow
+          field="videoEnabled"
+          label={t('settings.channels.enabled')}
+          description={t('settings.services.video.description')}
+        />
+        <ConfigSwitchRow
+          field="videoDirector"
+          label={t('settings.services.video.director')}
+          description={t('settings.services.video.directorDescription')}
+        />
+        <SecretRow field="videoApiKey" label={t('settings.services.video.apiKey')} />
+        <Text className="text-muted text-left font-sans text-xs leading-5">
+          {t('settings.services.video.separateKeyNote')}
+        </Text>
         <Text className="text-muted text-left font-sans text-xs leading-5">
           {t('settings.services.secretNote')}
         </Text>

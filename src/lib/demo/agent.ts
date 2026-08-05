@@ -1,4 +1,4 @@
-import { invalidateConversation } from '@/lib/conversations/cache'
+import { invalidateConversation, refetchConversation } from '@/lib/conversations/cache'
 import {
   appendMessage,
   createConversation,
@@ -222,8 +222,12 @@ function startAssistantTurn(
       /* meter stays at its last reading */
     }
 
+    // Stored copy first, live row second. The feed drops a live row as soon as
+    // the transcript carries its id (they share one), so the swap is invisible
+    // either way — but releasing it before the query has re-read would leave
+    // the reply in neither place for a frame. Same contract as a paired turn.
+    await refetchConversation(conversationId)
     useChatRuntime.getState().endStream(conversationId)
-    invalidateConversation(conversationId)
   }
 
   turn.timer = setTimeout(() => void finish(), DEMO_THINKING_MS)

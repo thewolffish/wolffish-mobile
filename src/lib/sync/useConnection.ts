@@ -1,3 +1,4 @@
+import { refreshPushRegistration } from '@/lib/notifications/push'
 import { attachLiveUpdates, reconcile } from '@/lib/sync/sync'
 import { attachTurnStream } from '@/lib/sync/prompt'
 import { tunnelClient } from '@/lib/tunnel/client'
@@ -55,6 +56,11 @@ export function useConnection(): void {
       // return needs its own reconcile or those minutes stay missing until
       // the next reconnect.
       if (tunnelClient.connected) void reconcile().catch(() => undefined)
+      // Every foreground re-upserts the push registration — the contract that
+      // keeps the relay's token fresh. A reconnecting return is covered by
+      // the client's own connect-time registration; a still-open socket is
+      // exactly the case only this call reaches.
+      void refreshPushRegistration()
     }
     const subscription = AppState.addEventListener('change', onChange)
 

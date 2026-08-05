@@ -244,6 +244,14 @@ export type DemoConfigValues = {
   braveEnabled: boolean
   /** The Brave Search key — editable here, saved to the desktop's config. */
   braveApiKey: string
+  /** Video generation (MiniMax H3) — the capability switch + its OWN key
+   *  (deliberately not the MiniMax chat provider's; the desktop keeps the
+   *  two independent so switching brains never kills video generation). */
+  videoEnabled: boolean
+  videoApiKey: string
+  /** Director mode: the model expands video prompts (on) or forwards them
+   *  verbatim (off). A model directive — synced, never enforced. */
+  videoDirector: boolean
   memesEnabled: boolean
   imgflipUsername: string
   imgflipPassword: string
@@ -329,6 +337,9 @@ const DEFAULTS: DemoConfigValues = {
   // Demo credentials: fake keys for a fake workspace, same posture as
   // FALLBACK_API_KEYS — they authenticate nothing, they populate fields.
   braveApiKey: 'BSAhxqNe83jP2nQvWwRt5KbAzYdMf',
+  videoEnabled: true,
+  videoApiKey: 'sk-api-wLf8QzKm3nRt5vXy2bJd7cPh4g',
+  videoDirector: true,
   memesEnabled: true,
   imgflipUsername: 'youneswolf',
   imgflipPassword: 'imgflp-wlf-2861-pass',
@@ -436,6 +447,11 @@ export type ConfigSnapshot = {
      * Real values ride only the end-to-end sealed tunnel.
      */
     braveApiKey?: string
+    /** Video generation: capability switch + its own key. Optional like
+     *  braveApiKey — desktops from before the feature omit both. */
+    videoEnabled?: boolean
+    videoApiKey?: string
+    videoDirector?: boolean
     memesEnabled: boolean
     /** Same contract as braveApiKey, for the Memes providers. */
     memes?: {
@@ -926,6 +942,9 @@ export const useDemoConfig = create<DemoConfigState>()(
             // source from before credentials synced omits the field entirely,
             // and those get the demo fakes exactly as before.
             braveApiKey: services.braveApiKey ?? DEFAULTS.braveApiKey,
+            videoEnabled: services.videoEnabled ?? DEFAULTS.videoEnabled,
+            videoApiKey: services.videoApiKey ?? DEFAULTS.videoApiKey,
+            videoDirector: services.videoDirector ?? DEFAULTS.videoDirector,
             memesEnabled: services.memesEnabled,
             imgflipUsername: services.memes?.imgflipUsername ?? DEFAULTS.imgflipUsername,
             imgflipPassword: services.memes?.imgflipPassword ?? DEFAULTS.imgflipPassword,
@@ -1086,6 +1105,9 @@ const DESKTOP_EDITABLE: ReadonlySet<keyof DemoConfigValues> = new Set<keyof Demo
   // moving it restarts the desktop's local pairing server.
   'braveEnabled',
   'braveApiKey',
+  'videoEnabled',
+  'videoApiKey',
+  'videoDirector',
   'memesEnabled',
   'imgflipUsername',
   'imgflipPassword',

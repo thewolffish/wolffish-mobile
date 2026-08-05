@@ -20,7 +20,7 @@ import { factoryResetDevice } from '@/lib/demo/factoryReset'
 import { beginSync } from '@/lib/sync/activity'
 import { getLastSyncedAt, refreshConfig, refreshSync } from '@/lib/sync/sync'
 import { tunnelClient } from '@/lib/tunnel/client'
-import type { TunnelState } from '@/lib/tunnel/tunnel'
+import { useTunnelState, useTunnelStatus } from '@/lib/tunnel/useTunnelStatus'
 import { useAppStore } from '@/state/appStore'
 import { useToast } from '@/providers/toast/useToast'
 import { router } from 'expo-router'
@@ -43,14 +43,16 @@ export default function RelayScreen(): React.JSX.Element {
   const { t } = useTranslation()
   const toast = useToast()
   const setPaired = useAppStore((state) => state.setPaired)
-  const [state, setState] = useState<TunnelState | null>(tunnelClient.state)
+  const state = useTunnelState()
+  // Same word and colour the Settings list shows for this row — one mapping,
+  // so the two cannot disagree about what the link is doing.
+  const { label: statusLabel, tone: statusTone } = useTunnelStatus()
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(getLastSyncedAt)
   // Ages the "2m ago" label between syncs; the value itself has not changed.
   const [, setTick] = useState(0)
 
-  useEffect(() => tunnelClient.subscribe(setState), [])
   // The catch-up that runs on foreground finishes after this screen mounts,
   // so poll the module's timestamp rather than reading it once.
   useEffect(() => {
@@ -60,42 +62,6 @@ export default function RelayScreen(): React.JSX.Element {
     }, 5_000)
     return () => clearInterval(timer)
   }, [])
-
-  const statusLabel = ((): string => {
-    switch (state?.status) {
-      case 'connected':
-        return t('relay.status.connected')
-      case 'connecting':
-      case 'handshaking':
-        return t('relay.status.connecting')
-      case 'waiting-for-peer':
-        return t('relay.status.waiting')
-      case 'reconnecting':
-        return t('relay.status.reconnecting')
-      case 'error':
-        return t('relay.status.error')
-      default:
-        return t('relay.status.idle')
-    }
-  })()
-
-  // Anything mid-flight is amber, not grey: a handshake in progress is the
-  // link working, and grey would read as dead.
-  const statusTone = ((): 'ok' | 'busy' | 'error' | 'idle' => {
-    switch (state?.status) {
-      case 'connected':
-        return 'ok'
-      case 'connecting':
-      case 'handshaking':
-      case 'waiting-for-peer':
-      case 'reconnecting':
-        return 'busy'
-      case 'error':
-        return 'error'
-      default:
-        return 'idle'
-    }
-  })()
 
   const resync = async (): Promise<void> => {
     setBusy(true)

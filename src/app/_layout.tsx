@@ -14,6 +14,7 @@ import { ChartSnapshotHost } from '@/components/chat/ChartSnapshotHost'
 import { ConnectingOverlay } from '@/components/pairing/ConnectingOverlay'
 import { SyncOverlay } from '@/components/pairing/SyncOverlay'
 import { UpdateNotice } from '@/components/updates/UpdateNotice'
+import { sweepStagedFiles } from '@/lib/files/fileCache'
 import { useOtaUpdates } from '@/lib/updates/useOtaUpdates'
 import { ToastProvider } from '@/providers/toast/ToastProvider'
 import { LocaleProvider } from '@/providers/locale/LocaleProvider'
@@ -31,6 +32,7 @@ import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect } from 'react'
 import { useConnection } from '@/lib/sync/useConnection'
+import { initNotifications } from '@/lib/notifications/push'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -45,6 +47,15 @@ function AppShell(): React.JSX.Element {
     // Providers gate rendering until theme + locale are restored, so the
     // first frame here is already correct — safe to reveal.
     void SplashScreen.hideAsync()
+    // Files staged for a message that was still uploading when the app died.
+    // Nothing can legitimately be mid-send at launch, so anything left is
+    // orphaned bytes — see fileCache STAGING_ROOT.
+    sweepStagedFiles()
+    // Foreground display, tap routing (warm + cold start) and token-rotation
+    // re-registration for model-initiated notifications. Idempotent; without
+    // the handler, notifications arriving while the app is open are silently
+    // swallowed.
+    initNotifications()
   }, [])
 
   return (

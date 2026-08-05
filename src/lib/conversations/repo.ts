@@ -252,6 +252,33 @@ export async function getConversationStats(
   }
 }
 
+/**
+ * Live-mirror upsert: a mid-turn message snapshot from the desktop replaces
+ * its earlier self by message id, or appends on first sight — the phone-side
+ * twin of the desktop renderer's mirror reconciliation ("same stable id, so
+ * upsert never duplicates"). The end-of-turn refetch then overwrites the
+ * whole body with the authoritative copy under the same id.
+ */
+export async function upsertMessage(
+  conversationId: string,
+  message: ConversationMessage
+): Promise<'appended' | 'replaced' | 'skipped'> {
+  if (!message.id) return 'skipped'
+  const db = await getDb()
+  const result = await db.runAsync(
+    `UPDATE messages SET content = ?, timestamp = ?, payload_json = ?
+     WHERE conversation_id = ? AND id = ?`,
+    message.content,
+    message.timestamp,
+    messagePayload(message),
+    conversationId,
+    message.id
+  )
+  if ((result?.changes ?? 0) > 0) return 'replaced'
+  await appendMessage(conversationId, message)
+  return 'appended'
+}
+
 /** Replace one message in place (streaming placeholder → final persist). */
 export async function replaceMessage(
   conversationId: string,

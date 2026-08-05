@@ -49,6 +49,12 @@
       "capabilities": "Capabilities",
       "relay": "Relay"
     },
+    "summary": {
+      "compaction": "Compact",
+      "reflection": "Reflect",
+      "bypass": "Bypass",
+      "today": "{{value}} today"
+    },
     "appearanceSubtitle": "Theme and language.",
     "chatModes": {
       "single": "Single",
@@ -115,6 +121,7 @@
         "notion": "Notion",
         "brave": "Brave Search",
         "memes": "Memes",
+        "video": "Video generation",
         "stt": "Speech to Text",
         "tts": "Text to Speech",
         "browserExtension": "Browser Extension",
@@ -164,7 +171,14 @@
       "keySaved": "Saved to your desktop",
       "keySaveFailed": "Couldn’t save — check the connection",
       "saveKey": "Save",
-      "saving": "Saving…"
+      "saving": "Saving…",
+      "video": {
+        "description": "Generate video with MiniMax H3 — your chat model directs it; results show as task cards in the chat.",
+        "apiKey": "MiniMax API key (video)",
+        "separateKeyNote": "This is its own key on purpose — the same MiniMax value works, but it is never copied from the chat provider, so switching brains cannot break video generation.",
+        "director": "Director mode",
+        "directorDescription": "On, your chat model rewrites video requests into cinematic prompts and shows you what it sent. Off, your words go to the video model verbatim."
+      }
     },
     "variables": {
       "subtitle": "Named values for prompts.",
@@ -502,6 +516,12 @@
     "placeholder": "Message Wolffish",
     "send": "Send",
     "stop": "Stop",
+    "queue": {
+      "placeholder": "Queue a message for when this turn ends",
+      "add": "Queue message",
+      "remove": "Remove from queue",
+      "attachmentCount": "{{count}} attachments"
+    },
     "empty": {
       "title": "Wolffish is ready",
       "subtitle": "Ask anything. I bite through anything."
@@ -555,6 +575,12 @@
       "expand": "Expand",
       "close": "Close"
     },
+    "download": {
+      "starting": "Starting download…",
+      "progress": "Downloading · {{done}} of {{total}}",
+      "received": "Downloading · {{done}}",
+      "finishing": "Finishing…"
+    },
     "fileViewer": {
       "lines": "{{count}} lines",
       "rows": "{{count}} rows"
@@ -585,7 +611,27 @@
       "send": "Send recording",
       "delete": "Delete recording",
       "transcribing": "Transcribing…",
-      "error": "Recording failed"
+      "error": "Recording failed",
+      "queue": "Queue voice message",
+      "queued": "Voice message",
+      "play": "Play",
+      "pause": "Pause"
+    },
+    "attach": {
+      "title": "Attach",
+      "media": "Photos & videos",
+      "mediaHint": "From your library",
+      "files": "Files",
+      "filesHint": "Documents, PDFs, archives",
+      "remove": "Remove {{name}}",
+      "error": "Couldn't attach that file",
+      "failed": "Couldn't send {{names}}"
+    },
+    "upload": {
+      "fileTooLarge": "File exceeds maximum size of {{limit}}",
+      "maxFiles": "Maximum {{count}} files per message",
+      "totalExceeded": "Total attachments cannot exceed {{limit}}",
+      "typeNotSupported": "File type not supported"
     },
     "toolCard": {
       "args": "Arguments",
@@ -602,7 +648,11 @@
       "otherLabel": "Something else",
       "yourAnswer": "Your answer",
       "yourAnswers": "Your answers",
-      "questionCount": "Question {{current}} of {{total}}"
+      "questionCount": "Question {{current}} of {{total}}",
+      "otherDescription": "Tell wolffish exactly what to do instead",
+      "otherPlaceholder": "Type your instructions…",
+      "submit": "Send",
+      "questionTab": "Question {{number}}"
     },
     "workflowCard": {
       "title": "Workflow",
@@ -660,7 +710,38 @@
       "toolCalls": "Tool calls",
       "cachedShare": "{{percent}}% of ingested context came from cache"
     },
-    "offlineReply": "I can't answer while your desktop is out of reach — it runs the model and holds your workspace. Your message is saved here; send it again once the link is back."
+    "offlineReply": "I can't answer while your desktop is out of reach — it runs the model and holds your workspace. Your message is saved here; send it again once the link is back.",
+    "task": {
+      "kind": {
+        "video": "Video"
+      },
+      "status": {
+        "submitted": "Submitted",
+        "queued": "Queued",
+        "running": "Running",
+        "succeeded": "Done",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      }
+    },
+    "approval": {
+      "level": {
+        "safe": "Safe",
+        "warn": "Warning",
+        "confirm": "Confirm",
+        "destructive": "Destructive",
+        "block": "Blocked"
+      },
+      "risk": {
+        "low": "Low risk",
+        "medium": "Medium risk",
+        "high": "High risk"
+      },
+      "approve": "Approve",
+      "deny": "Deny",
+      "approved": "Approved",
+      "denied": "Denied"
+    }
   },
   "history": {
     "loading": "Loading conversations…",

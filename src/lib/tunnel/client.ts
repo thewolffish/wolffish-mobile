@@ -12,6 +12,11 @@ import {
   toHex
 } from '@/lib/tunnel/pairing'
 import { Tunnel, type TunnelState } from '@/lib/tunnel/tunnel'
+import {
+  attachNotificationHandlers,
+  getPhoneId,
+  refreshPushRegistration
+} from '@/lib/notifications/push'
 import * as Device from 'expo-device'
 import Constants from 'expo-constants'
 import { Platform } from 'react-native'
@@ -252,20 +257,31 @@ class TunnelClient {
     // the relay's history, and it records every connection event per day; the
     // phone holds live state for its own screens and nothing more.
     tunnel.onState((state) => this.publish(state))
+    // In-band notification delivery + acks ride this tunnel's control frames.
+    attachNotificationHandlers(tunnel)
     await tunnel.start(mode)
 
     // Announce this device so the desktop's Mobile panel can label it: the
     // name it answers to, plus what it is. Every field is optional on the
     // wire — an older desktop simply ignores what it does not read.
+    // `deviceId` is the stable phoneId the desktop stamps into notify frames;
+    // it is minted here and never derived from the identity key.
     await tunnel
       .rpc(Rpc.hello, {
         deviceName: Device.deviceName ?? Device.modelName ?? 'Phone',
         platform: Platform.OS,
         model: Device.modelName ?? null,
         osVersion: Device.osVersion ?? null,
-        appVersion: Constants.expoConfig?.version ?? null
+        appVersion: Constants.expoConfig?.version ?? null,
+        deviceId: await getPhoneId().catch(() => undefined)
       })
       .catch(() => undefined)
+
+    // Register (or clear) this device's push token with the relay — the
+    // "on successful pairing" and "on reconnect" halves of the contract;
+    // useConnection covers the app-foreground half. Fire-and-forget: a
+    // token failure must never block pairing or startup.
+    void refreshPushRegistration()
   }
 
   /** Drop the connection but keep the pairing — used when backgrounding. */

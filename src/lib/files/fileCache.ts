@@ -19,6 +19,7 @@ import { Directory, File, Paths } from 'expo-file-system'
  * — nothing is bundled or pushed, and that behavior is unchanged.
  */
 
+import { beginDownload, endDownload, reportDownload } from './downloadProgress'
 import { selectPrunable, type CachedFileRow } from './lru'
 import { sampleUrlFor } from './sampleFiles'
 
@@ -29,6 +30,22 @@ export type { CachedFileRow }
 
 /** Scratch space for in-progress downloads, outside the tracked cache. */
 const DOWNLOAD_DIR = 'downloads'
+
+/**
+ * Where a file being sent waits for its real name.
+ *
+ * An attachment's workspace path is the DESKTOP's to choose — it resolves
+ * collisions Finder-style and only answers once the last byte has landed. But
+ * the message carrying it is on screen from the tap, so its files need a path
+ * to render from before that answer exists. They get one here: still inside
+ * the workspace (so every viewer, cache probe and share sheet works unchanged),
+ * dot-prefixed so it can never collide with a real `uploads/conv-…` folder, and
+ * one directory per file so two pictures with the same name both survive.
+ *
+ * Deliberately outside the LRU: a staged file must not be prunable between the
+ * tap and the commit. Anything left here after a crash is swept at launch.
+ */
+const STAGING_ROOT = 'uploads/.staging'
 
 function workspaceRoot(): Directory {
   return new Directory(Paths.document, 'workspace')
@@ -104,20 +121,34 @@ const inFlight = new Map<string, Promise<string | null>>()
  * first and is moved into place only once complete: on Android a failed
  * download leaves a partial file behind, and a truncated file sitting at the
  * real path would read as a valid cache hit forever after.
+ *
+ * Both branches report bytes as they land (see downloadProgress) — this is the
+ * single choke point every workspace download passes through, so wrapping it
+ * here is what gives every file card in the feed a real progress bar.
  */
 async function fetchIntoCache(relPath: string, conversationId?: string): Promise<string | null> {
+  beginDownload(relPath)
   try {
     new Directory(Paths.cache, DOWNLOAD_DIR).create({ intermediates: true, idempotent: true })
     const scratch = scratchFile(relPath)
 
     if (useAppStore.getState().paired) {
       // Paired: the desktop is the only honest source for this path.
-      if (!(await fetchDesktopFileInto(relPath, scratch))) throw new Error('desktop fetch failed')
+      const received = (bytes: number, total: number): void => reportDownload(relPath, bytes, total)
+      if (!(await fetchDesktopFileInto(relPath, scratch, received))) {
+        throw new Error('desktop fetch failed')
+      }
     } else {
       // Demo: the published sample for this path's file type.
       const url = sampleUrlFor(relPath)
       if (!url) return null
-      await File.downloadFileAsync(url, scratch, { idempotent: true })
+      await File.downloadFileAsync(url, scratch, {
+        idempotent: true,
+        // totalBytes is -1 when the server sent no Content-Length; the store
+        // reads that as "no total" and the bar falls back to its blind curve.
+        onProgress: ({ bytesWritten, totalBytes }) =>
+          reportDownload(relPath, bytesWritten, totalBytes)
+      })
     }
 
     const target = fileAt(workspaceRoot(), relPath)
@@ -136,6 +167,34 @@ async function fetchIntoCache(relPath: string, conversationId?: string): Promise
     } catch {
       // Nothing to clean up.
     }
+    return null
+  } finally {
+    endDownload(relPath)
+  }
+}
+
+/**
+ * Synchronous cache probe: the local URI and size when a path's bytes are
+ * ALREADY on disk, null otherwise. Never fetches.
+ *
+ * This is what lets a viewer render at its final size on its first frame.
+ * The async resolve below always costs a state transition — placeholder,
+ * then card — and a card that changes height one frame after it mounts moves
+ * everything under it and drags the feed's scroll position with it. A file the
+ * phone already holds (every re-open of a conversation, every chart spec the
+ * demo importer seeded) has nothing to wait for, so it should never enter that
+ * loading state at all. `exists`/`size` are synchronous on expo-file-system's
+ * File, so the probe is a stat, cheap enough to run during render.
+ */
+export function statCachedFile(relPath: string): { uri: string; sizeBytes: number } | null {
+  try {
+    const cached = fileAt(workspaceRoot(), relPath)
+    if (!cached.exists) return null
+    void touch(relPath)
+    return { uri: cached.uri, sizeBytes: cached.size ?? 0 }
+  } catch {
+    // A malformed path, a permissions failure — the async path treats those as
+    // "not cached" too, and will produce the per-type missing state.
     return null
   }
 }
@@ -188,6 +247,71 @@ export async function importLocalFile(
     return target.uri
   } catch {
     return null
+  }
+}
+
+export type StagedFile = { relPath: string; uri: string; sizeBytes: number }
+
+/**
+ * Move a picked file into the workspace under a staging path, so the message
+ * about to carry it can render from the cache like any other attachment.
+ *
+ * A move, not a copy: the picker already handed us a private copy in the app's
+ * cache directory, and the upload reads its bytes from wherever they are. One
+ * traversal of the file is enough.
+ */
+export async function stageOutgoingFile(
+  sourceUri: string,
+  id: string,
+  name: string
+): Promise<StagedFile | null> {
+  // The name is the user's (or a document provider's) and must not be able to
+  // climb out of the staging directory.
+  const safeName = name.replace(/[/\\]/g, '_').replace(/\0/g, '_').trim() || 'upload.bin'
+  const relPath = `${STAGING_ROOT}/${id}/${safeName}`
+  try {
+    const source = new File(sourceUri)
+    if (!source.exists) return null
+    ensureParent(workspaceRoot(), relPath)
+    const target = fileAt(workspaceRoot(), relPath)
+    if (target.exists) target.delete()
+    await source.move(target)
+    return { relPath, uri: target.uri, sizeBytes: target.size ?? 0 }
+  } catch {
+    return null
+  }
+}
+
+/** Whether a path is one of the staging paths above. */
+export function isStagedPath(relPath: string): boolean {
+  return relPath.startsWith(`${STAGING_ROOT}/`)
+}
+
+/** Drop a staged file whose send never happened. Safe to call twice. */
+export function discardStagedFile(relPath: string): void {
+  if (!isStagedPath(relPath)) return
+  try {
+    const file = fileAt(workspaceRoot(), relPath)
+    if (file.exists) file.delete()
+    // The per-file directory goes too, or staging fills with empty folders.
+    const holder = file.parentDirectory
+    if (holder.exists) holder.delete()
+  } catch {
+    // Already gone, or never landed — either way there is nothing to clean.
+  }
+}
+
+/**
+ * Clear the staging area. Called once at launch: nothing can legitimately be
+ * mid-send at that moment, so whatever is here belongs to a send that died
+ * with the process.
+ */
+export function sweepStagedFiles(): void {
+  try {
+    const staging = new Directory(workspaceRoot(), ...STAGING_ROOT.split('/'))
+    if (staging.exists) staging.delete()
+  } catch {
+    // A sweep that fails costs disk, not correctness; the next one retries.
   }
 }
 

@@ -42,7 +42,15 @@ function statusTone(status: ToolResultInfo['status'] | 'running'): {
   }
 }
 
-function CodeBlockText({ text, error }: { text: string; error?: boolean }): React.JSX.Element {
+/** The monospace payload block. Shared with the approval card, which shows the
+ *  exact command and args a flagged tool call would run. */
+export function CodeBlockText({
+  text,
+  error
+}: {
+  text: string
+  error?: boolean
+}): React.JSX.Element {
   const clamped = text.length > OUTPUT_CLAMP ? `${text.slice(0, OUTPUT_CLAMP)}…` : text
   return (
     <ScrollView

@@ -4,6 +4,7 @@ import {
   ArrowRight01Icon,
   Delete01Icon,
   PlayIcon,
+  SmartPhone01Icon,
   TelegramLogo,
   WhatsAppLogo
 } from '@/components/core/icons'
@@ -32,6 +33,15 @@ function RowSeparator(): React.JSX.Element {
   return <View className="h-2" />
 }
 
+/**
+ * Where a conversation came from, as one glyph — the desktop's ChannelIcon,
+ * under the desktop's precedence: a source emoji (a project's icon, an
+ * automation's) wins outright, because it says something this row cannot say
+ * twice over. The channel badge is the fallback, and `mobile` sits in it with
+ * the rest — a conversation started on the phone shows a phone unless it has
+ * an emoji of its own to show instead. In-app conversations show nothing: the
+ * app is the default, not a badge.
+ */
 function ChannelBadge({ meta }: { meta: ConversationMeta }): React.JSX.Element | null {
   if (meta.icon) {
     return <Text className="text-left text-sm">{meta.icon}</Text>
@@ -41,6 +51,8 @@ function ChannelBadge({ meta }: { meta: ConversationMeta }): React.JSX.Element |
       return <TelegramLogo size={14} className="text-muted" />
     case 'whatsapp':
       return <WhatsAppLogo size={14} className="text-muted" />
+    case 'mobile':
+      return <SmartPhone01Icon size={14} className="text-muted" />
     case 'heartbeat':
       return <Activity04Icon size={14} className="text-muted" />
     case 'procedure':

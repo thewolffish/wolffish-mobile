@@ -112,12 +112,38 @@ export function SwitchRow({
 }
 
 /**
- * `code` renders the value as an inline-code chip. The chip background is
- * bg-bg because these rows live inside bg-surface cards — same contrast trick
- * as MarkdownView's code_inline. `mono` still means "this is an LTR technical
- * value"; code chips holding localized text (a translated channel name, a
- * relative time) omit it so Arabic keeps its direction.
+ * A value as an inline-code chip. The chip background is bg-bg because these
+ * sit inside bg-surface cards — same contrast trick as MarkdownView's
+ * code_inline. `mono` means "this is an LTR technical value"; chips holding
+ * localized text (a translated channel name, a relative time) omit it so
+ * Arabic keeps its direction.
  */
+export function CodeChip({
+  value,
+  mono,
+  selectable,
+  className
+}: {
+  value: string
+  mono?: boolean
+  selectable?: boolean
+  className?: string
+}): React.JSX.Element {
+  return (
+    <View className={cn('bg-bg rounded px-1.5 py-0.5', className)}>
+      <Text
+        numberOfLines={1}
+        selectable={selectable}
+        style={mono ? { writingDirection: 'ltr' } : undefined}
+        className="text-fg text-left font-mono text-xs"
+      >
+        {value}
+      </Text>
+    </View>
+  )
+}
+
+/** `code` renders the value as a CodeChip instead of plain trailing text. */
 export function InfoRow({
   label,
   value,
@@ -133,16 +159,7 @@ export function InfoRow({
     return (
       <View className="flex-row items-center justify-between gap-3">
         <Text className="text-muted text-left font-sans text-sm">{label}</Text>
-        <View className="bg-bg flex-shrink rounded px-1.5 py-0.5">
-          <Text
-            numberOfLines={1}
-            selectable
-            style={mono ? { writingDirection: 'ltr' } : undefined}
-            className="text-fg text-left font-mono text-xs"
-          >
-            {value}
-          </Text>
-        </View>
+        <CodeChip value={value} mono={mono} selectable className="flex-shrink" />
       </View>
     )
   }
@@ -164,6 +181,8 @@ export function InfoRow({
   )
 }
 
+export type StatusTone = 'ok' | 'busy' | 'error' | 'idle'
+
 /**
  * Connection state as a colour. `tone` distinguishes the two ways of not
  * being connected: working on it (amber) reads as progress, while the grey
@@ -175,7 +194,7 @@ export function StatusDot({
   tone
 }: {
   connected?: boolean
-  tone?: 'ok' | 'busy' | 'error' | 'idle'
+  tone?: StatusTone
 }): React.JSX.Element {
   const resolved = tone ?? (connected ? 'ok' : 'idle')
   const color = {
@@ -187,22 +206,40 @@ export function StatusDot({
   return <View className={cn('h-2 w-2 rounded-full', color)} accessibilityElementsHidden />
 }
 
+/**
+ * `status` puts live state at the far end of the row, opposite the label: a
+ * dot and a word, so a tab worth opening can be told from one that is merely
+ * there without opening it. `trailing` is the same position for anything a
+ * dot and a word cannot say — a count, a size, a pair of brand marks. Both
+ * ride the row's own gap rather than a second line, because the answer they
+ * give is one glance long.
+ *
+ * A `trailing` node carries its own layout (what shrinks, what must not) and
+ * its own spoken form, so the row stops overriding the accessibility label and
+ * lets the summary speak with the label instead.
+ */
 export function NavRow({
   label,
   description,
   icon,
+  status,
+  trailing,
   onPress
 }: {
   label: string
   description?: string
   icon?: React.ReactNode
+  status?: { tone: StatusTone; label: string }
+  trailing?: React.ReactNode
   onPress: () => void
 }): React.JSX.Element {
   const Chevron = I18nManager.isRTL ? ArrowLeft01Icon : ArrowRight01Icon
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      // The dot is decorative and the label below is inside a button, so the
+      // status only reaches a screen reader if it is spoken with the row.
+      accessibilityLabel={trailing ? undefined : status ? `${label}, ${status.label}` : label}
       onPress={onPress}
       className="bg-surface border-border flex-row items-center gap-3 rounded-xl border px-4 py-3 active:bg-border/30"
     >
@@ -215,6 +252,15 @@ export function NavRow({
           </Text>
         ) : null}
       </View>
+      {status ? (
+        <View className="shrink-0 flex-row items-center gap-1.5">
+          <StatusDot tone={status.tone} />
+          <Text numberOfLines={1} className="text-muted font-sans text-xs">
+            {status.label}
+          </Text>
+        </View>
+      ) : null}
+      {trailing}
       <Chevron size={16} className="text-muted" />
     </Pressable>
   )

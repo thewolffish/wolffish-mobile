@@ -11,7 +11,8 @@
  * kinds and tool names.
  */
 
-export type ConversationChannel = 'electron' | 'telegram' | 'whatsapp' | 'heartbeat' | 'procedure'
+export type ConversationChannel =
+  'electron' | 'telegram' | 'whatsapp' | 'mobile' | 'heartbeat' | 'procedure'
 
 export type SegmentTurnEndReason =
   'end_turn' | 'tool_use' | 'max_tokens' | 'error' | 'no_provider_available'
@@ -60,6 +61,38 @@ export type WorkflowSnapshot = {
   }
 }
 
+export type TaskStatus = 'submitted' | 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
+
+/**
+ * Async generation task (MiniMax H3 video today; `kind` leaves room for
+ * future generators). Mirrors the desktop's TaskSnapshot in broca.ts —
+ * snapshots REPLACE each other by taskId, so one card renders per task.
+ */
+export type TaskSnapshot = {
+  taskId: string
+  kind: 'video'
+  conversationId: string | null
+  title: string
+  status: TaskStatus
+  detail?: string
+  createdAt: number
+  updatedAt: number
+  endedAt?: number
+  /** Wall-clock estimate for the progress bar; the API reports no true %. */
+  estimateSeconds: number
+  /** Workspace-relative artifact path once downloaded. */
+  outputPath?: string
+  outputBytes?: number
+  error?: string
+  video?: {
+    model: string
+    resolution: string
+    durationSeconds: number
+    ratio?: string
+    inputSummary: string
+  }
+}
+
 export type Segment =
   | { kind: 'text'; turnId: string; segmentId: string; delta: string; worker?: SegmentWorker }
   | {
@@ -92,6 +125,7 @@ export type Segment =
     }
   | { kind: 'separator'; turnId: string; segmentId: string }
   | { kind: 'workflow'; turnId: string; segmentId: string; snapshot: WorkflowSnapshot }
+  | { kind: 'task'; turnId: string; segmentId: string; snapshot: TaskSnapshot }
   | {
       kind: 'compaction_started'
       turnId: string
@@ -133,12 +167,65 @@ export type MessageAttachment = {
 
 export type ToolTiming = { startedAt: number; endedAt?: number }
 
+/**
+ * Approval + ask-the-user shapes, verbatim from the desktop's preload types.
+ * The desktop flags a dangerous tool call and parks the turn until the user
+ * decides; `ask_user` parks it until they answer. Both render as cards here,
+ * live over the tunnel and — for approvals, which persist — replayed from the
+ * stored transcript afterwards.
+ */
+export type DangerLevel = 'safe' | 'warn' | 'confirm' | 'destructive' | 'block'
+export type ApprovalDecision = 'approved' | 'denied'
+export type RiskLevel = 'low' | 'medium' | 'high'
+
+export type ApprovalDescription = {
+  title: string
+  description: string
+  command?: string
+  impact?: string
+  risk: RiskLevel
+}
+
+export type PersistedApproval = {
+  approvalId: string
+  toolCallId: string
+  tool: string
+  args: Record<string, unknown>
+  reason: string
+  level: DangerLevel
+  description?: ApprovalDescription
+  decision?: ApprovalDecision
+}
+
+/** One selectable choice on an ask-the-user question card. */
+export type AskUserOption = {
+  label: string
+  description?: string
+}
+
+/** One question on an ask-the-user card. A card carries 1..N of these. */
+export type AskUserQuestion = {
+  question: string
+  details?: string
+  options: AskUserOption[]
+  allowOther: boolean
+  otherLabel?: string
+  otherDescription?: string
+}
+
+/** The user's answer to ONE question on the card. */
+export type AskUserAnswer = { kind: 'option'; index: number } | { kind: 'custom'; text: string }
+
+/** The user's response to a whole card — `answers[i]` answers `questions[i]`. */
+export type AskUserResponse = { kind: 'answered'; answers: AskUserAnswer[] } | { kind: 'canceled' }
+
 export type ConversationMessage = {
   id?: string
   role: 'user' | 'assistant'
   content: string
   timestamp: number
   segments?: Segment[]
+  approvals?: Record<string, PersistedApproval>
   toolTimings?: Record<string, ToolTiming>
   stopReason?: SegmentTurnEndReason
   error?: string

@@ -19,8 +19,9 @@ import * as Clipboard from 'expo-clipboard'
 import * as WebBrowser from 'expo-web-browser'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from 'react-native'
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { WebView } from 'react-native-webview'
+import { DownloadGlyph, DownloadStatus } from './DownloadStatus'
 import {
   CardFooter,
   CardHeader,
@@ -93,12 +94,59 @@ export function ExpandAction({ onPress }: { onPress: () => void }): React.JSX.El
   )
 }
 
-export function LoadingCard({ align }: { align?: Align }): React.JSX.Element {
+/**
+ * The card a viewer occupies while its bytes are still arriving.
+ *
+ * Deliberately not a spinner in a box: it is the SAME shell, the same header
+ * (the icon and the name are known long before the file is), the same footer
+ * with the same number of action slots, and a body of exactly the height the
+ * loaded body will take. Loading and loaded therefore have one footprint, so
+ * the file landing swaps content inside a box that never changes size —
+ * nothing below it moves, and the feed's scroll position stays put. It is the
+ * desktop's rule for the same problem (PdfViewer's loading state and its
+ * iframe are both `h-[400px]`, ImageViewer's placeholder carries the image's
+ * own aspect ratio) applied to the whole card rather than just the body.
+ *
+ * The reserved body carries the transfer itself (DownloadStatus) instead of a
+ * shimmer — same footprint, but it says which download you are waiting on.
+ */
+export function ViewerSkeleton({
+  align,
+  icon,
+  name,
+  relPath,
+  expectedBytes,
+  bodyHeight,
+  footerLabel,
+  actions
+}: {
+  align?: Align
+  icon: ReactNode
+  name: string
+  /** The file being fetched — the key its progress is reported under. */
+  relPath: string
+  /** Size from the message metadata, if it carried one. */
+  expectedBytes?: number
+  /** Height of the body the loaded card will render. */
+  bodyHeight: number
+  footerLabel?: string
+  /** How many action buttons the loaded footer carries — they set its height. */
+  actions: number
+}): React.JSX.Element {
   return (
     <CardShell align={align}>
-      <View className="h-40 items-center justify-center">
-        <ActivityIndicator />
+      <CardHeader icon={icon} name={name} />
+      <View className="bg-bg border-border border-t p-3" style={{ height: bodyHeight }}>
+        <View className="bg-border h-full w-full rounded-lg opacity-40" />
+        <DownloadStatus relPath={relPath} expectedBytes={expectedBytes} />
       </View>
+      <CardFooter label={footerLabel}>
+        {/* m-1.5 + 14pt matches IconAction's p-1.5 + 14pt icon, so the footer
+            is the same height with placeholders as with real buttons. */}
+        {Array.from({ length: actions }, (_, index) => (
+          <View key={index} className="bg-border m-1.5 h-3.5 w-3.5 rounded opacity-40" />
+        ))}
+      </CardFooter>
     </CardShell>
   )
 }
@@ -231,11 +279,36 @@ export function TextFileCard({
     oversized
   } = useWorkspaceFileText(relPath, conversationId)
   const name = displayName ?? classification.name ?? baseName(relPath)
+  const isMarkdown = classification.kind === 'markdown'
+  const icon = isMarkdown ? (
+    <File01Icon size={14} className="text-muted" />
+  ) : (
+    <CodeIcon size={14} className="text-muted" />
+  )
 
-  if (loading) return <LoadingCard align={align} />
+  if (loading) {
+    return (
+      <ViewerSkeleton
+        align={align}
+        icon={icon}
+        name={name}
+        relPath={relPath}
+        expectedBytes={sizeBytes}
+        // The loaded body clamps AT this height; a file short enough to come in
+        // under it settles upward by the difference. Reserving the clamp is the
+        // better of the two errors — most delivered source files run past it,
+        // and anything already cached renders at its true height on frame one
+        // (useWorkspaceFileText) without passing through here at all.
+        bodyHeight={INLINE_BODY_HEIGHT}
+        footerLabel={[classification.language ?? classification.ext, formatBytes(sizeBytes ?? 0)]
+          .filter(Boolean)
+          .join(' · ')}
+        actions={3}
+      />
+    )
+  }
   if (missing || oversized || text === null) return fallback
 
-  const isMarkdown = classification.kind === 'markdown'
   const lineCount = text.split('\n').length
   const body = isMarkdown ? <MarkdownBody content={text} /> : <SourceBody content={text} />
   const expandedBody = isMarkdown ? (
@@ -252,17 +325,7 @@ export function TextFileCard({
 
   return (
     <CardShell align={align}>
-      <CardHeader
-        icon={
-          isMarkdown ? (
-            <File01Icon size={14} className="text-muted" />
-          ) : (
-            <CodeIcon size={14} className="text-muted" />
-          )
-        }
-        name={name}
-        meta={t('chat.fileViewer.lines', { count: lineCount })}
-      />
+      <CardHeader icon={icon} name={name} meta={t('chat.fileViewer.lines', { count: lineCount })} />
       <PreviewTap onPress={() => setOpen(true)} label={name} maxHeight={INLINE_BODY_HEIGHT}>
         {body}
       </PreviewTap>
@@ -316,7 +379,21 @@ export function HtmlFileCard({
   } = useWorkspaceFileText(relPath, conversationId)
   const name = displayName ?? classification.name ?? baseName(relPath)
 
-  if (loading) return <LoadingCard align={align} />
+  if (loading) {
+    return (
+      <ViewerSkeleton
+        align={align}
+        icon={<CodeIcon size={14} className="text-muted" />}
+        name={name}
+        relPath={relPath}
+        expectedBytes={sizeBytes}
+        // Exact: the loaded preview is a WebView pinned to this same height.
+        bodyHeight={INLINE_BODY_HEIGHT}
+        footerLabel={['html', formatBytes(sizeBytes ?? 0)].filter(Boolean).join(' · ')}
+        actions={4}
+      />
+    )
+  }
   if (missing || oversized || text === null) return fallback
 
   // The page runs for real — scripts and all — which is the point of
@@ -468,7 +545,20 @@ export function SheetFileCard({
   )
   const name = displayName ?? classification.name ?? baseName(relPath)
 
-  if (loading) return <LoadingCard align={align} />
+  if (loading) {
+    return (
+      <ViewerSkeleton
+        align={align}
+        icon={<Table01Icon size={14} className="text-muted" />}
+        name={name}
+        relPath={relPath}
+        expectedBytes={sizeBytes}
+        bodyHeight={INLINE_BODY_HEIGHT}
+        footerLabel={formatBytes(sizeBytes ?? 0)}
+        actions={3}
+      />
+    )
+  }
   if (missing || oversized || text === null || table === null || table.rows.length === 0) {
     return fallback
   }
@@ -529,7 +619,23 @@ export function PdfFileCard({
   const name = displayName ?? classification.name ?? baseName(relPath)
 
   if (Platform.OS !== 'ios') return fallback
-  if (loading) return <LoadingCard align={align} />
+  if (loading) {
+    return (
+      <ViewerSkeleton
+        align={align}
+        icon={<Pdf02Icon size={14} className="text-muted" />}
+        name={name}
+        relPath={relPath}
+        expectedBytes={sizeBytes}
+        // Exact: the loaded document frame is pinned to this same height.
+        bodyHeight={INLINE_BODY_HEIGHT + 60}
+        footerLabel={[classification.ext.toUpperCase(), formatBytes(sizeBytes ?? 0)]
+          .filter(Boolean)
+          .join(' · ')}
+        actions={2}
+      />
+    )
+  }
   if (missing || !uri) return fallback
 
   const directory = uri.slice(0, uri.lastIndexOf('/') + 1)
@@ -627,20 +733,29 @@ export function GenericFileCard({
     >
       <View className="bg-bg border-border h-10 w-10 items-center justify-center rounded-lg border">
         {loading ? (
-          <ActivityIndicator size="small" />
+          <DownloadGlyph />
         ) : isPdf ? (
           <Pdf02Icon size={18} className="text-muted" />
         ) : (
           <File01Icon size={18} className="text-muted" />
         )}
       </View>
-      <View className="min-w-0 flex-shrink flex-col gap-0.5">
+      {/* Held to the leading box's height in both states — the loaded column is
+          shorter than the box, so the box is what sets this row's height, and
+          the loading column has to stay inside it or the bytes landing would
+          resize the card and nudge the feed. `h-10` rather than a number: it
+          is the box's own class, so the two track each other. */}
+      <View className="min-w-0 h-10 flex-1 flex-col justify-center gap-0.5 overflow-hidden">
         <Text numberOfLines={1} className="text-fg font-sans-medium text-left text-sm">
           {name}
         </Text>
-        <Text className="text-muted text-left font-sans text-xs">
-          {[classification.ext.toUpperCase(), formatBytes(shownSize)].filter(Boolean).join(' · ')}
-        </Text>
+        {loading ? (
+          <DownloadStatus relPath={relPath} expectedBytes={shownSize} variant="row" rowGap={2} />
+        ) : (
+          <Text className="text-muted text-left font-sans text-xs">
+            {[classification.ext.toUpperCase(), formatBytes(shownSize)].filter(Boolean).join(' · ')}
+          </Text>
+        )}
       </View>
     </Pressable>
   )

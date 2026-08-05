@@ -33,13 +33,31 @@ const FILES: Record<string, string> = {
     '{"type":"column","title":"Q3 revenue","subtitle":"by product line",' +
     '"footnote":"Source: finance close","categories":["Jul","Aug","Sep"],' +
     '"series":[{"name":"Hardware","data":[12,14,17]}]}',
-  'files/broken.chart.json': 'not a chart spec'
+  'files/broken.chart.json': 'not a chart spec',
+  // Listed in CACHED below — the already-materialized case.
+  'files/cached.ts': 'export const cached = true\n'
 }
 
+/**
+ * Paths whose bytes are already materialized in the fake cache — the state
+ * every file reaches after its first view, and the one that must render with
+ * no fetch and no placeholder. Everything else takes the download path.
+ * A literal, like FILES: jest hoists the factories above both.
+ */
+const CACHED: string[] = ['files/cached.ts']
+
 jest.mock('@/lib/files/fileCache', () => ({
-  resolveWorkspaceFile: jest.fn(async (relPath: string) =>
-    relPath in FILES ? `file:///cache/${relPath}` : null
-  )
+  statCachedFile: jest.fn((relPath: string) =>
+    CACHED.includes(relPath) && relPath in FILES
+      ? { uri: `file:///cache/${relPath}`, sizeBytes: FILES[relPath].length }
+      : null
+  ),
+  resolveWorkspaceFile: jest.fn(async (relPath: string) => {
+    if (!(relPath in FILES)) return null
+    // Fetched once, cached from then on — what makes the second view sync.
+    if (!CACHED.includes(relPath)) CACHED.push(relPath)
+    return `file:///cache/${relPath}`
+  })
 }))
 
 jest.mock('expo-file-system', () => ({
@@ -48,11 +66,17 @@ jest.mock('expo-file-system', () => ({
     constructor(uri: string) {
       this.uri = uri
     }
+    get exists(): boolean {
+      return this.uri.replace('file:///cache/', '') in FILES
+    }
     get size(): number {
       return this.body().length
     }
     private body(): string {
       return FILES[this.uri.replace('file:///cache/', '')] ?? ''
+    }
+    textSync(): string {
+      return this.body()
     }
     async text(): Promise<string> {
       return this.body()
@@ -109,6 +133,7 @@ jest.mock('expo-web-browser', () => ({ openBrowserAsync: jest.fn(async () => und
 
 import '@/lib/i18n'
 import { FileBlock } from '@/components/chat/FileBlock'
+import { resolveWorkspaceFile } from '@/lib/files/fileCache'
 import * as Sharing from 'expo-sharing'
 
 const SAFE_AREA = {
@@ -287,6 +312,16 @@ describe('FileBlock — degraded states', () => {
   ])('shows the per-type unavailable state for a pruned %s', async (relPath, declared, label) => {
     await renderBlock(<FileBlock relPath={relPath} declared={declared as 'file'} />)
     await waitFor(() => expect(screen.getByText(label)).toBeTruthy())
+  })
+
+  it('renders an already-cached file with no fetch and no placeholder', async () => {
+    // The feed's whole stability rests on this: a file the phone already holds
+    // renders at full size in its first frame, so nothing resizes underneath
+    // the transcript a beat later and drags the scroll position with it.
+    await renderBlock(<FileBlock relPath="files/cached.ts" declared="file" />)
+    expect(screen.getByText(/export const cached = true/)).toBeTruthy()
+    const asked = (resolveWorkspaceFile as jest.Mock).mock.calls.map(([path]) => path)
+    expect(asked).not.toContain('files/cached.ts')
   })
 
   it('renders attachments on the user side with the same dispatch', async () => {

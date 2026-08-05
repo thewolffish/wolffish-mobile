@@ -13,14 +13,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ActivityIndicator, PixelRatio, Pressable, Text, View } from 'react-native'
 import { WebView } from 'react-native-webview'
-import { CardFooter, CardShell, IconAction, shareFile } from './FileChrome'
-import {
-  ExpandAction,
-  LoadingCard,
-  ShareAction,
-  SourceBody,
-  type FileViewerProps
-} from './FileViewers'
+import { DownloadStatus } from './DownloadStatus'
+import { CardFooter, CardShell, IconAction, shareFile, type Align } from './FileChrome'
+import { ExpandAction, ShareAction, SourceBody, type FileViewerProps } from './FileViewers'
 
 /**
  * Interactive chart card for delivered `.chart.json` specs — the mobile
@@ -136,6 +131,50 @@ function ChartLiveView({ spec, theme }: { spec: ChartSpec; theme: ChartTheme }):
   )
 }
 
+/**
+ * The chart card's own footprint while its spec is still arriving: the same
+ * shell, the same two-line head, a plot box at the default height and the same
+ * three footer actions. Charts are the tallest thing in the feed — a generic
+ * short placeholder growing into one moves the transcript by ~250pt, which is
+ * the jump this shape exists to prevent. See ViewerSkeleton for the rule.
+ *
+ * The one residual settle is a spec that overrides `height`: the number lives
+ * inside the file being fetched, so it cannot be known before it lands. A
+ * cached spec (every demo chart — the importer seeds them) skips this state
+ * entirely and mounts at its true height.
+ */
+function ChartSkeleton({
+  name,
+  relPath,
+  align
+}: {
+  name: string
+  relPath: string
+  align?: Align
+}): React.JSX.Element {
+  return (
+    <CardShell align={align}>
+      <View className="flex-row items-start gap-2 px-3 pb-1 pt-2.5">
+        <ChartLineData02Icon size={15} className="text-muted mt-0.5" />
+        <View className="min-w-0 flex-1">
+          <Text numberOfLines={1} className="text-fg font-sans-semibold text-left text-sm">
+            {name}
+          </Text>
+        </View>
+      </View>
+      <View className="w-full px-2" style={{ height: DEFAULT_PLOT_HEIGHT }}>
+        <View className="bg-border h-full w-full rounded-lg opacity-40" />
+        <DownloadStatus relPath={relPath} />
+      </View>
+      <CardFooter label={name}>
+        {[0, 1, 2].map((index) => (
+          <View key={index} className="bg-border m-1.5 h-3.5 w-3.5 rounded opacity-40" />
+        ))}
+      </CardFooter>
+    </CardShell>
+  )
+}
+
 export function ChartFileCard({
   relPath,
   conversationId,
@@ -214,7 +253,7 @@ export function ChartFileCard({
     })()
   }, [spec, theme, plotWidth, plotHeight, name])
 
-  if (loading) return <LoadingCard align={align} />
+  if (loading) return <ChartSkeleton name={name} relPath={relPath} align={align} />
   if (missing || oversized || text === null || spec === null) return fallback
   // The chart engine itself failed with nothing to show — the file card at
   // least keeps the spec shareable.
@@ -280,8 +319,13 @@ export function ChartFileCard({
                 accessibilityLabel={title}
               />
             ) : (
-              <View className="h-full w-full items-center justify-center">
-                <ActivityIndicator />
+              // A pulse, not the download status the pre-spec skeleton shows:
+              // the spec is already on disk and this is the rasterizer working,
+              // so there is no transfer to report. Inside a box already at its
+              // final height — rasterizing is the last step, and it must read
+              // as the same card still settling rather than a new state.
+              <View className="animate-pulse h-full w-full">
+                <View className="bg-border h-full w-full rounded-lg opacity-40" />
               </View>
             )}
           </View>

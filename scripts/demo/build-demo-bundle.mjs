@@ -3,14 +3,14 @@
  * Pack the built demo dataset into the bundle published at cdn.wolffi.sh/demo.
  *
  * Demo mode downloads this bundle on first entry — nothing is pushed to a
- * device and nothing is bundled into the app. Input is demo-data/ — committed
+ * device and nothing is bundled into the app. Input is demo/ — committed
  * in this repo as the source of truth for demo content, edited in place and
- * never derived from a live workspace. Output is demo-data/bundle/ — a flat
+ * never derived from a live workspace. Output is demo/bundle/ — a flat
  * directory whose CONTENTS upload to cdn.wolffi.sh/demo as-is:
  *
- *   demo-data/bundle/manifest.json            index: version, totals, shards
- *   demo-data/bundle/config-snapshot.json     the config surface, verbatim
- *   demo-data/bundle/conversations-000.json   { conversations: [...] }
+ *   demo/bundle/manifest.json            index: version, totals, shards
+ *   demo/bundle/config-snapshot.json     the config surface, verbatim
+ *   demo/bundle/conversations-000.json   { conversations: [...] }
  *   …
  *
  * The conversation files are packed into ~1.5 MB shards rather than served
@@ -23,7 +23,7 @@
  *
  *   node scripts/demo/build-demo-bundle.mjs [--out DIR]
  *
- * demo-data/bundle/ is committed: after editing demo-data/, rebuild and commit
+ * demo/bundle/ is committed: after editing demo/, rebuild and commit
  * both. The version is a content hash and builtAt carries over when the
  * version is unchanged, so an untouched dataset rebuilds byte-identically —
  * a stale or hand-edited bundle shows up as a git diff. Publishing is
@@ -36,8 +36,8 @@ import { createHash } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
-const SRC_DIR = process.env.DEMO_DATA ?? path.join(process.cwd(), 'demo-data')
-// Inside demo-data, next to the dataset it is packed from — the demo lives in
+const SRC_DIR = process.env.DEMO_SRC ?? path.join(process.cwd(), 'demo')
+// Inside demo/, next to the dataset it is packed from — the demo lives in
 // one folder, and the thing you upload is not scattered somewhere else.
 const OUT_DIR = argValue('--out') ?? path.join(SRC_DIR, 'bundle')
 
@@ -58,7 +58,7 @@ async function main() {
   const names = (await fs.readdir(convDir)).filter((name) => name.endsWith('.json')).sort()
   if (names.length === 0) {
     throw new Error(
-      `no conversations in ${convDir} — demo-data/ is committed; restore it from git ` +
+      `no conversations in ${convDir} — demo/ is committed; restore it from git ` +
         `or import a published bundle: node scripts/demo/unpack-demo-bundle.mjs`
     )
   }

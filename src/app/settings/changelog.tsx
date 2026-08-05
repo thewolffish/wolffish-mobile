@@ -78,6 +78,26 @@ const SKELETON_BLOCKS = [
     version: 'w-44',
     title: 'w-48',
     lines: ['w-full', 'w-[90%]', 'w-[57%]']
+  },
+  {
+    version: 'w-40',
+    title: 'w-52',
+    lines: ['w-full', 'w-[87%]', 'w-full', 'w-[64%]']
+  },
+  {
+    version: 'w-44',
+    title: 'w-40',
+    lines: ['w-full', 'w-full', 'w-[95%]', 'w-full', 'w-[91%]', 'w-full', 'w-[35%]']
+  },
+  {
+    version: 'w-40',
+    title: 'w-56',
+    lines: ['w-[98%]', 'w-full', 'w-[85%]', 'w-full', 'w-[49%]']
+  },
+  {
+    version: 'w-44',
+    title: 'w-44',
+    lines: ['w-full', 'w-[92%]', 'w-full', 'w-[76%]']
   }
 ] as const
 

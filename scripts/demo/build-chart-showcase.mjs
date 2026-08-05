@@ -112,13 +112,13 @@ const CHARTS = [
       title: 'Inbox flow',
       subtitle: 'Messages per week by outcome',
       categories: ['Jun 22', 'Jun 29', 'Jul 6', 'Jul 13', 'Jul 20', 'Jul 27'],
-      // Short names on purpose: three long ones wrap the bottom legend to two
-      // rows on a phone-width plot, and the ported layout reserves only one —
-      // the top row lands on the x-axis labels.
+      // Long names on purpose: at phone width the bottom legend wraps to a
+      // second row, exercising the grid's legend-row reservation (legendRows
+      // in chart-page.webjs) — the wrap is part of the showcase.
       series: [
-        { name: 'Archived', data: [96, 104, 88, 112, 120, 101] },
-        { name: 'Replied', data: [22, 18, 25, 21, 19, 24] },
-        { name: 'Flagged', data: [11, 9, 14, 8, 7, 10] }
+        { name: 'Auto-archived', data: [96, 104, 88, 112, 120, 101] },
+        { name: 'Drafted reply', data: [22, 18, 25, 21, 19, 24] },
+        { name: 'Flagged for me', data: [11, 9, 14, 8, 7, 10] }
       ],
       stacked: true,
       smooth: true

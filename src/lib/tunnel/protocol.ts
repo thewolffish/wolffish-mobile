@@ -25,8 +25,14 @@ export const DEFAULT_RELAY_URL = 'wss://relay.wolffi.sh'
  * connection. This marker lets each side ignore records belonging to a session
  * it has already left. It reveals only "handshake" versus "data" — the same
  * metadata a TLS record header exposes — never anything about content.
+ *
+ * CONTROL is the one deliberate exception to "the relay never parses": a
+ * CONTROL record's body is plaintext JSON addressed to the RELAY (the push
+ * control plane below), terminated there and never forwarded. Old relays
+ * forward it like any binary frame and old peers drop unknown record types,
+ * so version skew degrades to "no push", never to a broken tunnel.
  */
-export const RecordType = { HANDSHAKE: 0x01, TRANSPORT: 0x02 } as const
+export const RecordType = { HANDSHAKE: 0x01, TRANSPORT: 0x02, CONTROL: 0x03 } as const
 
 /** Frame types inside a decrypted record. */
 export const FrameType = {
@@ -123,6 +129,22 @@ export const Rpc = {
   /** Stop the running turn. */
   abortTurn: 'desktop.chat.abort',
   /**
+   * The user answered an ask-the-user card. Params: `{ id, response }` where
+   * `response` is the desktop's AskUserResponse — `{ kind: 'answered',
+   * answers }` (one answer per question, in order) or `{ kind: 'canceled' }`.
+   * Answers `{ ok }`: false when the id names no pending request, which is
+   * how the phone learns a card it still shows was already resolved (turn
+   * ended, or the tunnel dropped and the desktop failed it closed).
+   */
+  askRespond: 'desktop.chat.askRespond',
+  /**
+   * The user approved or denied a flagged tool call. Params:
+   * `{ id, decision: 'approved' | 'denied' }`, answering `{ ok }` on the same
+   * contract as askRespond. Fails closed everywhere: an unanswered request is
+   * denied when its turn ends or the phone goes away.
+   */
+  approvalRespond: 'desktop.chat.approvalRespond',
+  /**
    * Update the reflection schedule / turn-scoring config. The body is a
    * partial ReflectionConfig-shaped patch ({ hour?, quietHours?, scoring? });
    * the answer is the desktop's complete post-write config. Callers render
@@ -178,6 +200,21 @@ export const Event = {
   messageAppended: 'message.appended',
   /** Turn lifecycle: thinking / running a tool / done. */
   turnStatus: 'turn.status',
+  /**
+   * The agent is asking the user multiple-choice question(s) and the turn is
+   * parked until they answer. Payload mirrors the desktop's own chat:askRequest
+   * IPC — `{ conversationId, turnId, id, toolCallId, questions }` — so the
+   * phone renders the same card from the same data, and answers with
+   * `Rpc.askRespond`.
+   */
+  askRequest: 'ask.request',
+  /**
+   * A tool call the desktop flagged for approval, parked the same way.
+   * Payload mirrors chat:approvalRequest — `{ conversationId, turnId, id,
+   * toolCallId, tool, args, level, reason, description }` — and the phone
+   * answers with `Rpc.approvalRespond`.
+   */
+  approvalRequest: 'approval.request',
   /** A turn was scored — mobile mirrors the desktop's score UI. */
   turnScored: 'turn.scored',
   /** Any config section changed on the desktop. */
@@ -235,4 +272,134 @@ export type SyncMessage = {
   timestamp: number
   /** Attachments, tool payloads, segments — opaque to the transport. */
   payload?: unknown
+}
+
+// ---------------------------------------------------------------------------
+// Push-notification control plane (relay-terminated; mirrored in the relay's
+// own protocol.ts)
+// ---------------------------------------------------------------------------
+//
+// These frames ride CONTROL records and are the one part of the wire the
+// relay reads on purpose: the phone registers its Expo push token by a stable
+// phoneId, the desktop asks for a notification to reach the phone, and the
+// relay decides the route — the live tunnel first, Expo push as the fallback.
+// Notifications are 100% model-initiated on the desktop; the desktop stamps
+// notificationId and phoneId itself (never the model), and the phone dedupes
+// by notificationId because both routes can legitimately fire.
+
+export const PUSH_WIRE_VERSION = 1
+
+export const NOTIFY_PHASES = ['started', 'needs_input', 'failed', 'completed', 'info'] as const
+export type NotifyPhase = (typeof NOTIFY_PHASES)[number]
+
+export const NOTIFY_URGENCIES = ['normal', 'high'] as const
+export type NotifyUrgency = (typeof NOTIFY_URGENCIES)[number]
+
+export type PushPlatform = 'ios' | 'android'
+
+export const NOTIFY_TITLE_MAX = 60
+export const NOTIFY_BODY_MAX = 180
+export const NOTIFY_TTL_MIN = 60
+export const NOTIFY_TTL_MAX = 86_400
+
+/** Android notification channel; the phone creates it, the relay names it. */
+export const ANDROID_CHANNEL_ID = 'agent-runs'
+
+/** Deep links must stay inside the app's own scheme. */
+export const DEEPLINK_SCHEME = 'wolffish://'
+
+export function isAllowedDeeplink(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length <= 512 &&
+    value.startsWith(DEEPLINK_SCHEME) &&
+    // eslint-disable-next-line no-control-regex
+    !/[\x00-\x1f\x7f\s]/.test(value)
+  )
+}
+
+/** Phone → relay, on pairing and on every app foreground. */
+export type RegisterPushFrame = {
+  v: 1
+  type: 'register_push'
+  /** Stable per-device id minted by the phone — never the rendezvous or
+   *  session id (both ephemeral), and never derived from the identity key. */
+  phoneId: string
+  /** Null when notification permission was denied — in-band only then. */
+  expoPushToken: string | null
+  platform: PushPlatform
+  appVersion?: string | null
+}
+
+/** Desktop → relay, when the model calls the notify tool. */
+export type NotifyFrame = {
+  v: 1
+  type: 'notify'
+  /** ULID, generated by the desktop — never by the model. */
+  notificationId: string
+  /** From the desktop's pairing record — never from the model. */
+  phoneId: string
+  runId: string
+  phase: NotifyPhase
+  title: string
+  body: string
+  urgency: NotifyUrgency
+  deeplink: string | null
+  /** Seconds. */
+  ttl: number
+  /** Unix ms at the desktop. */
+  ts: number
+}
+
+/** Relay → phone, in-band delivery: the notify frame under another type. */
+export type NotificationFrame = Omit<NotifyFrame, 'type'> & { type: 'notification' }
+
+/** Phone → relay: the in-band delivery arrived and was rendered. */
+export type NotificationAckFrame = { v: 1; type: 'notification_ack'; notificationId: string }
+
+/** Relay → desktop: how the notify was routed, answered immediately. */
+export type NotifyResultFrame = {
+  v: 1
+  type: 'notify_result'
+  /** Null only when the frame was too malformed to carry an id. */
+  notificationId: string | null
+  route: 'inband' | 'push' | 'dropped'
+  /** Present when dropped (and on validation rejects). */
+  reason?: string
+}
+
+/**
+ * An incoming in-band notification, reduced to the fields this build
+ * understands — tolerant reads, because a newer desktop/relay may add fields
+ * (or phases) this app version predates. Unknown fields are ignored, an
+ * unknown phase or urgency degrades to its default, and only a frame with no
+ * usable id/title/body is rejected outright (null).
+ */
+export function parseNotification(raw: Record<string, unknown>): NotificationFrame | null {
+  if (raw.v !== PUSH_WIRE_VERSION || raw.type !== 'notification') return null
+  const notificationId = raw.notificationId
+  if (typeof notificationId !== 'string' || !notificationId || notificationId.length > 64) {
+    return null
+  }
+  const title = raw.title
+  const body = raw.body
+  if (typeof title !== 'string' || !title || title.length > NOTIFY_TITLE_MAX) return null
+  if (typeof body !== 'string' || !body || body.length > NOTIFY_BODY_MAX) return null
+  const ttlRaw = typeof raw.ttl === 'number' && Number.isFinite(raw.ttl) ? raw.ttl : NOTIFY_TTL_MIN
+  return {
+    v: 1,
+    type: 'notification',
+    notificationId,
+    phoneId: typeof raw.phoneId === 'string' ? raw.phoneId : '',
+    runId: typeof raw.runId === 'string' ? raw.runId : '',
+    phase: NOTIFY_PHASES.includes(raw.phase as NotifyPhase) ? (raw.phase as NotifyPhase) : 'info',
+    title,
+    body,
+    urgency: NOTIFY_URGENCIES.includes(raw.urgency as NotifyUrgency)
+      ? (raw.urgency as NotifyUrgency)
+      : 'normal',
+    deeplink: isAllowedDeeplink(raw.deeplink) ? raw.deeplink : null,
+    ttl: Math.min(NOTIFY_TTL_MAX, Math.max(NOTIFY_TTL_MIN, Math.round(ttlRaw))),
+    ts: typeof raw.ts === 'number' && Number.isFinite(raw.ts) ? raw.ts : Date.now()
+  }
 }

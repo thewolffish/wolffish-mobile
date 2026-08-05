@@ -178,6 +178,29 @@ const config: ExpoConfig = {
       }
     ],
     [
+      // Attaching photos and videos: the composer's plus button opens the
+      // system library picker (PHPicker / the Android photo picker), which
+      // runs out of process and returns only what the user chose.
+      //
+      // ONLY photosPermission is set. This plugin also takes cameraPermission
+      // and microphonePermission, and passing `false` for either does not mean
+      // "don't ask" — it BLOCKS android.permission.CAMERA / RECORD_AUDIO in the
+      // merged manifest, which would break the pairing scanner (expo-camera)
+      // and voice notes (expo-audio). Left unset, both keep the usage strings
+      // those plugins already wrote: config-plugins only fills a permission
+      // description that is still empty.
+      //
+      // expo-document-picker (the Files half of the picker) has a config
+      // plugin too, but it is a no-op unless ios.usesIcloudStorage is on, so
+      // it is deliberately not listed — autolinking picks up the module.
+      //
+      // Native change → new fingerprint runtime → ships only in a store binary.
+      'expo-image-picker',
+      {
+        photosPermission: 'Allow Wolffish to attach photos and videos to your messages.'
+      }
+    ],
+    [
       'expo-font',
       {
         fonts: [
@@ -187,7 +210,29 @@ const config: ExpoConfig = {
           './assets/fonts/IBMPlexSansArabic-Bold.ttf'
         ]
       }
-    ]
+    ],
+    [
+      // Model-initiated push notifications (the desktop agent's notify_phone
+      // tool, relayed via Expo push when the tunnel is down). The icon is the
+      // Android status-bar small icon: the transparent fish mark, rendered by
+      // the OS as a silhouette in the accent color below. No custom sounds —
+      // the platform default is the right amount of noise. NATIVE MODULE:
+      // adding/changing this ships only in a new EAS store build, never OTA
+      // (the fingerprint runtime version forks on it by design).
+      'expo-notifications',
+      {
+        icon: './assets/images/icon-trans.png',
+        color: SPLASH_BACKGROUND,
+        defaultChannel: 'agent-runs',
+        sounds: []
+      }
+    ],
+    // Silences the two cosmetic Xcode warnings the stock template leaves in
+    // every iOS build (duplicate -lc++ on the link line, and two Pods script
+    // phases that declare no outputs). Build-time only — nothing it touches
+    // reaches the running app. Last in the list because it edits what the
+    // plugins above have already written.
+    './plugins/withQuietIosBuild'
   ],
   experiments: {
     typedRoutes: true,
