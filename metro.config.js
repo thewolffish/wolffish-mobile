@@ -18,4 +18,12 @@ config.resolver.assetExts.push('md')
 // would collide with source resolution.
 config.resolver.assetExts.push('webjs')
 
+// expo-sqlite's web implementation imports its SQLite build as
+// `./wa-sqlite/wa-sqlite.wasm`, and Metro ships no `wasm` asset extension, so
+// the file resolves nowhere and every web bundle fails on it — including the
+// static render the dev server does the moment a browser hits localhost:8081,
+// which is why the failure showed up in a native run. Native never imports
+// wasm; this only makes the web graph resolvable.
+config.resolver.assetExts.push('wasm')
+
 module.exports = withNativeWind(config, { input: './src/global.css' })
