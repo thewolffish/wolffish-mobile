@@ -18,9 +18,9 @@ const PACKAGE_IDENTIFIER = 'sh.wolffi.mobile'
 // exist only after the first Play upload (Play Console → App signing).
 // const DEEP_LINK_HOSTS = ['wolffi.sh', 'www.wolffi.sh']
 // Bumped by scripts/provision.js — keep the exact format of these lines.
-export const APP_VERSION = '1.0.19'
-export const CODE_VERSION = 15
-export const UPDATE_DATE = '2026-08-06T00:00:00.000Z'
+export const APP_VERSION = '1.0.20'
+export const CODE_VERSION = 16
+export const UPDATE_DATE = '2026-08-07T00:00:00.000Z'
 // Sampled from the top edge of assets/images/splash.png so the storyboard
 // background is indistinguishable from the artwork.
 const SPLASH_BACKGROUND = '#0d1b2d'
