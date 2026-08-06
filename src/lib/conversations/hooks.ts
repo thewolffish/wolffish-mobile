@@ -2,6 +2,7 @@ import { conversationKeys, invalidateConversation } from '@/lib/conversations/ca
 import { queryClient } from '@/lib/query/queryClient'
 import { fetchConversationBody, isBodyStale, refreshSync } from '@/lib/sync/sync'
 import { tunnelClient } from '@/lib/tunnel/client'
+import { useRunStatus } from '@/state/runStatus'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { deleteConversation, getConversation, listConversations } from '@/lib/conversations/repo'
@@ -85,4 +86,8 @@ export function useConversation(id: string | null): UseQueryResult<ConversationF
 export async function removeConversation(id: string): Promise<void> {
   await deleteConversation(id)
   invalidateConversation(id)
+  // Nothing left to tint. The entry would age out on its own, but a run status
+  // outliving its conversation is the kind of thing that only stays harmless
+  // until something else starts reading the map.
+  useRunStatus.getState().dropRun(id)
 }

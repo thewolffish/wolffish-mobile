@@ -97,6 +97,17 @@ export const Rpc = {
   conversationIndex: 'desktop.conversations.index',
   /** One conversation's messages, fetched when the user opens it. */
   conversationBody: 'desktop.conversations.body',
+  /**
+   * File one conversation under a project, or unfile it with null. Params:
+   * `{ conversationId, projectId }` → `{ ok, projectId }` with the binding
+   * that actually holds (an unknown project id unfiles rather than dangles).
+   *
+   * The phone cannot do this locally: the overlay every turn runs with is
+   * built from the `projectId` on the DESKTOP's conversation file, so a
+   * binding written only to the phone's SQLite would show a project on screen
+   * while the turns ran without its instructions.
+   */
+  conversationProject: 'desktop.conversations.project',
   /** Usage totals and per-provider breakdown. */
   usage: 'desktop.usage',
   /**
@@ -124,7 +135,14 @@ export const Rpc = {
    * `{ ok: true }`; the config.changed push that follows is the confirmation.
    */
   configSet: 'desktop.config.set',
-  /** Send a user turn; the reply streams back as events. */
+  /**
+   * Send a user turn; the reply streams back as events. A `projectId` files a
+   * NEWLY CREATED conversation under that project at creation, so the very turn
+   * this send starts already carries the project's overlay — re-filing it a
+   * moment later would leave the first turn without the instructions. Ignored
+   * when the send names an existing conversation, which already has its own
+   * binding (change that with `conversationProject`).
+   */
   sendMessage: 'desktop.chat.send',
   /** Stop the running turn. */
   abortTurn: 'desktop.chat.abort',
@@ -145,6 +163,17 @@ export const Rpc = {
    */
   approvalRespond: 'desktop.chat.approvalRespond',
   /**
+   * Score one completed turn 0-10 — the phone's rating bar making the same
+   * write the desktop's own bar makes. Params: `{ conversationId, messageId,
+   * score }`, where `messageId` names the assistant message being scored and
+   * null means "the newest assistant message on disk" (the channel-vote rule).
+   * Answers `{ rating }` — the applied `{ messageId, score, at, source }`, or
+   * null when there was nothing to score (unknown conversation, no assistant
+   * message under that id), which is how the phone learns to take its
+   * optimistic segment back down.
+   */
+  rateTurn: 'desktop.chat.rate',
+  /**
    * Update the reflection schedule / turn-scoring config. The body is a
    * partial ReflectionConfig-shaped patch ({ hour?, quietHours?, scoring? });
    * the answer is the desktop's complete post-write config. Callers render
@@ -158,6 +187,51 @@ export const Rpc = {
    * the desktop's own Run-now button gets from brainstem.
    */
   runReflection: 'desktop.reflection.run',
+  /**
+   * Projects — `brain/projects.json`, the store the desktop's Projects page
+   * edits. Read AND written from the phone, through the very functions the
+   * desktop's own IPC calls, so a mutation from either screen is one write
+   * serialized by one mutation tail.
+   *
+   * `projectsList` answers `{ projects }` (newest-edited first, as the desktop
+   * lists them). `projectCreate` takes `{ title, icon?, instructions? }`,
+   * `projectUpdate` a partial `{ id, title?, icon?, instructions?, files? }`
+   * — a `files` array is a whole-list replace and the desktop deletes the
+   * copies it owns for anything dropped, exactly as its own dialog does — and
+   * `projectDelete` takes `{ id }`. Each answers the stored project (or
+   * `{ ok }` for the delete), never the phone's optimism.
+   */
+  projectsList: 'desktop.projects.list',
+  projectCreate: 'desktop.projects.create',
+  projectUpdate: 'desktop.projects.update',
+  projectDelete: 'desktop.projects.delete',
+  /**
+   * Procedures — `brain/procedures.json`, same contract as the projects trio
+   * above: `{ procedures }`, then create/update/delete answering the stored
+   * row. `projectId: ''` on an update unbinds, matching the desktop's setter.
+   */
+  proceduresList: 'desktop.procedures.list',
+  procedureCreate: 'desktop.procedures.create',
+  procedureUpdate: 'desktop.procedures.update',
+  procedureDelete: 'desktop.procedures.delete',
+  /**
+   * Automations — `brain/brainstem/heartbeat.md`. Unlike the two stores above
+   * this one is a MARKDOWN FILE the scheduler parses, so the phone edits it
+   * the same way the desktop's cards editor does: read the whole file, splice
+   * one block, write the whole file back. There is no per-automation write on
+   * either side.
+   *
+   * `automationsRead` answers `{ markdown, jobs, stamps, runs }` — the file
+   * verbatim, the scheduler's live view of the ACTIVE jobs (cron + next run,
+   * which only the engine knows), the per-label edit stamps, and the run pool.
+   * `automationsWrite` takes `{ markdown }` and persists through the same
+   * atomic writer the desktop's markdown view uses, so the file watcher
+   * reloads the scheduler for both screens. `automationRun` takes `{ label }`
+   * and answers the brainstem's own `{ ok, started, error? }`.
+   */
+  automationsRead: 'desktop.automations.read',
+  automationsWrite: 'desktop.automations.write',
+  automationRun: 'desktop.automations.run',
   /** Everything the phone can do, advertised to the desktop agent. */
   deviceTools: 'device.tools',
   /** Live device state for the desktop's Mobile panel. */
@@ -180,12 +254,45 @@ export const Rpc = {
    * `uploadCommit` finalizes and answers the stored attachment metadata
    * { type, filePath, originalName, mimeType, sizeBytes } with the path the
    * desktop actually chose (collisions rename, Finder-style).
+   *
+   * A `projectId` on `uploadBegin` retargets the same three frames at a
+   * PROJECT's file list instead of a conversation: nothing is staged
+   * differently, but the commit adopts the bytes into `uploads/project-<id>/`
+   * and attaches the ref, so the answer additionally carries `{ project }` —
+   * the stored project, which is what the phone renders. One upload path for
+   * both destinations by construction: the chunk ordering, the idle sweep and
+   * the size ceiling are the transfer's business, not the destination's.
    */
   fileStat: 'desktop.files.stat',
   fileRead: 'desktop.files.read',
   uploadBegin: 'desktop.files.uploadBegin',
   uploadChunk: 'desktop.files.uploadChunk',
-  uploadCommit: 'desktop.files.uploadCommit'
+  uploadCommit: 'desktop.files.uploadCommit',
+  /**
+   * Collect one conversation's diagnostic bundle — the desktop's own
+   * `diagnostics:export`, reached from the phone. Params `{ conversationId }`,
+   * answers a `DiagnosticResult`: the same object the desktop's overlay
+   * renders, with `relativePath` pointing at the archive under the workspace
+   * (`diagnostics/<fileName>`), which the phone then pulls down the ordinary
+   * `fileStat`/`fileRead` path and hands to the share sheet.
+   *
+   * It runs behind the SAME single-flight guard as the desktop's own button:
+   * the collectors read the same log files, and a phone run racing a desktop
+   * run would only fight over IO. A caller arriving while the same
+   * conversation is being collected attaches to that run instead of being
+   * refused. Progress arrives as `Event.diagnosticsProgress` while it works.
+   */
+  diagnosticsExport: 'desktop.diagnostics.export',
+  /**
+   * What the phone's overlay stack should show right now — an `OverlaySeed`.
+   *
+   * Taken once per connection, because both halves of it only ever arrive as
+   * pushes: a phone that connects while a nightly reflection is halfway
+   * through has already missed the only announcement it was going to get, and
+   * would sit blank until the run ended. Nothing polls it afterwards; the
+   * pushes are what keep it current.
+   */
+  overlaysRead: 'desktop.overlays.read'
 } as const
 
 /** Event topics pushed without a request. */
@@ -215,7 +322,18 @@ export const Event = {
    * answers with `Rpc.approvalRespond`.
    */
   approvalRequest: 'approval.request',
-  /** A turn was scored — mobile mirrors the desktop's score UI. */
+  /**
+   * A turn was scored on ANY surface — the desktop's own rating bar, a
+   * bare-number Telegram/WhatsApp reply, or this phone's vote echoing back.
+   * Payload `{ conversationId, rating: { messageId, score, at, source } }`,
+   * which the phone writes straight into its copy exactly as the desktop
+   * folds the same change into an open chat.
+   *
+   * This push is the ONLY way a score reaches the phone before its next body
+   * fetch: a ratings-only write moves nothing else on the conversation — no
+   * reindex, no updated_at — so neither conversation.upserted nor the
+   * staleness check that follows it ever fires for one.
+   */
   turnScored: 'turn.scored',
   /** Any config section changed on the desktop. */
   configChanged: 'config.changed',
@@ -228,7 +346,61 @@ export const Event = {
    */
   variablesChanged: 'variables.changed',
   /** Usage counters moved. */
-  usageChanged: 'usage.changed'
+  usageChanged: 'usage.changed',
+  /**
+   * `brain/projects.json` changed, whoever wrote it — either screen's editor,
+   * the agent's `project_*` tools, an autonomous run. Payload-free on purpose:
+   * the phone re-lists, exactly as an open desktop Projects page re-fetches on
+   * its own `projects:changed`. Projects also ride the config snapshot (they
+   * are workspace state the chat's project picker reads), so a phone that
+   * predates this topic still converges through the debounced config.changed
+   * that the same write announces.
+   */
+  projectsChanged: 'projects.changed',
+  /** `brain/procedures.json` changed — same contract as projectsChanged. */
+  proceduresChanged: 'procedures.changed',
+  /**
+   * The scheduler reloaded, which is the one signal that means "heartbeat.md
+   * changed" whatever wrote it: either screen's editor, the agent's
+   * `automation_*` tools, a Once-job self-delete, an external edit. The phone
+   * re-reads the file and the job list, exactly as the desktop's Automations
+   * page does on `heartbeat:changed`.
+   */
+  automationsChanged: 'automations.changed',
+  /**
+   * The automation run pool moved: `{ running, queued }`, the brainstem's own
+   * snapshot. Carries its payload because it fires several times per run and a
+   * fetch per tick would be pure overhead — the phone renders it straight into
+   * the play-button gating, as the desktop's cards do, and into the overlay
+   * stack, which is the phone's version of those cards.
+   *
+   * Compaction and reflection ride this same pool: they are brainstem jobs with
+   * fixed ids, not a separate system, which is why one topic feeds three of the
+   * four overlay kinds. `kind` on each row says which.
+   */
+  automationRunsChanged: 'automations.runs',
+  /**
+   * One step of a running diagnostic export — `{ conversationId, step, index,
+   * total, files }`, the desktop's own `diagnostics:progress` payload verbatim,
+   * so both overlays count the same steps in the same order. Pushed to the
+   * phone only while a phone-initiated run is collecting; the answer to
+   * `Rpc.diagnosticsExport` is what actually settles it, and a phone that
+   * misses every tick still ends with a complete result.
+   */
+  diagnosticsProgress: 'diagnostics.progress',
+  /**
+   * The memory index is being rebuilt, or has finished — `{ status }`, either
+   * a `ReindexStatus` or null when it is over.
+   *
+   * The desktop treats this as a blocking takeover (its chat screen is replaced
+   * for the duration); the phone shows it as one more card in the overlay
+   * stack, because a phone that cannot be used at all while an index rebuilds
+   * is a phone that looks broken. Same state, less ceremony.
+   *
+   * Throttled on the desktop side: the underlying progress event fires once per
+   * batch of files and every tick is one repaint of a single line.
+   */
+  reindexChanged: 'reindex.status'
 } as const
 
 export type RpcMethod = (typeof Rpc)[keyof typeof Rpc]
@@ -264,6 +436,21 @@ export type ConversationMeta = {
   summary: string | null
 }
 
+/**
+ * One user score for one completed turn, keyed by the turn's assistant
+ * message id — the desktop's ConversationRating on the wire. Travels both
+ * ways: on the conversation body (the whole array, so an opened chat shows
+ * every score it already carries) and on `turn.scored` (one entry, the live
+ * change). `source` names the surface the vote was cast on.
+ */
+export type ConversationRating = {
+  messageId: string
+  /** Integer 0-10. */
+  score: number
+  at: number
+  source: string
+}
+
 /** One message as the phone stores it. */
 export type SyncMessage = {
   id: string
@@ -272,6 +459,195 @@ export type SyncMessage = {
   timestamp: number
   /** Attachments, tool payloads, segments — opaque to the transport. */
   payload?: unknown
+}
+
+/**
+ * One attached project file. `path` is workspace-relative on the wire — the
+ * desktop stores an absolute path, but an absolute one is meaningless on a
+ * phone and would leak the home directory for nothing. The phone resolves it
+ * through the same file cache conversation attachments use, so a project file
+ * downloads and opens exactly like one on a message.
+ */
+export type SyncProjectFile = { path: string; name: string }
+
+/**
+ * The diagnostic export, on the wire — the desktop's own DiagnosticStep,
+ * DiagnosticProgress and DiagnosticResult (src/main/diagnostics.ts) verbatim,
+ * so both overlays render one shape and neither has to translate.
+ *
+ * The step list is the ORDER as well as the vocabulary: the progress bar is
+ * `index / total` over it, and a phone whose desktop is newer must not divide
+ * by its own idea of the total — which is why `total` travels on every tick
+ * rather than being counted here.
+ */
+export const DIAGNOSTIC_STEPS = [
+  'conversation',
+  'logs',
+  'tasks',
+  'memory',
+  'context',
+  'settings',
+  'attachments',
+  'opinion',
+  'archive'
+] as const
+
+export type DiagnosticStep = (typeof DIAGNOSTIC_STEPS)[number]
+
+export type DiagnosticProgress = {
+  conversationId: string
+  step: DiagnosticStep
+  /** 1-based position of `step` in DIAGNOSTIC_STEPS. */
+  index: number
+  total: number
+  /** Files gathered so far — the count shown next to the bar. */
+  files: number
+}
+
+/** Why the model opinion isn't in the bundle (absent when it is). */
+export type OpinionSkipReason = 'no-model' | 'local-only' | 'failed' | 'empty'
+
+export type DiagnosticGroup = { key: string; count: number }
+
+export type DiagnosticResult = {
+  ok: boolean
+  error?: string
+  conversationId: string
+  conversationTitle: string
+  /** Archive basename, e.g. `wolffish-diagnostics-2026-07-25_00-16-04.zip`. */
+  fileName: string
+  /** Absolute path on the DESKTOP. Meaningless to the phone; it downloads
+   *  `relativePath` instead. */
+  zipPath: string
+  /** Path relative to the workspace root — `diagnostics/<fileName>`. */
+  relativePath: string
+  sizeBytes: number
+  fileCount: number
+  durationMs: number
+  /** True when a model wrote an opinion into the bundle. */
+  modelOpinion: boolean
+  opinionSkipped?: OpinionSkipReason
+  groups: DiagnosticGroup[]
+  warnings: string[]
+}
+
+/** A project — the desktop's Project (main/projects.ts) on the wire. */
+export type SyncProject = {
+  id: string
+  title: string
+  /** Emoji icon, native emoji set. */
+  icon: string
+  instructions: string
+  files: SyncProjectFile[]
+  createdAt: number
+  updatedAt: number
+}
+
+/** A procedure — the desktop's Procedure (main/procedures.ts) on the wire. */
+export type SyncProcedure = {
+  id: string
+  title: string
+  prompt: string
+  /** Null ⇒ the row follows the workspace's global chat mode. */
+  mode: 'single' | 'workflow' | null
+  /** Always present on the wire; the desktop defaults it at creation. */
+  icon: string
+  /** Null ⇒ unbound. */
+  projectId: string | null
+  createdAt: number
+  updatedAt: number
+}
+
+/**
+ * One ACTIVE automation as the scheduler sees it. Deliberately only what the
+ * engine uniquely owns: `cron` (compiled from the heading) and `nextRunMs`.
+ * Everything else a card shows — label, body, mode/project/icon markers,
+ * whether it is switched off at all — is parsed from the markdown on the
+ * rendering side, because a disabled automation never reaches the scheduler
+ * and would otherwise have no card.
+ */
+export type AutomationJob = {
+  id: string
+  label: string
+  type: string
+  cron: string | null
+  nextRunMs: number | null
+  mode: 'single' | 'workflow' | null
+}
+
+/**
+ * Which family a run belongs to. Resolved on the DESKTOP from the brainstem's
+ * job id, so the phone never parses ids to decide what it is looking at — the
+ * built-in jobs are `compaction-daily`, `reflection-nightly` and friends, and
+ * that naming is the scheduler's business, not the wire's.
+ *
+ * It also settles how `body` reads: an automation's body is the literal prompt
+ * the user wrote, while the built-in jobs carry an i18n KEY (the desktop's own
+ * overlay renders `t(job.body)` and i18next passes an unknown key through).
+ * Both sides need the same rule, so `kind` states it rather than leaving each
+ * renderer to sniff the string.
+ */
+export const OVERLAY_KINDS = ['automation', 'compaction', 'reflection', 'reindex'] as const
+export type OverlayKind = (typeof OVERLAY_KINDS)[number]
+
+/** One in-flight run. `body` reads per `kind` — see OverlayKind. */
+export type AutomationRun = {
+  id: string
+  label: string
+  body: string
+  kind: Exclude<OverlayKind, 'reindex'>
+  startedAt: number
+  mode: 'single' | 'workflow' | null
+}
+
+export type AutomationQueuedRun = {
+  id: string
+  label: string
+  kind: Exclude<OverlayKind, 'reindex'>
+  queuedAt: number
+}
+
+/**
+ * The brainstem's run pool: in-flight runs plus the FIFO overflow.
+ *
+ * Everything past `id`/`label` was added for the phone's overlay cards and is
+ * additive on purpose — a phone reading an older desktop gets rows without it,
+ * which is why lib/sync/overlays.ts normalizes every row rather than trusting
+ * the shape. The automations screen only ever reads `label`, so it is untouched
+ * by the widening either way.
+ */
+export type AutomationRuns = {
+  running: AutomationRun[]
+  queued: AutomationQueuedRun[]
+}
+
+/**
+ * The memory index being rebuilt from scratch — the desktop's own
+ * `reindex:getStatus` on the wire, verbatim.
+ *
+ * `total` is the file count the rebuild started with and `done` is how far it
+ * has got, so the bar is `done / total`. The desktop counts these itself and
+ * they travel together on every tick: a phone must never divide by its own idea
+ * of the total.
+ */
+export type ReindexStatus = {
+  startedAt: number
+  done: number
+  total: number
+}
+
+/**
+ * Everything the phone's overlay stack shows, in one answer — the run pool and
+ * the reindex status together.
+ *
+ * It exists because both are PUSH-shaped: neither has a screen that fetches it,
+ * so a phone that connects while a nightly reflection is halfway through would
+ * otherwise show nothing until the run ended. This is the seed that push
+ * traffic then keeps current, taken once per connection.
+ */
+export type OverlaySeed = {
+  runs: AutomationRuns
+  reindex: ReindexStatus | null
 }
 
 // ---------------------------------------------------------------------------

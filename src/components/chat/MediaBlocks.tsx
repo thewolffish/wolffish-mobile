@@ -1,5 +1,6 @@
 import { PauseIcon, PlayIcon, Upload01Icon } from '@/components/core/icons'
 import { ExpandedSheet } from '@/components/core/ExpandedSheet'
+import { ZoomableImage } from '@/components/core/ZoomableImage'
 import { fileName, formatBytes } from '@/lib/files/fileKinds'
 import { useWorkspaceFile } from '@/lib/files/useWorkspaceFile'
 import { cn } from '@/lib/utils/cn'
@@ -21,7 +22,9 @@ import { IconAction, MissingCard, shareFile, type Align } from '@/components/cha
  * exactly like the desktop's missing-file cards.
  *
  * Images and video expand to full screen, mirroring the desktop's click-to-
- * zoom lightbox and the video element's fullscreen control.
+ * zoom lightbox and the video element's fullscreen control. The expanded
+ * image is a real zooming stage — pinch, pan and double-tap — see
+ * ZoomableImage.
  */
 
 const THUMB_WIDTH = 260
@@ -91,20 +94,15 @@ export function ImageBlock({
           />
         }
       >
-        <View className="flex-1 items-center justify-center bg-black">
-          {/* contain + full bleed: the whole image at the largest size that fits. */}
-          <Image
-            source={{ uri }}
-            contentFit="contain"
-            style={{ width: '100%', height: '100%' }}
-            accessibilityLabel={name}
-          />
-        </View>
-        {sizeBytes ? (
-          <Text className="text-muted p-2 text-center font-sans text-[10px]">
-            {formatBytes(sizeBytes)}
-          </Text>
-        ) : null}
+        {/* Mounted only while open, which is what returns the next opening to
+            1× — the zoom lives in the stage's own shared values, and the
+            desktop resets its lightbox the same way. */}
+        {open ? <ZoomableImage uri={uri} label={name} /> : null}
+        <Text className="text-muted p-2 text-center font-sans text-[10px]">
+          {[sizeBytes ? formatBytes(sizeBytes) : '', t('chat.imageViewer.zoomHint')]
+            .filter(Boolean)
+            .join(' · ')}
+        </Text>
       </ExpandedSheet>
     </View>
   )

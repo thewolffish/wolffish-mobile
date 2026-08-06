@@ -220,7 +220,7 @@ beforeEach(() => {
   mockBodyFetches.length = 0
   mockHandlers.clear()
   mockRpc.mockReset()
-  useChatRuntime.setState({ streams: {} })
+  useChatRuntime.setState({ streams: {}, cards: {} })
   attachTurnStream()
 })
 
@@ -578,5 +578,218 @@ describe('rows the renderer has to survive', () => {
     })
     const writing = buildFeed({ live: useChatRuntime.getState().streams[CONVERSATION] })
     expect(thinking.at(-1)?.key).toBe(writing.at(-1)?.key)
+  })
+})
+
+describe('a turn started on the desktop', () => {
+  /**
+   * The reported bug, replayed from the logs that found it.
+   *
+   * A conversation was running on the desktop; the phone paired 21 seconds in
+   * and opened it. The body it fetched was the honest truth on disk — an in-app
+   * turn writes its user message only when it folds — so for nearly three
+   * minutes the phone showed the answer being written under no question at all,
+   * and the prompt only appeared when the whole transcript landed at the end.
+   *
+   * The mirror is the only signal a late joiner ever receives, which is why the
+   * prompt has to ride it rather than be announced once at the start.
+   */
+  const PROMPT = { id: 'm_9_ccccc1', role: 'user' as const, content: 'make me a pdf', timestamp: 9 }
+
+  /** The pre-turn transcript: all the desktop has saved while the turn runs. */
+  function seedMidTurn(): void {
+    seed([
+      { id: 'm_1_aaaaaa', role: 'user', content: 'first question', timestamp: 1 },
+      { id: 'm_2_bbbbbb', role: 'assistant', content: 'first answer', timestamp: 2 }
+    ])
+  }
+
+  it('shows the prompt from the first mirror, before the desktop has saved it', async () => {
+    const screen = { conversationId: CONVERSATION }
+    const frames: string[][] = []
+    seedMidTurn()
+
+    // The phone joined mid-turn: no `turn.status: started` was ever delivered,
+    // so a mirror snapshot is the first it hears of any of this.
+    frames.push(render(screen))
+    emit('message.appended', {
+      conversationId: CONVERSATION,
+      userMessage: PROMPT,
+      message: {
+        id: 'm_9_ccccc2',
+        role: 'assistant',
+        content: 'Building the PDF',
+        timestamp: 9,
+        segments: [textSegment('s1', 'Building the PDF')]
+      }
+    })
+    frames.push(render(screen))
+
+    // THE ASSERTION. Without the prompt on the mirror this row is absent and
+    // the answer stands alone — which is exactly what the user saw.
+    expect(frames.at(-1)).toEqual([
+      'user(first question)',
+      'assistant(text(first answer))',
+      'user(make me a pdf)',
+      'assistant(text(Building the PDF))'
+    ])
+
+    // The turn folds: BOTH messages reach disk together, in one write.
+    mockDesktop.messages.push(PROMPT, {
+      id: 'm_9_ccccc2',
+      role: 'assistant',
+      content: 'Building the PDF. Done.',
+      timestamp: 9,
+      segments: [textSegment('s1', 'Building the PDF. Done.')]
+    })
+    emit('turn.status', { conversationId: CONVERSATION, state: 'done' })
+    await flush()
+    frames.push(render(screen))
+
+    expectSmooth(frames)
+    expectNoRowLost(frames)
+    // Handed over, not joined: the stored prompt replaces the mirrored one
+    // under the same id rather than appearing beside it.
+    expect(frames.at(-1)).toEqual([
+      'user(first question)',
+      'assistant(text(first answer))',
+      'user(make me a pdf)',
+      'assistant(text(Building the PDF. Done.))'
+    ])
+    expect(useChatRuntime.getState().streams[CONVERSATION]).toBeUndefined()
+  })
+
+  it('still delivers the prompt when the answer was too big to mirror', async () => {
+    // The conversation this was found in streamed 400–515 KB assistant
+    // snapshots, past the 384 KB budget, so every mirror degraded to a bare
+    // nudge. The prompt is a couple of hundred bytes and must not go down with
+    // them — those long turns are where the missing question shows most.
+    const screen = { conversationId: CONVERSATION }
+    seedMidTurn()
+
+    emit('message.appended', { conversationId: CONVERSATION, userMessage: PROMPT })
+    await flush()
+
+    expect(render(screen)).toEqual([
+      'user(first question)',
+      'assistant(text(first answer))',
+      'user(make me a pdf)',
+      'assistant(…)'
+    ])
+    // Still a nudge: it must not pull the pre-turn body over a running turn.
+    expect(mockBodyFetches).toHaveLength(0)
+  })
+
+  it('shows the prompt before the first token, not at the first snapshot', () => {
+    // The desktop emits one prompt-only mirror at send. Without it the phone
+    // renders thinking words under nothing at all for the whole first-token
+    // wait, which on a long tool-heavy turn is many seconds.
+    const screen = { conversationId: CONVERSATION }
+    seedMidTurn()
+    emit('turn.status', { conversationId: CONVERSATION, state: 'started' })
+    expect(render(screen)).toEqual([
+      'user(first question)',
+      'assistant(text(first answer))',
+      'assistant(…)'
+    ])
+
+    emit('message.appended', { conversationId: CONVERSATION, userMessage: PROMPT })
+    expect(render(screen)).toEqual([
+      'user(first question)',
+      'assistant(text(first answer))',
+      'user(make me a pdf)',
+      'assistant(…)'
+    ])
+  })
+
+  it('does not re-publish the prompt on every tick', () => {
+    // A mirror arrives twice a second for the length of the turn. Rewriting the
+    // live entry each time would wake the feed for nothing.
+    seedMidTurn()
+    emit('message.appended', { conversationId: CONVERSATION, userMessage: PROMPT })
+    const first = useChatRuntime.getState().streams[CONVERSATION]
+    emit('message.appended', { conversationId: CONVERSATION, userMessage: PROMPT })
+    expect(useChatRuntime.getState().streams[CONVERSATION]).toBe(first)
+  })
+
+  it('ignores a mirrored prompt with no id', () => {
+    // The feed drops this row against the stored copy's id. One without an id
+    // could never be dropped — it would sit under the answer for good, which is
+    // worse than the gap being closed. The wire is data, not policy.
+    seedMidTurn()
+    emit('message.appended', {
+      conversationId: CONVERSATION,
+      userMessage: { role: 'user', content: 'no id here', timestamp: 9 }
+    })
+    expect(render({ conversationId: CONVERSATION })).toEqual([
+      'user(first question)',
+      'assistant(text(first answer))'
+    ])
+    emit('message.appended', {
+      conversationId: CONVERSATION,
+      userMessage: { id: 'm_9_ccccc1', role: 'assistant', content: 'wrong role', timestamp: 9 }
+    })
+    expect(render({ conversationId: CONVERSATION })).toEqual([
+      'user(first question)',
+      'assistant(text(first answer))'
+    ])
+  })
+
+  it('keeps the accumulated answer when the prompt lands mid-stream', () => {
+    // beginTurn re-bases a turn that is not streaming. A prompt arriving on a
+    // tick after text has accumulated must fold into the live entry, not reset
+    // it — that would be the reply blinking back to thinking words.
+    seedMidTurn()
+    emit('turn.status', { conversationId: CONVERSATION, state: 'started' })
+    emit('message.delta', { conversationId: CONVERSATION, text: 'half an answer' })
+    emit('message.appended', { conversationId: CONVERSATION, userMessage: PROMPT })
+    expect(render({ conversationId: CONVERSATION })).toEqual([
+      'user(first question)',
+      'assistant(text(first answer))',
+      'user(make me a pdf)',
+      'assistant(text(half an answer))'
+    ])
+  })
+})
+
+describe('the parked cards across turns', () => {
+  const ASK = {
+    askId: 'ask_1',
+    toolCallId: 'c1',
+    questions: [{ question: 'Which db?', options: [{ label: 'Postgres' }], allowOther: false }]
+  }
+
+  it('drops the previous turn’s cards when the next turn begins, not before', async () => {
+    seed([{ id: 'm_1_aaaaaa', role: 'user', content: 'hi', timestamp: 1 }])
+    emit('turn.status', { conversationId: CONVERSATION, state: 'started' })
+    emit('message.appended', {
+      conversationId: CONVERSATION,
+      message: {
+        id: 'm_2_bbbbbb',
+        role: 'assistant',
+        content: 'pick one',
+        timestamp: 2,
+        segments: [textSegment('s1', 'pick one')]
+      }
+    })
+    useChatRuntime.getState().putAsk(CONVERSATION, ASK)
+    // `started` can be re-delivered mid-turn. The running turn's own card must
+    // ride that out — it is the turn the user is being asked BY.
+    emit('turn.status', { conversationId: CONVERSATION, state: 'started' })
+    expect(useChatRuntime.getState().cards[CONVERSATION]?.asks.c1).toBeDefined()
+
+    // The turn ends, but its save has not landed: the settle keeps the live
+    // row AND the cards (the stored transcript cannot draw the outcome yet).
+    emit('turn.status', { conversationId: CONVERSATION, state: 'done' })
+    await flush()
+    expect(useChatRuntime.getState().cards[CONVERSATION]?.asks.c1).toBeDefined()
+
+    // A queued prompt flushes exactly here — after `done`, before the settle
+    // fetch succeeds. The new turn must not inherit the old card: it would
+    // ride the new live row's tail, below the prompt that follows it.
+    mockRpc.mockResolvedValue({ conversationId: CONVERSATION })
+    await sendPrompt({ conversationId: CONVERSATION, text: 'next question' })
+    expect(useChatRuntime.getState().cards[CONVERSATION]).toBeUndefined()
+    await flush()
   })
 })

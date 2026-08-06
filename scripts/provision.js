@@ -13,9 +13,33 @@ const path = require('path')
 const root = path.join(__dirname, '..')
 const configPath = path.join(root, 'app.config.ts')
 const pkgPath = path.join(root, 'package.json')
+const readmePath = path.join(root, 'README.md')
 
 const run = (cmd, args) => execFileSync(cmd, args, { cwd: root, stdio: 'inherit' })
 const out = (cmd, args) => execFileSync(cmd, args, { cwd: root, encoding: 'utf8' }).trim()
+
+// The README's shields.io version badge — the last place the version was
+// written by hand, and the first thing anyone sees on the repo's front page.
+// Left to a human it silently advertises the previous release, so it rides the
+// bump commit like package.json does. Mirrored verbatim in ota.js; these
+// scripts share no module by design.
+const BADGE = /(badge\/version-)(\d+\.\d+\.\d+)(-)/
+
+// Returns the paths to stage — empty when there is nothing to say. A missing
+// README, or one without a badge, is not an error: the version lives in
+// app.config.ts and this is only a display of it. Returning the list rather
+// than a fixed 'README.md' keeps `git add` from failing on the same absence
+// this function tolerates.
+function bumpReadmeBadge(version) {
+  if (!fs.existsSync(readmePath)) return []
+  const readme = fs.readFileSync(readmePath, 'utf8')
+  if (!BADGE.test(readme)) {
+    console.warn('No version badge in README.md — nothing to bump.')
+    return []
+  }
+  fs.writeFileSync(readmePath, readme.replace(BADGE, `$1${version}$3`))
+  return ['README.md']
+}
 
 const requestedVersion = process.argv[2]
 if (requestedVersion && !/^\d+\.\d+\.\d+$/.test(requestedVersion)) {
@@ -70,7 +94,9 @@ pkg.version = nextVersion
 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n')
 run('npm', ['install', '--package-lock-only', '--ignore-scripts'])
 
-run('git', ['add', 'app.config.ts', 'package.json', 'package-lock.json'])
+const readmePaths = bumpReadmeBadge(nextVersion)
+
+run('git', ['add', 'app.config.ts', 'package.json', 'package-lock.json', ...readmePaths])
 run('git', ['commit', '-m', `provision: v${nextVersion} (build ${nextCode})`])
 
 const hasOrigin = out('git', ['remote']).split('\n').includes('origin')

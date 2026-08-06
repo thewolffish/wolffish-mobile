@@ -1,4 +1,4 @@
-import { groupConversations } from '@/lib/conversations/grouping'
+import { groupByRecency, groupConversations } from '@/lib/conversations/grouping'
 import type { ConversationMeta } from '@/lib/conversations/types'
 
 function meta(id: string, updatedAt: number): ConversationMeta {
@@ -92,5 +92,32 @@ describe('groupConversations', () => {
 
   it('returns nothing for an empty list', () => {
     expect(groupConversations([], NOW)).toEqual([])
+  })
+
+  /**
+   * The conversations sheet renders a PREFIX of the list and grows it as the
+   * user reaches the end. The chip on each row is that conversation's rank in
+   * the whole list, so the one thing the window must never do is change a
+   * number that is already on screen — which holds only because the slice
+   * happens BEFORE the grouping, never after.
+   */
+  it('numbers a prefix of the list exactly as the whole list does', () => {
+    const metas = Array.from({ length: 30 }, (_, index) =>
+      // Spread across three buckets, so the prefix boundary lands mid-group.
+      meta(`c${index}`, NOW - index * 6 * 60 * 60 * 1000)
+    )
+    const rankOf = (rows: readonly ConversationMeta[]): Map<string, number> => {
+      const ranks = new Map<string, number>()
+      for (const group of groupByRecency(rows, (row) => row.updatedAt, NOW)) {
+        group.data.forEach((row, index) => ranks.set(row.id, group.startIndex + index))
+      }
+      return ranks
+    }
+    const whole = rankOf(metas)
+    for (const size of [1, 7, 12, 29]) {
+      const windowed = rankOf(metas.slice(0, size))
+      expect(windowed.size).toBe(size)
+      for (const [id, rank] of windowed) expect(rank).toBe(whole.get(id))
+    }
   })
 })

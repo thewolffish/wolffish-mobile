@@ -1,5 +1,6 @@
 import { messageFilePaths } from '@/lib/conversations/segments'
-import type { ConversationMessage } from '@/lib/conversations/types'
+import type { ConversationMessage, ConversationRating } from '@/lib/conversations/types'
+import { foldFetchedRatings } from '@/lib/sync/rating'
 import { getDb } from '@/lib/db/database'
 import { resolveWorkspaceFile } from '@/lib/files/fileCache'
 import { tunnelClient } from '@/lib/tunnel/client'
@@ -11,6 +12,10 @@ import {
   type ConfigSnapshot
 } from '@/state/demoConfig'
 import { pushCapability, setOutboxRefreshHook } from '@/lib/sync/outbox'
+import { applyRunsPush, invalidateAutomations } from '@/lib/sync/automations'
+import { applyOverlayReindex, applyOverlayRuns, readReindex, readRuns } from '@/lib/sync/overlays'
+import { invalidateProcedures } from '@/lib/sync/procedures'
+import { invalidateProjects } from '@/lib/sync/projects'
 import { useAppStore } from '@/state/appStore'
 import { invalidateConversation, invalidateConversationList } from '@/lib/conversations/cache'
 import { beginSync } from '@/lib/sync/activity'
@@ -355,6 +360,47 @@ export function attachLiveUpdates(): () => void {
     scheduleConfigRefresh()
   })
 
+  // The three workspace stores the phone edits alongside the desktop. Each push
+  // fires on EVERY committed write to its store, whoever wrote — the desktop's
+  // own page, the agent's project_*/procedure_*/automation_* tools, an
+  // autonomous run, or this phone's editor echoing back. Invalidation, not a
+  // fetch: react-query only re-reads for a screen that is actually mounted, so
+  // a push while the user is in chat costs nothing.
+  tunnel.onEvent(Event.projectsChanged, () => {
+    invalidateProjects()
+  })
+
+  tunnel.onEvent(Event.proceduresChanged, () => {
+    invalidateProcedures()
+  })
+
+  tunnel.onEvent(Event.automationsChanged, () => {
+    invalidateAutomations()
+  })
+
+  // The run pool carries its state, so it folds in without a fetch — and it is
+  // also the signal that an automation just FIRED, which is the one moment a
+  // served `nextRunMs` goes stale. Re-reading on it keeps the "fires in" line
+  // honest instead of counting backwards past a run that already happened.
+  //
+  // Two folds off one push, each with an owner: the automations screen's cache,
+  // which gates its play buttons, and the overlay stack, which draws a card per
+  // run. One read of the wire feeds both, so they cannot disagree.
+  tunnel.onEvent(Event.automationRunsChanged, (payload) => {
+    const runs = readRuns(payload)
+    applyRunsPush(runs)
+    applyOverlayRuns(runs)
+    invalidateAutomations()
+  })
+
+  // The memory index started, moved, or finished rebuilding — the fourth
+  // overlay kind, and the only one that is not a brainstem run. Payload-carrying
+  // and throttled on the desktop; `{ status: null }` is the end, which is what
+  // takes the card away.
+  tunnel.onEvent(Event.reindexChanged, (payload) => {
+    applyOverlayReindex(readReindex(payload))
+  })
+
   return () => undefined
 }
 
@@ -459,25 +505,41 @@ export async function fetchConversationBody(id: string): Promise<boolean> {
   if (!tunnel) return false
   const db = await getDb()
 
-  // Read the desktop's updated_at BEFORE asking for the body, and stamp that
-  // value afterwards. Two reasons, both of them bugs otherwise:
+  // body_synced_at answers one question — WHICH VERSION is the copy on this
+  // device — and the honest answer travels with the copy: the desktop builds
+  // the reply from a single read of the conversation file, so its `updatedAt`
+  // describes exactly the messages in it. Two hazards it has to keep clearing:
   //
-  // The clock. body_synced_at must hold the desktop's own updated_at, never
-  // this phone's Date.now(): the two clocks are not synchronised, so
-  // comparing across them either refetches on every open (phone behind) or —
-  // the silent one — never refetches again (phone ahead). Same clock on both
-  // sides of the comparison, always.
+  // The clock. It must hold the desktop's own updated_at, never this phone's
+  // Date.now(): the two clocks are not synchronised, so comparing across them
+  // either refetches on every open (phone behind) or — the silent one — never
+  // refetches again (phone ahead). The served value is the desktop's, and it
+  // is the same field the index and the upsert pushes carry, so both sides of
+  // the comparison in isBodyStale are one number from one file.
   //
-  // The ordering. Reading before means a change landing mid-fetch leaves the
-  // stamp older than the new updated_at, so the next open pulls again.
-  // Reading after would record a version this copy does not contain.
+  // The ordering. A change landing after that read still moves the desktop's
+  // updated_at past this stamp, and the push carrying it makes the copy stale
+  // again — so nothing is missed. What this CANNOT do, and what reading the
+  // phone's row after the fetch could, is record a version the copy does not
+  // contain.
+  //
+  // The local row is the fallback only. Read before the RPC, it holds the
+  // PRE-turn updated_at for a turn run on the desktop — `turn.status: done`
+  // arrives, this fetch pulls the finished transcript, and the meta push with
+  // the new updated_at lands a few hundred ms later. Stamping that pre-turn
+  // value marked a complete body stale and bought a second, identical
+  // download of the whole conversation moments after the first.
   const before = await db.getFirstAsync<{ updated_at: number }>(
     'SELECT updated_at FROM conversations WHERE id = ?',
     [id]
   )
-  const syncedTo = before?.updated_at ?? 0
+  // Taken here, not read off `before` later: the fallback is "what this phone
+  // knew when it asked", and a push landing mid-fetch must not rewrite it.
+  const askedAt = before?.updated_at ?? 0
 
   const body = (await tunnel.rpc(Rpc.conversationBody, { id })) as {
+    updatedAt?: number
+    ratings?: ConversationRating[]
     messages?: Array<{
       id: string
       role: string
@@ -486,6 +548,8 @@ export async function fetchConversationBody(id: string): Promise<boolean> {
       payload?: unknown
     }>
   }
+  const served = body?.updatedAt
+  const syncedTo = typeof served === 'number' && Number.isFinite(served) ? served : askedAt
   // No messages array is a failed lookup, not an empty conversation. The old
   // `?? []` turned any malformed answer into a DELETE of a good transcript —
   // the worst outcome available here, and invisible until the user scrolls.
@@ -514,6 +578,13 @@ export async function fetchConversationBody(id: string): Promise<boolean> {
     // failed write can never leave the phone believing it is current.
     await tx.runAsync('UPDATE conversations SET body_synced_at = ? WHERE id = ?', [syncedTo, id])
   })
+  // The turn scores this transcript carries — the desktop's whole set for this
+  // conversation, applied like the rows above it (adds what is new, drops what
+  // is gone) except for a vote still on the wire from here. Only when the
+  // field is actually present: a desktop that predates it sends none at all,
+  // and reading that absence as "no scores" would wipe every one the phone
+  // holds on the next open.
+  if (Array.isArray(body?.ratings)) await foldFetchedRatings(id, body.ratings)
   // Every file this conversation shows, pulled into the cache now rather than
   // when its card scrolls into view — the difference between attachments that
   // are simply there and a screen of spinners resolving one by one. Fire and

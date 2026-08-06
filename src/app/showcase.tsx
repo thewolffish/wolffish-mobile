@@ -84,8 +84,10 @@ export default function Showcase(): React.JSX.Element {
       </View>
 
       <Section title={t('settings.title')}>
-        <View className="flex-row items-end gap-3">
-          <ThemeSelector className="flex-1" />
+        {/* Both are full-width switch tracks now, so they stack rather than
+            share a row. */}
+        <View className="flex-col gap-3">
+          <ThemeSelector />
           <LanguageToggle label={t('locale.label')} />
         </View>
       </Section>

@@ -17,6 +17,7 @@ module.exports = {
         // Semantic tokens — resolved at runtime from the CSS variables in
         // global.css so they follow the active light/dark scheme.
         bg: 'var(--color-bg)',
+        'bg-soft': 'var(--color-bg-soft)',
         surface: 'var(--color-surface)',
         'surface-soft': 'var(--color-surface-soft)',
         fg: 'var(--color-fg)',
@@ -28,6 +29,8 @@ module.exports = {
         'primary-line': 'var(--color-primary-line)',
         'primary-fg': 'var(--color-primary-fg)',
         accent: 'var(--color-accent)',
+        'accent-soft': 'var(--color-accent-soft)',
+        'accent-line': 'var(--color-accent-line)',
         ring: 'var(--color-ring)'
       },
       // React Native selects fonts by family name per weight, so each weight

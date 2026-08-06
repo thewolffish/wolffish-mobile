@@ -20,6 +20,13 @@
   --color-surface-soft: #eef1f5;
   --color-primary-soft: #e8ebef;
   --color-primary-line: #bbc3ce;
+  /* The question card's tones, same reason again: the desktop paints its
+     chips and options with bg-bg/40, bg-accent/10 and border-accent/40 over
+     the card's surface — composited here per theme. bg-soft stands in for
+     the bg/40 and bg/60 washes both (they differ by ~2 RGB points). */
+  --color-bg-soft: #f9fbfc;
+  --color-accent-soft: #e6fbff;
+  --color-accent-line: #99eeff;
   --color-primary: #1b365d;
   --color-primary-fg: #ffffff;
   --color-accent: #00d4ff;
@@ -36,6 +43,9 @@
   --color-surface-soft: #1e242c;
   --color-primary-soft: #242e38;
   --color-primary-line: #415464;
+  --color-bg-soft: #12171e;
+  --color-accent-soft: #142e38;
+  --color-accent-line: #0d657a;
   --color-primary: #a5d8ff;
   --color-primary-fg: #0d1117;
   --color-accent: #00d4ff;

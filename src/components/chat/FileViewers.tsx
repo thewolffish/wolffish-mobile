@@ -207,8 +207,11 @@ export function SourceBody({
           vertical scroller and the same line metrics, so rows stay aligned. */}
       <View className="flex-row" style={{ direction: 'ltr' }}>
         <View className="bg-bg/50 border-border border-e px-2 py-2">
+          {/* text-muted, not muted/70: the alpha would drop (same var() rule
+              as the CSV borders below) and default-black numbers vanish on
+              a dark background. */}
           <Text
-            className="text-muted/70 text-right font-mono"
+            className="text-muted text-right font-mono"
             style={{ fontSize: 11, lineHeight: 18 }}
             selectable={false}
           >
@@ -501,12 +504,15 @@ function SheetGrid({ table, flex }: { table: SheetTable; flex?: boolean }): Reac
             </View>
           ) : null}
           {body.map((row, rowIndex) => (
-            <View key={rowIndex} className="border-border/60 flex-row border-b">
+            // border-soft, not border/60: an alpha modifier on a var() color
+            // silently drops in RN and a dropped border color paints black
+            // (see global.css) — the token is the same tone, precomputed.
+            <View key={rowIndex} className="border-border-soft flex-row border-b">
               {row.map((cell, index) => (
                 <Text
                   key={index}
                   numberOfLines={2}
-                  className="text-fg border-border/60 w-32 border-e px-2 py-1.5 text-left font-sans text-[11px]"
+                  className="text-fg border-border-soft w-32 border-e px-2 py-1.5 text-left font-sans text-[11px]"
                 >
                   {cell}
                 </Text>

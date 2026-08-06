@@ -8,11 +8,18 @@ import {
 } from '@/lib/conversations/cache'
 import { mintMessageId } from '@/lib/conversations/types'
 import { attachCardStream } from '@/lib/sync/cards'
+import { applyRemoteRatings } from '@/lib/sync/rating'
 import { fetchConversationBody } from '@/lib/sync/sync'
 import { tunnelClient } from '@/lib/tunnel/client'
 import { Event, Rpc } from '@/lib/tunnel/protocol'
 import { useChatRuntime, type LiveStream } from '@/state/chatRuntime'
-import type { ConversationMessage, MessageAttachment, Segment } from '@/lib/conversations/types'
+import { markRun } from '@/state/runStatus'
+import type {
+  ConversationMessage,
+  ConversationRating,
+  MessageAttachment,
+  Segment
+} from '@/lib/conversations/types'
 
 /**
  * Sending a turn from the phone, and rendering the one the desktop runs.
@@ -24,6 +31,15 @@ import type { ConversationMessage, MessageAttachment, Segment } from '@/lib/conv
  * snapshots, and `turn.status` around the edges. That is the same stream the
  * desktop's own chat view consumes, which is why a turn started here looks
  * identical on both screens.
+ *
+ * A turn started on the OTHER side arrives the same way, with one addition:
+ * `message.appended` also carries the prompt being answered. It has to. The
+ * desktop's chat view has that prompt in its own feed and writes it to disk
+ * only when the turn folds, so a phone with the conversation open — or one
+ * that pairs halfway through, which is how this was found — has it neither
+ * stored nor streamed, and renders an answer to a question that is nowhere
+ * on screen. Every snapshot repeats it, because a late joiner only ever sees
+ * snapshots.
  *
  * ORDER IS THE WHOLE CONTRACT. The phone must show the same things in the same
  * sequence the desktop does — later is fine, out of order or flickering is not
@@ -52,6 +68,25 @@ export type SendPromptInput = {
   /** True for a voice note: the audio is the prompt, and the desktop
    * transcribes it before running the turn. */
   voicePrompt?: boolean
+}
+
+/**
+ * The project a first message files its new conversation under: project mode if
+ * the chat is inside one, otherwise the per-chat pick from the menu sheet.
+ *
+ * Resolved here rather than passed in by each caller so the rule lives in one
+ * place — the chat screen, the procedures screen and a voice note all mint
+ * conversations through this module, and each deciding for itself is how one of
+ * them ends up filing nothing.
+ *
+ * It travels WITH the send because the desktop stamps it at creation: the turn
+ * this send starts reads projectId off the conversation file to build its
+ * overlay, so filing afterwards would leave the first turn — the one that
+ * matters most — without the project's instructions.
+ */
+function projectForNewConversation(): string | null {
+  const { activeProjectId, pendingProjectId } = useChatRuntime.getState()
+  return activeProjectId ?? pendingProjectId ?? null
 }
 
 export type SendPromptResult = { conversationId: string }
@@ -120,11 +155,44 @@ export function isTurnRunning(conversationId: string): boolean {
 }
 
 /**
+ * A prompt mirrored from the desktop — the question a turn running THERE is
+ * answering — or null if the payload is not one.
+ *
+ * This is the other half of the mirror, and the half without which a turn
+ * started anywhere but this phone renders as an answer to nothing: the desktop
+ * writes an in-app turn's user message to disk only when the turn folds, and
+ * the phone deliberately does not re-read a body mid-turn, so for the length of
+ * the run the prompt exists in neither place. It arrives on every snapshot, so
+ * a phone that pairs or opens the conversation mid-turn picks it up on the next
+ * tick rather than never.
+ *
+ * The wire is data, not policy. An id is mandatory: the feed drops this row
+ * when the stored transcript arrives carrying the same id, and one without an
+ * id could never be dropped — it would sit under the answer permanently, which
+ * is a worse bug than the one being fixed.
+ */
+function mirroredPrompt(value: unknown): ConversationMessage | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Partial<ConversationMessage>
+  if (raw.role !== 'user') return null
+  if (typeof raw.id !== 'string' || !raw.id) return null
+  if (typeof raw.content !== 'string') return null
+  return {
+    ...raw,
+    id: raw.id,
+    role: 'user',
+    content: raw.content,
+    timestamp: typeof raw.timestamp === 'number' ? raw.timestamp : Date.now()
+  }
+}
+
+/**
  * Open a live turn before anything has come back from the desktop, so the
  * prompt and the thinking words are on screen from the tap. Called by the send
- * path, and by `turn.status: started` for turns begun on another surface — an
- * open conversation shows a desktop-side run the moment it starts, not at its
- * first token.
+ * path, by `turn.status: started` for turns begun on another surface — an open
+ * conversation shows a desktop-side run the moment it starts, not at its first
+ * token — and by the mirror, which is the only one of the three that can carry
+ * the prompt of a turn this phone did not send.
  */
 export function beginTurn(conversationId: string, user?: ConversationMessage): void {
   const current = liveFor(conversationId)
@@ -134,6 +202,13 @@ export function beginTurn(conversationId: string, user?: ConversationMessage): v
     if (user) putLive(conversationId, { base: current.base, tail: current.tail, user })
     return
   }
+  // A fresh turn: whatever cards the previous one parked on are settled facts
+  // now — the desktop resolves or fails every parked request before its turn
+  // can end, and the stored transcript renders the outcome. Cleared here as
+  // well as at the settle, because a queued prompt flushes the moment the old
+  // turn reports done — BEFORE its settle fetch returns — and a card left in
+  // the store would ride the new live row's tail, below the new prompt.
+  useChatRuntime.getState().clearCards(conversationId)
   putLive(conversationId, { base: blankAssistant(), tail: '', user, status: 'streaming' })
 }
 
@@ -248,11 +323,23 @@ export function attachTurnStream(): void {
   })
 
   tunnel.onEvent(Event.messageAppended, (payload) => {
-    const { conversationId, message } = (payload ?? {}) as {
+    const { conversationId, message, userMessage } = (payload ?? {}) as {
       conversationId?: string
       message?: unknown
+      userMessage?: unknown
     }
     if (!conversationId) return
+
+    // The prompt first, and before every early return below — a mirror whose
+    // assistant half was withheld for size still carries it, and the turns
+    // whose answers outgrow that budget are exactly the long ones where a
+    // missing question is most obvious. Applied once per turn rather than per
+    // tick: the id is the whole payload's identity, so an unchanged one means
+    // there is nothing to do and no reason to wake the feed.
+    const prompt = mirroredPrompt(userMessage)
+    if (prompt && liveFor(conversationId)?.user?.id !== prompt.id) {
+      beginTurn(conversationId, prompt)
+    }
 
     // A FULL assistant message (stable id + role) is the desktop's live mirror
     // of the turn it is writing — prose, tool cards and task cards, exactly as
@@ -304,6 +391,15 @@ export function attachTurnStream(): void {
       return
     }
     if (state !== 'done' && state !== 'error' && state !== 'canceled') return
+    // How it ended, remembered for as long as that is news — this is what tints
+    // the conversation's number chip in the sheet, exactly as the desktop's
+    // rail tints its own. Recorded for EVERY conversation the desktop reports
+    // on, not just the open one: the whole point of the list is that a turn
+    // finishing somewhere the user is not looking still shows up there.
+    markRun(
+      conversationId,
+      state === 'done' ? 'completed' : state === 'error' ? 'failed' : 'stopped'
+    )
     const live = liveFor(conversationId)
     if (live) {
       // Marked finished, NOT removed. The composer's Stop goes back to Send
@@ -318,11 +414,30 @@ export function attachTurnStream(): void {
     void settleTurn(conversationId)
   })
 
+  // A turn was scored on ANY surface — the desktop's own rating bar, a
+  // bare-number Telegram/WhatsApp reply, this phone's vote echoing back — and
+  // an open chat has to reflect it now, exactly as the desktop's bar does.
+  //
+  // The rating travels with the push, so this writes it and repaints. Nothing
+  // else would: a ratings-only write moves no updated_at, so the conversation
+  // never looks stale and no other path would ever come back for it.
   tunnel.onEvent(Event.turnScored, (payload) => {
-    const { conversationId } = (payload ?? {}) as { conversationId?: string }
-    // A score can land from any channel — the desktop, Telegram, here — and
-    // the phone shows whichever one was recorded, exactly like the desktop.
-    if (conversationId) void fetchConversationBody(conversationId).catch(() => undefined)
+    const { conversationId, rating } = (payload ?? {}) as {
+      conversationId?: string
+      rating?: ConversationRating
+    }
+    if (!conversationId) return
+    if (rating?.messageId && typeof rating.score === 'number') {
+      void applyRemoteRatings(conversationId, [rating]).catch(() => undefined)
+      return
+    }
+    // A desktop that predates the payload — the score is on its file, so the
+    // body carries it. Never mid-turn: a fetch before the turn folds returns a
+    // transcript without the message being written (see above).
+    if (isTurnRunning(conversationId) || liveFor(conversationId)) return
+    void fetchConversationBody(conversationId)
+      .then(() => invalidateConversation(conversationId))
+      .catch(() => undefined)
   })
 }
 
@@ -351,11 +466,15 @@ export async function sendPrompt(input: SendPromptInput): Promise<SendPromptResu
     ...(input.voicePrompt ? { voicePrompt: true } : {})
   }
 
+  // Read before the wire is touched, so the value the local stub is written
+  // with below is the same one the desktop was asked for.
+  const projectId = input.conversationId ? null : projectForNewConversation()
+
   // Offline. The desktop holds the models and the workspace, so there is no
   // answer to be had here — but throwing turns a normal situation (a phone in
   // a lift) into an error the user has to interpret. Keep what they wrote,
   // say plainly why it is waiting, and let them carry on reading.
-  if (!tunnel || !tunnelClient.connected) return offlineReply(input, user)
+  if (!tunnel || !tunnelClient.connected) return offlineReply(input, user, projectId)
 
   // The turn is on screen before the wire is touched, for a conversation that
   // has one. A new chat has no id to file it under yet; the chat screen holds
@@ -370,7 +489,10 @@ export async function sendPrompt(input: SendPromptInput): Promise<SendPromptResu
       messageId: user.id,
       text: input.text,
       attachments: input.attachments ?? [],
-      voicePrompt: input.voicePrompt === true
+      voicePrompt: input.voicePrompt === true,
+      // Only meaningful for a conversation the desktop is about to create; it
+      // ignores the field for one that already exists and has its own binding.
+      ...(projectId ? { projectId } : {})
     })) as { conversationId?: string }
   } catch (error) {
     // The turn never started. Take the optimistic row down with it rather than
@@ -390,7 +512,14 @@ export async function sendPrompt(input: SendPromptInput): Promise<SendPromptResu
   // conversation query off the catch-up path it takes for an unknown id (a full
   // index pull, then a body fetch, before anything can render). The desktop's
   // own metadata overwrites this the moment it arrives.
-  if (!input.conversationId) await createLocalConversation(conversationId, input.text, timestamp)
+  if (!input.conversationId) {
+    await createLocalConversation(conversationId, input.text, timestamp, projectId)
+    // The per-chat pick was for THIS chat and has now been spent. Project mode
+    // is not cleared — it holds until the user closes the project.
+    if (useChatRuntime.getState().pendingProjectId) {
+      useChatRuntime.getState().setPendingProject(null)
+    }
+  }
   beginTurn(conversationId, user)
   invalidateConversationList()
   return { conversationId }
@@ -400,20 +529,24 @@ export async function sendPrompt(input: SendPromptInput): Promise<SendPromptResu
  * A locally-known stub for a conversation the desktop created. Deliberately
  * INSERT OR IGNORE and message-less: the desktop is the source of truth for
  * both, and its copy arrives through the index push moments later. `channel`
- * matches what the desktop stamped so the phone badge does not appear late.
+ * matches what the desktop stamped so the phone badge does not appear late, and
+ * `project_id` for the same reason — the chat's project chrome and the Projects
+ * screen's count both read it, and a beat showing the chat as unfiled is a beat
+ * showing the wrong thing.
  */
 async function createLocalConversation(
   conversationId: string,
   text: string,
-  timestamp: number
+  timestamp: number,
+  projectId: string | null = null
 ): Promise<void> {
   const db = await getDb()
   await db
     .runAsync(
       `INSERT OR IGNORE INTO conversations
-         (id, title, channel, sealed, created_at, updated_at, message_count)
-       VALUES (?, ?, 'mobile', 0, ?, ?, 1)`,
-      [conversationId, text.trim().slice(0, 60) || 'Untitled', timestamp, timestamp]
+         (id, title, channel, project_id, sealed, created_at, updated_at, message_count)
+       VALUES (?, ?, 'mobile', ?, 0, ?, ?, 1)`,
+      [conversationId, text.trim().slice(0, 60) || 'Untitled', projectId, timestamp, timestamp]
     )
     .catch(() => undefined)
 }
@@ -427,11 +560,12 @@ async function createLocalConversation(
  */
 async function offlineReply(
   input: SendPromptInput,
-  user: ConversationMessage
+  user: ConversationMessage,
+  projectId: string | null = null
 ): Promise<SendPromptResult> {
   const conversationId = input.conversationId ?? `local_${Date.now()}`
   if (input.conversationId === null) {
-    await createLocalConversation(conversationId, input.text || 'Offline', Date.now())
+    await createLocalConversation(conversationId, input.text || 'Offline', Date.now(), projectId)
   }
   await appendLocalMessage(conversationId, user)
   await appendLocalMessage(conversationId, {

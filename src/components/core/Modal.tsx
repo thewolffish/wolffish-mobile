@@ -8,6 +8,12 @@ export type ModalProps = {
   open: boolean
   onClose: () => void
   title?: string
+  /**
+   * Rendered on the TITLE's row, at its trailing edge — a view switch, a count,
+   * anything that belongs to the dialog as a whole rather than to its body. Kept
+   * out of `children` so it stays put while the body scrolls or swaps.
+   */
+  titleAccessory?: ReactNode
   children: ReactNode
   /** Optional footer area for action buttons. */
   footer?: ReactNode
@@ -33,6 +39,7 @@ export function Modal({
   open,
   onClose,
   title,
+  titleAccessory,
   children,
   footer,
   dismissable = true,
@@ -75,7 +82,21 @@ export function Modal({
             className
           )}
         >
-          {title && <Text className="text-fg font-sans-semibold text-left text-lg">{title}</Text>}
+          {(title || titleAccessory) && (
+            <View className="flex-row items-center justify-between gap-3">
+              {title ? (
+                <Text
+                  numberOfLines={1}
+                  className="text-fg font-sans-semibold min-w-0 flex-1 text-left text-lg"
+                >
+                  {title}
+                </Text>
+              ) : (
+                <View className="flex-1" />
+              )}
+              {titleAccessory}
+            </View>
+          )}
           <View className="flex-col gap-3">{children}</View>
           {footer && <View className="pt-2">{footer}</View>}
         </View>

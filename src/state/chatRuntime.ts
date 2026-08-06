@@ -6,7 +6,14 @@ import type {
   ConversationMessage,
   DangerLevel
 } from '@/lib/conversations/types'
+import type { SyncProject } from '@/lib/tunnel/protocol'
 import { create } from 'zustand'
+
+/**
+ * The project chat is working inside. Structurally the wire project, so whatever
+ * the Projects screen or the composer's dialog last saved drops straight in.
+ */
+export type ActiveProject = SyncProject
 
 /**
  * Live streaming state — the in-flight turn per conversation.
@@ -106,6 +113,40 @@ export type ChatRuntimeState = {
    */
   pendingProjectId: string | null
   setPendingProject: (projectId: string | null) => void
+  /**
+   * PROJECT MODE: the project the chat screen is currently working inside — the
+   * desktop's `activeProject`. Distinct from `pendingProjectId`, which is one
+   * new chat's filing: this one persists across conversations, replaces the
+   * composer's menu button with the project's emoji, and files every new chat
+   * started while it is set.
+   *
+   * The ID, deliberately, not the project. It was the whole object first, and
+   * that made project mode a SECOND COPY of a row the query cache already holds:
+   * an edit made on the desktop refreshed the list and left this copy behind, so
+   * the composer's emoji and the chat hero kept showing the old title until
+   * something happened to rewrite them. Holding the id means every consumer
+   * reads the one list (see useActiveProject) and a desktop edit lands on all of
+   * them in the same render as the list itself.
+   *
+   * In memory only, exactly like the desktop's: project mode is a thing you are
+   * doing right now, and a relaunch into a project the user has since forgotten
+   * about would be a surprise, not a restoration.
+   */
+  activeProjectId: string | null
+  /** Takes the project (or its id) for the caller's convenience; stores the id. */
+  setActiveProject: (project: ActiveProject | string | null) => void
+  /**
+   * A prompt handed to the chat screen to send as a fresh conversation — a
+   * procedure's Run.
+   *
+   * Through the store rather than a navigation param, because the screen it is
+   * for is already on the stack: the run pops back to it, and a param attached to
+   * a pop is not something to rely on. The chat screen consumes this (clearing it
+   * as it does) once it has actually reset to an empty chat, which is what keeps
+   * the prompt out of whatever conversation happened to be open.
+   */
+  pendingPrompt: string | null
+  setPendingPrompt: (prompt: string | null) => void
   startStream: (conversationId: string, message: ConversationMessage) => void
   updateStream: (conversationId: string, message: ConversationMessage) => void
   /** Whole-value upsert — the paired path rebuilds the entry on every event. */
@@ -131,6 +172,16 @@ export const useChatRuntime = create<ChatRuntimeState>()((set) => ({
   cards: {},
   pendingProjectId: null,
   setPendingProject: (pendingProjectId) => set({ pendingProjectId }),
+  activeProjectId: null,
+  // Entering a project clears any per-chat pick: the project mode IS the filing
+  // now, and leaving it must not leave the last new chat pointed somewhere else.
+  setActiveProject: (project) =>
+    set({
+      activeProjectId: typeof project === 'string' ? project : (project?.id ?? null),
+      pendingProjectId: null
+    }),
+  pendingPrompt: null,
+  setPendingPrompt: (pendingPrompt) => set({ pendingPrompt }),
   startStream: (conversationId, message) =>
     set((state) => ({
       streams: { ...state.streams, [conversationId]: { message, status: 'streaming' } }
@@ -197,7 +248,14 @@ export const useChatRuntime = create<ChatRuntimeState>()((set) => ({
       const { [conversationId]: _gone, ...rest } = state.cards
       return { cards: rest }
     }),
-  reset: () => set({ streams: {}, cards: {}, pendingProjectId: null })
+  reset: () =>
+    set({
+      streams: {},
+      cards: {},
+      pendingProjectId: null,
+      activeProjectId: null,
+      pendingPrompt: null
+    })
 }))
 
 /** One conversation's live cards, or the shared empty pair. A stable

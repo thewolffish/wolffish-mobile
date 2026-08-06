@@ -1,4 +1,5 @@
 import { tunnelClient } from '@/lib/tunnel/client'
+import { useAppStore } from '@/state/appStore'
 import type { TunnelState, TunnelStatus } from '@/lib/tunnel/tunnel'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -48,4 +49,23 @@ export function useTunnelStatus(): { status: TunnelStatus; label: string; tone: 
     default:
       return { status, label: t('relay.status.idle'), tone: 'idle' }
   }
+}
+
+/**
+ * Is there a desktop on the other end RIGHT NOW — paired, and connected.
+ *
+ * The predicate behind every control that cannot work without one: the
+ * workspace stores the phone edits through the desktop, and the diagnostic
+ * bundle, which is collected there. Demo mode is false by construction (there
+ * is no desktop to pair with), and so is a paired phone in a lift.
+ *
+ * Written once here rather than per screen because it is not a preference, it
+ * is a fact about the link, and two copies of it would eventually disagree
+ * about what "connected" means.
+ */
+export function useDesktopReachable(): boolean {
+  const paired = useAppStore((state) => state.paired)
+  const [connected, setConnected] = useState(tunnelClient.connected)
+  useEffect(() => tunnelClient.subscribe((state) => setConnected(state.status === 'connected')), [])
+  return paired && connected
 }

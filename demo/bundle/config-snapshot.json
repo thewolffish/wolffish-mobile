@@ -503,6 +503,10 @@
     "inapp": {
       "verbose": false
     },
+    "mobile": {
+      "notifications": true,
+      "verbose": false
+    },
     "telegram": {
       "enabled": true,
       "allowedUserIds": "8417306252",

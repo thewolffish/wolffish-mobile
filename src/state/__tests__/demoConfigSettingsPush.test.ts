@@ -43,6 +43,8 @@ import {
 function snapshotWith(overrides: {
   bypassPermissions?: boolean
   blockCredentials?: boolean
+  /** Absent = the pre-mobile-settings shape, which is its own test below. */
+  mobile?: { notifications?: boolean; verbose?: boolean }
 }): ConfigSnapshot {
   return {
     capabilities: [],
@@ -61,6 +63,7 @@ function snapshotWith(overrides: {
       screenshotFormat: 'jpeg'
     },
     channels: {
+      ...(overrides.mobile ? { mobile: overrides.mobile } : {}),
       telegram: {
         enabled: false,
         allowedUserIds: '',
@@ -172,5 +175,59 @@ describe('preference toggles write-through', () => {
     // Reverted to the snapshot's value, not left on the refused edit — the
     // optimistic false must not survive a desktop that says true.
     expect(useDemoConfig.getState().blockCredentials).toBe(true)
+  })
+})
+
+/**
+ * This phone's own two channel settings — the pair the Channels screen's
+ * "This phone" card carries, and the desktop's Mobile panel carries too.
+ *
+ * They are the first settings on this screen the phone may actually WRITE
+ * (Telegram's and WhatsApp's are desktop-owned mirrors, pinned above), so the
+ * thing worth holding is that they leave as configSet patches rather than
+ * sitting locally looking applied until the next refresh quietly undoes them.
+ * The absent-section case is the older desktop: notifications default ON, and
+ * a phone that read that as off would show a switch saying the agent cannot
+ * reach it while the agent happily keeps notifying.
+ */
+describe('this phone as a channel', () => {
+  beforeEach(() => {
+    jest.useFakeTimers()
+    resetOutboxForTests()
+    mockRpc.mockReset()
+    mockRpc.mockResolvedValue({ ok: true })
+    mockConnection.connected = true
+    useAppStore.setState({ paired: true })
+    useDemoConfig.setState({ mobileNotifications: true, mobileVerbose: false })
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
+    useAppStore.setState({ paired: false })
+  })
+
+  it('both switches write through to the desktop', async () => {
+    setConfigValue('mobileNotifications', false)
+    setConfigValue('mobileVerbose', true)
+    await jest.advanceTimersByTimeAsync(0)
+    expect(configSetCalls()).toEqual([
+      [Rpc.configSet, { settings: { mobileNotifications: false } }],
+      [Rpc.configSet, { settings: { mobileVerbose: true } }]
+    ])
+  })
+
+  it('a snapshot carrying the section applies both values', async () => {
+    mockRpc.mockResolvedValueOnce(snapshotWith({ mobile: { notifications: false, verbose: true } }))
+    await refreshConfigSnapshot()
+    expect(useDemoConfig.getState().mobileNotifications).toBe(false)
+    expect(useDemoConfig.getState().mobileVerbose).toBe(true)
+  })
+
+  it('a desktop from before the section falls back to notifications on, feed clean', async () => {
+    useDemoConfig.setState({ mobileNotifications: false, mobileVerbose: true })
+    mockRpc.mockResolvedValueOnce(snapshotWith({}))
+    await refreshConfigSnapshot()
+    expect(useDemoConfig.getState().mobileNotifications).toBe(true)
+    expect(useDemoConfig.getState().mobileVerbose).toBe(false)
   })
 })

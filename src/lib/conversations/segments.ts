@@ -57,6 +57,8 @@ export type RenderBlock =
       timing?: ToolTiming
     }
   | { type: 'question'; key: string; call: ToolCallInfo; result?: ToolResultInfo }
+  /** A tool_result with no tool_call in the stream — see the emit site. */
+  | { type: 'toolAnchor'; key: string; toolCallId: string; result: ToolResultInfo }
   | { type: 'model'; key: string; provider: string; model: string }
   | { type: 'file'; key: string; relPath: string; kind: DeliveredFileKind }
   | { type: 'path'; key: string; path: string; kind: 'folder' | 'file' }
@@ -248,6 +250,20 @@ export function buildRenderBlocks(message: ConversationMessage): RenderBlock[] {
             block.result = result
             call = block.call
           }
+        } else {
+          // The clean-feed live mirror strips tool_call segments, so mid-turn
+          // the result of a parked card (ask_user, an approved tool) arrives
+          // with no call to pair with — yet it sits at the exact point in the
+          // stream where the turn parked. The anchor holds that position so
+          // the feed can render the live card THERE instead of appending it
+          // after everything (MessageBubbles). Stored bodies carry every
+          // call, so once a turn is persisted this block never appears.
+          blocks.push({
+            type: 'toolAnchor',
+            key: `a:${segment.toolCallId}`,
+            toolCallId: segment.toolCallId,
+            result
+          })
         }
         blocks.push(...extractDeliveredFiles(call, result, `r:${segment.toolCallId}`, emittedFiles))
         break

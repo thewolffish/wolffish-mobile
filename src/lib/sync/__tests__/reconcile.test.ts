@@ -220,6 +220,59 @@ describe('fetchConversationBody', () => {
     expect(await isBodyStale('c')).toBe(false)
   })
 
+  it('stamps the version the desktop served, not the one this phone knew about', async () => {
+    // A turn run on the DESKTOP moves updated_at without telling the phone
+    // first: `turn.status: done` arrives, this fetch pulls the finished
+    // transcript, and the meta push carrying the new updated_at lands a few
+    // hundred ms LATER. Stamping what the phone knew when it asked marked a
+    // complete body stale, and the upsert handler's staleness check then
+    // downloaded the whole conversation a second time. The served value
+    // describes the messages in the reply, so it is the one that is true.
+    mockState.rows = [{ id: 'c', updated_at: 1_000, body_synced_at: 1_000 }]
+    mockRpc.mockResolvedValue({
+      updatedAt: 2_000,
+      messages: [{ id: 'm', role: 'user', content: 'x', timestamp: 1 }]
+    })
+
+    await fetchConversationBody('c')
+    expect(mockState.rows[0].body_synced_at).toBe(2_000)
+
+    // ... and now the push lands, carrying the same version. Nothing to do.
+    mockState.rows[0].updated_at = 2_000
+    expect(await isBodyStale('c')).toBe(false)
+  })
+
+  it('is stale again as soon as the desktop moves past the version it served', async () => {
+    // The guarantee the stamp must never trade away: a body one turn behind
+    // has to be recognised as behind.
+    mockState.rows = [{ id: 'c', updated_at: 1_000, body_synced_at: null }]
+    mockRpc.mockResolvedValue({
+      updatedAt: 2_000,
+      messages: [{ id: 'm', role: 'user', content: 'x', timestamp: 1 }]
+    })
+
+    await fetchConversationBody('c')
+    mockState.rows[0].updated_at = 3_000
+
+    expect(await isBodyStale('c')).toBe(true)
+  })
+
+  it('falls back to what it knew when asked if the desktop serves no version', async () => {
+    // An older desktop, or a reply whose updatedAt is not a number: the stamp
+    // degrades to the previous behaviour rather than to Date.now() or 0.
+    for (const reply of [{}, { updatedAt: 'soon' }, { updatedAt: Number.NaN }]) {
+      mockState.rows = [{ id: 'c', updated_at: 1_000, body_synced_at: null }]
+      mockRpc.mockResolvedValue({
+        ...reply,
+        messages: [{ id: 'm', role: 'user', content: 'x', timestamp: 1 }]
+      })
+
+      await fetchConversationBody('c')
+
+      expect(mockState.rows[0].body_synced_at).toBe(1_000)
+    }
+  })
+
   it('records the version it actually fetched, so a mid-fetch change refetches', async () => {
     mockState.rows = [{ id: 'c', updated_at: 1_000, body_synced_at: null }]
     mockRpc.mockImplementation(async () => {
@@ -233,6 +286,23 @@ describe('fetchConversationBody', () => {
 
     // Stamped with what was asked for, not what arrived after — so the copy
     // in hand is correctly seen as behind.
+    expect(mockState.rows[0].body_synced_at).toBe(1_000)
+    expect(await isBodyStale('c')).toBe(true)
+  })
+
+  it('keeps a mid-fetch change stale even when the desktop names its version', async () => {
+    // The same race, with the served stamp in play: the reply describes the
+    // version the desktop read, and a change made after that read moves
+    // updated_at past it. Nothing is missed — it just isn't missed by
+    // accident any more.
+    mockState.rows = [{ id: 'c', updated_at: 1_000, body_synced_at: null }]
+    mockRpc.mockImplementation(async () => {
+      mockState.rows[0].updated_at = 2_000
+      return { updatedAt: 1_000, messages: [{ id: 'm', role: 'user', content: 'x', timestamp: 1 }] }
+    })
+
+    await fetchConversationBody('c')
+
     expect(mockState.rows[0].body_synced_at).toBe(1_000)
     expect(await isBodyStale('c')).toBe(true)
   })

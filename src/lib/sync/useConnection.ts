@@ -1,4 +1,5 @@
 import { refreshPushRegistration } from '@/lib/notifications/push'
+import { clearOverlays, seedOverlays } from '@/lib/sync/overlays'
 import { attachLiveUpdates, reconcile } from '@/lib/sync/sync'
 import { attachTurnStream } from '@/lib/sync/prompt'
 import { tunnelClient } from '@/lib/tunnel/client'
@@ -75,7 +76,17 @@ export function useConnection(): void {
         attachLiveUpdates()
         attachTurnStream()
         void reconcile().catch(() => undefined)
+        // What the desktop is busy with only ever arrives as a push, so a
+        // connection formed mid-run has already missed it. Seeded on every
+        // connection, not just the first, because the clear below empties it
+        // on every drop.
+        void seedOverlays()
       }
+      // Overlay cards claim something is running on a machine this one can no
+      // longer see. Losing the tunnel does not end those runs, but it does end
+      // this phone's evidence for them, and a card left standing would go on
+      // asserting one long after it finished.
+      if (!isConnected && wasConnected) clearOverlays()
       wasConnected = isConnected
     })
 

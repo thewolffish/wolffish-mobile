@@ -89,6 +89,27 @@ jest.mock('expo-image', () => {
   return { Image: (props: object) => <View testID="image" {...props} /> }
 })
 
+// Reanimated's worklets runtime needs the native binary; here it carries only
+// the expanded image's zoom transform, which starts at rest and stays there
+// without fingers on the glass. The geometry behind it is checked on its own
+// in lib/utils/__tests__/zoomPan.test.ts.
+jest.mock('react-native-reanimated', () => {
+  const { View } = jest.requireActual('react-native')
+  return {
+    __esModule: true,
+    // createAnimatedComponent is gesture-handler's, not ours: it wraps the
+    // detector's child at import time, so the mock has to answer for it.
+    default: { View, createAnimatedComponent: (component: unknown) => component },
+    useSharedValue: (value: unknown) => ({ value }),
+    useAnimatedStyle: (style: () => object) => style(),
+    // Also gesture-handler's: the detector subscribes to its own event stream
+    // through Reanimated, and there is no stream to subscribe to here.
+    useEvent: () => () => undefined,
+    withTiming: (value: number) => value,
+    withDecay: () => 0
+  }
+})
+
 // The chart host document is composed from bundled assets (ECharts, the page
 // runtime, the Plex face) — none of which exist in this faked filesystem.
 jest.mock('@/lib/charts/html', () => ({

@@ -2,9 +2,9 @@ import {
   ArrowExpandIcon,
   ArrowUp02Icon,
   Delete02Icon,
+  Image02Icon,
   Menu01Icon,
   Mic01Icon,
-  PlusSignIcon,
   StopCircleIcon,
   Tick02Icon
 } from '@/components/core/icons'
@@ -22,14 +22,17 @@ import {
   useAudioRecorder,
   useAudioRecorderState
 } from 'expo-audio'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Pressable, Text, TextInput, View } from 'react-native'
+import { Keyboard, Pressable, Text, TextInput, View } from 'react-native'
 import { AttachSheet, AttachmentTray } from '@/components/chat/AttachmentPicker'
-import { ChatMenuSheet } from '@/components/chat/ChatMenuSheet'
+import { ChatControlsPanel, ChatMenuSheet } from '@/components/chat/ChatMenuSheet'
 import { PromptEditorModal } from '@/components/chat/PromptEditorModal'
 import { QueuedPromptTray, type QueuedPrompt } from '@/components/chat/QueuedPrompts'
 import { RainbowBorder } from '@/components/chat/RainbowBorder'
+import { DEFAULT_PROJECT_ICON, ProjectDialog } from '@/components/workspace/ProjectDialog'
+import { useActiveProject, useProjectsWritable } from '@/lib/sync/projects'
+import { useChatRuntime } from '@/state/chatRuntime'
 
 /**
  * The chat composer — desktop grammar mapped to touch: fixed-height surface
@@ -73,6 +76,12 @@ export type ComposerProps = {
   onSubmit: (payload: ComposerSubmit) => void
   onCancelQueued: (id: string) => void
   onStop: () => void
+  /**
+   * Start a fresh chat — the header's + button, reached from here by project
+   * mode's two actions (another conversation in this project, and leaving it,
+   * which lands in a plain new one).
+   */
+  onNewConversation: () => void
 }
 
 export function Composer({
@@ -81,13 +90,18 @@ export function Composer({
   queued,
   onSubmit,
   onCancelQueued,
-  onStop
+  onStop,
+  onNewConversation
 }: ComposerProps): React.JSX.Element {
   const { t } = useTranslation()
   const tokens = useTokens()
   const toast = useToast()
   const [draft, setDraft] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [projectOpen, setProjectOpen] = useState(false)
+  const activeProject = useActiveProject()
+  const setActiveProject = useChatRuntime((state) => state.setActiveProject)
+  const projectsWritable = useProjectsWritable()
   const [editorOpen, setEditorOpen] = useState(false)
   const [attachOpen, setAttachOpen] = useState(false)
   const [files, setFiles] = useState<PickedFile[]>([])
@@ -99,16 +113,46 @@ export function Composer({
   // prompt is optional once something is attached.
   const canSend = draft.trim().length > 0 || files.length > 0
 
+  /**
+   * One press, one message.
+   *
+   * The draft and the staged files are React state, so a second press landing
+   * in the same frame as the first still reads the text that was just handed
+   * over — the field has not repainted, and the send button is still under the
+   * thumb that pressed it. Without this the same message goes twice: as two
+   * turns when idle, and as two rows when the screen is queueing.
+   *
+   * Held synchronously and released by the effect below, on the very commit
+   * that empties the field — which always happens, since `setFiles([])` is a
+   * fresh array even when nothing was staged.
+   */
+  const handedOver = useRef(false)
+  useEffect(() => {
+    handedOver.current = false
+  }, [draft, files])
+
   // Not gated on `streaming`: mid-turn the submit is a queue, and the composer
   // clears either way — what was written now belongs to the send in flight or
-  // to a queued row, not to the field.
-  const submitText = (): void => {
-    const text = draft.trim()
+  // to a queued row, not to the field. The expanded editor submits through
+  // here too, passing the draft it holds, which is why the text is an argument
+  // rather than read from state.
+  const submit = (value: string): void => {
+    if (handedOver.current) return
+    const text = value.trim()
     if (!text && files.length === 0) return
+    handedOver.current = true
     setDraft('')
     setFiles([])
+    // A message on its way is the end of editing it: the expanded editor comes
+    // down with the field it was standing in for, and the keyboard goes with
+    // it — sent or queued alike. Half the screen was being held for a field
+    // that is now empty, and the reply is what the user wants to see.
+    setEditorOpen(false)
+    Keyboard.dismiss()
     onSubmit({ kind: 'text', text, files })
   }
+
+  const submitText = (): void => submit(draft)
 
   /**
    * Take what the picker returned, one file at a time, against the limits the
@@ -227,14 +271,30 @@ export function Composer({
           textarea — visible, removable, and not yet anywhere but this phone. */}
       {!recording && <AttachmentTray files={files} onRemove={remove} />}
       <View className="flex-row items-end gap-2 px-3 py-2.5">
+        {/* In project mode this slot becomes the PROJECT button — the project's
+            own emoji instead of the menu glyph, opening a dialog that carries
+            BOTH halves behind one switch: the project (instructions, files, new
+            conversation, close) and the chat controls this glyph opens otherwise.
+            Nothing is lost by the swap. The desktop makes the same swap, on the
+            New-Chat slot its composer has and this one does not. */}
         {!recording && (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t('chat.menu.title')}
-            onPress={() => setMenuOpen(true)}
+            accessibilityLabel={
+              activeProject
+                ? activeProject.title.trim() || t('projects.untitled')
+                : t('chat.menu.title')
+            }
+            onPress={() => (activeProject ? setProjectOpen(true) : setMenuOpen(true))}
             className="border-border bg-surface h-[42.5px] w-[42.5px] items-center justify-center rounded-lg border active:bg-border/40"
           >
-            <Menu01Icon size={18} className="text-fg" />
+            {activeProject ? (
+              <Text className="text-lg leading-6">
+                {activeProject.icon || DEFAULT_PROJECT_ICON}
+              </Text>
+            ) : (
+              <Menu01Icon size={18} className="text-fg" />
+            )}
           </Pressable>
         )}
         {recording ? (
@@ -313,7 +373,11 @@ export function Composer({
         {/* Attach lives in the END cluster, where the desktop puts it — a
             message action, next to the mic, not a session control. It stays
             put when the mic becomes send, so a file can be added to a prompt
-            that has already been typed. */}
+            that has already been typed.
+            The media glyph, not a plus: the desktop's attach button carries
+            this exact icon, and a plus is already spoken for on this screen —
+            the header's new-chat control. Two identical glyphs meaning
+            different things is the one thing a composer cannot afford. */}
         {!recording && (
           <Pressable
             accessibilityRole="button"
@@ -321,7 +385,7 @@ export function Composer({
             onPress={() => setAttachOpen(true)}
             className="border-border bg-surface h-[42.5px] w-[42.5px] items-center justify-center rounded-lg border active:bg-border/40"
           >
-            <PlusSignIcon size={18} className="text-fg" />
+            <Image02Icon size={18} className="text-fg" />
           </Pressable>
         )}
 
@@ -387,9 +451,40 @@ export function Composer({
         onClose={() => setMenuOpen(false)}
         conversation={conversation}
       />
+      {/* Project mode's dialog, opened from the slot above. It carries the two
+          extras the desktop's project dialog carries — start another
+          conversation here, and close the project — plus the way back to the
+          chat controls that slot would otherwise have opened. */}
+      <ProjectDialog
+        project={projectOpen ? activeProject : null}
+        busy={streaming}
+        readOnly={!projectsWritable}
+        onClose={() => setProjectOpen(false)}
+        // Nothing to do with the edit: project mode is derived from the project
+        // list, and every write has already landed there by the time this fires.
+        onChanged={() => undefined}
+        // In project mode this dialog stands where the menu button was, so it
+        // carries the controls that button opens — behind its own view switch.
+        // The project picker is left out: see ChatControlsPanel.showProject.
+        controls={<ChatControlsPanel conversation={conversation} showProject={false} />}
+        onNewConversation={() => {
+          setProjectOpen(false)
+          onNewConversation()
+        }}
+        onExitProject={() => {
+          setProjectOpen(false)
+          // Leaving the project lands in a plain new chat right here, rather
+          // than navigating back to the projects list — the desktop's
+          // Close-project does the same. The chat screen starts that chat off
+          // the project-mode change itself, so nothing else is needed here.
+          setActiveProject(null)
+        }}
+      />
       <PromptEditorModal
         open={editorOpen}
         initialValue={draft}
+        streaming={streaming}
+        onSend={submit}
         onDone={(value) => {
           setDraft(value)
           setEditorOpen(false)

@@ -11,6 +11,7 @@ import '../global.css'
 import '@/lib/i18n'
 
 import { ChartSnapshotHost } from '@/components/chat/ChartSnapshotHost'
+import { ActiveOverlays } from '@/components/overlays/ActiveOverlays'
 import { ConnectingOverlay } from '@/components/pairing/ConnectingOverlay'
 import { SyncOverlay } from '@/components/pairing/SyncOverlay'
 import { UpdateNotice } from '@/components/updates/UpdateNotice'
@@ -81,6 +82,13 @@ function AppShell(): React.JSX.Element {
         />
       </Stack>
       <UpdateNotice />
+      {/* What the desktop is busy with, over whatever screen is showing —
+          app-wide because the desktop's own cards are, and because a run the
+          phone did not start is news wherever the user happens to be. Above
+          the screens but below the blocking overlays: a phone that has lost
+          the tunnel has no live runs to report anyway (they are cleared on
+          the drop), so the two never compete for the same space. */}
+      <ActiveOverlays />
       {/* Above every screen: without the tunnel a paired app can only show a
           stale copy and refuse every action. */}
       <ConnectingOverlay />

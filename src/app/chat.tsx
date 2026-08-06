@@ -2,25 +2,25 @@ import { AssistantMessageView, UserBubble } from '@/components/chat/MessageBubbl
 import { ChatFeed, FEED_FADE_MS, type ChatFeedHandle } from '@/components/chat/ChatFeed'
 import { ChatSkeleton } from '@/components/chat/ChatSkeleton'
 import { Composer, type ComposerSubmit } from '@/components/chat/Composer'
+import { ConversationsSheet } from '@/components/chat/ConversationsSheet'
+import { FLOATING_AREA, FLOATING_GAP, FloatingChrome } from '@/components/chat/FloatingChrome'
+import { TurnRating } from '@/components/chat/TurnRating'
 import type { QueuedPrompt } from '@/components/chat/QueuedPrompts'
-import {
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  Clock01Icon,
-  PlusSignIcon,
-  Settings02Icon
-} from '@/components/core/icons'
-import { buildFeed } from '@/lib/conversations/feed'
+import { buildFeed, LIVE_KEY } from '@/lib/conversations/feed'
 import { useConversation } from '@/lib/conversations/hooks'
 import { mintMessageId, type ConversationMessage } from '@/lib/conversations/types'
 import { deriveTitle, ensureDemoConversation, sendDemoPrompt, stopDemoTurn } from '@/lib/demo/agent'
 import { importLocalFile } from '@/lib/files/fileCache'
 import type { PickedFile } from '@/lib/files/pickAttachments'
+import { DEFAULT_PROJECT_ICON } from '@/components/workspace/ProjectDialog'
+import { PromptPreview } from '@/components/workspace/PromptSheet'
 import { useChatRuntime } from '@/state/chatRuntime'
-import { useConfigValue } from '@/state/demoConfig'
+import { useConfigValue, useSettingsReadOnly } from '@/state/demoConfig'
 import { Image } from 'expo-image'
-import { router, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
+import { useActiveProject } from '@/lib/sync/projects'
 import { abortTurn, beginTurn, sendPrompt } from '@/lib/sync/prompt'
+import { rateTurn } from '@/lib/sync/rating'
 import {
   discardStaged,
   fileLocally,
@@ -34,23 +34,21 @@ import { useToast } from '@/providers/toast/useToast'
 import { useAppStore } from '@/state/appStore'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  I18nManager,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View
-} from 'react-native'
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeOut } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 /**
- * The chat screen — the desktop Chat page adapted to one column: header with
- * back/new/history/verbose controls, bottom-pinned feed, composer with
- * send/stop/record. Works identically for a fresh chat and for any of the
- * imported demo conversations (open from History).
+ * The chat screen — the desktop Chat page adapted to one column, and the only
+ * screen the app really has: a bottom-pinned feed under two floating controls
+ * (the conversations sheet, a new chat), and a composer with send/stop/record.
+ * Works identically for a fresh chat and for any conversation the sheet opens.
+ *
+ * There is no top bar. The sheet is the navigator — every core page and every
+ * conversation — and it opens a conversation IN PLACE rather than pushing a
+ * copy of this screen per row tapped. That is the desktop's model (one window,
+ * many conversations, turns running concurrently in whichever) and it is what
+ * `opened` and `generationRef` below exist to make safe.
  *
  * The feed is a plain ScrollView, deliberately:
  * - inverted FlatList: Fabric text measurement explodes on RTL-heavy rows
@@ -102,19 +100,43 @@ export default function ChatScreen(): React.JSX.Element {
   const params = useLocalSearchParams<{ id?: string }>()
   const feedRef = useRef<ChatFeedHandle>(null)
   const [conversationId, setConversationId] = useState<string | null>(params.id ?? null)
-  // The conversation this screen was OPENED on — History, a deep link, a
-  // notification. Distinct from `conversationId`, which also moves when a new
-  // chat gets its id on first send: that transition must not re-gate a feed
-  // the user is already looking at.
-  const openedId = params.id ?? null
-  const [feedRevealed, setFeedRevealed] = useState(openedId === null)
+  /**
+   * The conversation this screen is OPEN ON — seeded from the route (History, a
+   * deep link, a notification) and then moved, in place, by the conversations
+   * sheet. Distinct from `conversationId`, which ALSO moves when a new chat gets
+   * its id on first send: that transition must not re-gate a feed the user is
+   * already looking at.
+   *
+   * State rather than the route parameter, because the sheet switches
+   * conversations without navigating: this screen is the app's single surface,
+   * as the desktop window is, and pushing a copy of it per conversation would
+   * stack one screen per row the user taps. Everything a switch has to reset
+   * hangs off this one value, below.
+   */
+  const [opened, setOpened] = useState<string | null>(params.id ?? null)
+  const [feedRevealed, setFeedRevealed] = useState(opened === null)
+  /**
+   * How many conversations this screen has shown. A send captures the number it
+   * started under and refuses to settle against a later one — see performSubmit.
+   * The whole reason in-place switching needs it: an RPC in flight outlives the
+   * conversation it was sent from, and its result would otherwise drag the user
+   * back to a chat they had already walked away from.
+   */
+  const generationRef = useRef(0)
   useEffect(() => {
-    setFeedRevealed(openedId === null)
-    // Messages queued for the conversation being left do not follow the user
-    // into the next one — they were written as replies to a turn that is no
-    // longer on screen. The desktop wipes its queue on the same transition.
+    generationRef.current += 1
+    setConversationId(opened)
+    setFeedRevealed(opened === null)
+    // Nothing in flight follows the user out of the conversation they left. The
+    // TURN does keep running — it lives in chatRuntime under its own id, and
+    // walking away is not stopping — but this screen's copy of the last prompt,
+    // and messages queued as replies to a turn no longer on screen, do not. The
+    // desktop wipes its queue on the same transition.
+    setPendingUser(null)
+    sendingRef.current = false
+    setSending(false)
     setQueued([])
-  }, [openedId])
+  }, [opened])
   const paired = useAppStore((state) => state.paired)
   const { data: conversation, isFetching: conversationFetching } = useConversation(conversationId)
   // The turn being written into this conversation right now, from whichever
@@ -123,17 +145,48 @@ export default function ChatScreen(): React.JSX.Element {
   const live = useChatRuntime((state) =>
     conversationId ? state.streams[conversationId] : undefined
   )
+  // Project mode — set from the Projects screen or a project-bound procedure.
+  // The hero and the composer's project button both render from it.
+  const activeProject = useActiveProject()
+  const activeProjectId = useChatRuntime((state) => state.activeProjectId)
   // A prompt sent from a chat with no id yet, held for the round trip that
   // mints one. Cleared as it is handed to the live turn below.
   const [pendingUser, setPendingUser] = useState<ConversationMessage | null>(null)
   const [sending, setSending] = useState(false)
+  /**
+   * The same fact as `sending`, a render earlier.
+   *
+   * `sending` is state, so it is only true from the NEXT commit — and a submit
+   * arriving inside that one frame reads an idle screen. That happens: a double
+   * tap on the send button, or a tap landing in the same commit as the queue
+   * flush below. Both submits then take the send path, two `sendMessage` RPCs
+   * reach the desktop for one conversation, and it runs them one after the
+   * other — so the second reply looks like a hang, and the same message is
+   * answered twice. The desktop closes the identical window with its own
+   * sendingRef; this is that guard.
+   *
+   * Mirrors `sending` at every point one is set, and is read only where a
+   * decision is made inside that frame — never to render.
+   */
+  const sendingRef = useRef(false)
   // Submits held back because a turn was running when they arrived. In memory
   // only, and never written anywhere: a queued row is a message that has not
   // been sent, and the app has exactly one place for messages that have.
   const [queued, setQueued] = useState<QueuedPrompt[]>([])
+  // The navigator — every core page, and every conversation. Closed by default
+  // and mounted lazily by the sheet itself, so it costs nothing until opened.
+  const [sheetOpen, setSheetOpen] = useState(false)
   // One flag for both ends: the desktop's `inapp.verbose`. The feed is a
   // display preference of the workspace, not of the device rendering it.
   const verbose = useConfigValue('inappVerbose')
+  // The same switch that gates the desktop's own rating bar — Settings →
+  // Knowledge → Reflection. It is the workspace's preference, so flipping it
+  // on either screen moves both.
+  const scoringEnabled = useConfigValue('reflectionScoringInapp')
+  // Paired and offline there is nowhere for a vote to go, and this app refuses
+  // writes it cannot land (see setConfigValue). Absent rather than dead: a
+  // control that swallows taps is worse than one that is not there.
+  const writable = !useSettingsReadOnly()
 
   const streaming = live?.status === 'streaming' || sending
 
@@ -141,6 +194,35 @@ export default function ChatScreen(): React.JSX.Element {
     () => buildFeed({ messages: conversation?.messages, live, pendingUser, sending }),
     [conversation, live, pendingUser, sending]
   )
+
+  /**
+   * The turn the rating bar scores: the last row of an idle feed, when it is a
+   * finished assistant message with an id to file the score under. Read from
+   * the FEED, not from the stored transcript — the desktop's bar appears the
+   * moment its turn ends, and on the phone the finished turn is still the live
+   * overlay for the beat before its saved copy takes over.
+   *
+   * Deliberately not gated on the score being persisted anywhere: a turn is
+   * rateable exactly when it is complete, and the write path resolves what the
+   * desktop actually holds (sync/rating.ts).
+   */
+  const lastItem = feed[feed.length - 1]
+  const ratableId =
+    scoringEnabled &&
+    writable &&
+    !streaming &&
+    conversationId !== null &&
+    lastItem &&
+    !lastItem.streaming &&
+    lastItem.message.role === 'assistant' &&
+    lastItem.message.id
+      ? lastItem.message.id
+      : null
+  const ratableScore = useMemo(() => {
+    if (!ratableId) return null
+    const rating = conversation?.ratings?.find((entry) => entry.messageId === ratableId)
+    return rating ? rating.score : null
+  }, [ratableId, conversation])
 
   /**
    * A send that will not happen, taken back down. The live turn opened at the
@@ -284,12 +366,24 @@ export default function ChatScreen(): React.JSX.Element {
           timestamp: Date.now()
         })
       }
+      sendingRef.current = true
       setSending(true)
+      const generation = generationRef.current
       // Handing over is one state change, not three: by the time this runs the
       // live turn carries the prompt under the conversation's own id, so the
       // row the screen was holding is released in the same frame its
       // replacement appears.
+      //
+      // Unless the screen has moved on. A send survives the conversation it was
+      // sent from — the user can open another one from the sheet mid-flight, and
+      // the turn carries on running where it was sent — but everything below is
+      // about THIS screen's state, and the conversation it now shows has its own.
+      // Adopting a stale id here is how a settling send would yank the user back
+      // into the chat they just left; clearing `sending` is how it would mark a
+      // NEW send idle. Both are simply not this send's business any more.
       const settle = (id?: string): void => {
+        if (generationRef.current !== generation) return
+        sendingRef.current = false
         setPendingUser(null)
         setSending(false)
         if (id) setConversationId(id)
@@ -388,16 +482,22 @@ export default function ChatScreen(): React.JSX.Element {
    *
    * "Mid-turn" is `streaming`, which is both a turn running in this
    * conversation — this phone's, the desktop's, a channel's — and a send of
-   * this screen's own that has not come back yet. That second half matters:
-   * without it a fast second tap would race the first send's round trip, and
-   * the two prompts would reach the desktop in whichever order the network
-   * settled on.
+   * this screen's own that has not come back yet — including one handed over
+   * in THIS frame, which `sending` cannot report yet and `sendingRef` can.
+   * That second half matters: without it a fast second tap would race the
+   * first send's round trip, and the two prompts would reach the desktop in
+   * whichever order the network settled on.
    */
   const handleSubmit = useCallback(
     (payload: ComposerSubmit): void => {
-      if (streaming) {
+      if (streaming || sendingRef.current) {
         queueSequence += 1
-        setQueued((prev) => [...prev, { ...payload, id: `q_${queueSequence}` }])
+        // Minted here, not inside the updater: React runs updaters later, and
+        // two submits in one frame would both read the sequence AFTER both
+        // increments — one id for two rows, which React draws as two rows that
+        // cancel as one and flush as one, leaving the twin behind.
+        const id = `q_${queueSequence}`
+        setQueued((prev) => [...prev, { ...payload, id }])
         return
       }
       performSubmit(payload)
@@ -421,9 +521,15 @@ export default function ChatScreen(): React.JSX.Element {
    * the transition it was waiting for, and would then sit there until some
    * later turn happened to end. Every path out of a turn — finished, stopped,
    * failed, offline — lands here the same way.
+   *
+   * `sendingRef` covers the one race the invariant cannot see: a manual send
+   * that grabbed this same gap, from a tap in the frame the turn ended. The
+   * queue simply holds and flushes when THAT turn ends — never needing a
+   * dependency of its own, since the ref is cleared by the settle that also
+   * clears `sending`, and that is a state change this effect already wakes on.
    */
   useEffect(() => {
-    if (streaming || queued.length === 0) return
+    if (streaming || sendingRef.current || queued.length === 0) return
     const [next, ...rest] = queued
     setQueued(rest)
     // Synchronous: performSubmit marks the screen sending in this same commit,
@@ -439,9 +545,98 @@ export default function ChatScreen(): React.JSX.Element {
     else stopDemoTurn(conversationId)
   }, [conversationId, paired])
 
-  const BackIcon = I18nManager.isRTL ? ArrowRight01Icon : ArrowLeft01Icon
-  const title =
-    conversation?.title && conversation.title !== 'Untitled' ? conversation.title : t('app.name')
+  /**
+   * Back to an empty chat. A turn still running in the conversation being left
+   * keeps its own live entry, keyed by its id — leaving is not stopping. What
+   * must not follow the user is this screen's copy of the last prompt, or
+   * messages queued behind a turn they are walking away from.
+   *
+   * Shared with project mode, whose two actions both land here: another
+   * conversation in the project, and closing the project (which has already
+   * cleared it by the time this runs).
+   */
+  const startNewChat = useCallback((): void => {
+    setPendingUser(null)
+    sendingRef.current = false
+    setSending(false)
+    setQueued([])
+    setConversationId(null)
+    // Both, deliberately. `opened` re-gates the feed and is what the effect
+    // above keys on; `conversationId` is what the screen actually sends into,
+    // and after a first send the two differ (a new chat mints an id without
+    // ever being "opened"). Clearing only one of them is how "new chat" from a
+    // chat that had already been sent into ended up back in it.
+    setOpened(null)
+  }, [])
+
+  /**
+   * Open another conversation, in place. The sheet asks; this decides.
+   *
+   * Nothing is torn down here beyond what the `opened` effect resets: a turn
+   * running in the conversation being left keeps writing into chatRuntime under
+   * its own id, so coming back to it — from the sheet, moments or minutes later
+   * — finds it exactly where it was. That is what makes concurrent conversations
+   * work on the phone the way they do on the desktop.
+   */
+  const openConversation = useCallback(
+    (id: string): void => {
+      // Already here. Re-gating the feed for it would put a skeleton over a
+      // transcript that is already on screen.
+      if (id === conversationId) return
+      setOpened(id)
+    },
+    [conversationId]
+  )
+
+  /**
+   * Entering — or leaving — a project starts a fresh conversation in it.
+   *
+   * One rule in one place, because there are two ways in (the Projects screen and
+   * the chat menu's picker) and both live on other screens: this screen owns the
+   * open conversation, so it is the only thing that can put it down. Why it must:
+   * a project's instructions are the base a conversation starts FROM, and every
+   * turn of a conversation created outside the project runs without them — so
+   * carrying the chat you were already in into a project would show its chrome
+   * over turns that never received it.
+   *
+   * On the CHANGE, never on the value: opening a project's conversation from
+   * History must not bounce you out of the transcript you just asked for. The ref
+   * seeds from the first render, and project mode is not persisted, so a launch
+   * can never arrive already inside one.
+   */
+  const seenProjectRef = useRef(activeProjectId)
+  useEffect(() => {
+    if (seenProjectRef.current === activeProjectId) return
+    seenProjectRef.current = activeProjectId
+    startNewChat()
+  }, [activeProjectId, startNewChat])
+
+  /**
+   * A procedure's run: the prompt is left in the runtime by the Procedures
+   * screen and sent from HERE, because this screen owns sending — it holds the
+   * live turn, the optimistic bubble and the queue, and a prompt sent behind its
+   * back would render as a reply to nothing.
+   *
+   * TWO PHASES, and the split is the whole point. `startNewChat` clears the open
+   * conversation through state, so it is only true from the next commit —
+   * submitting in the same tick would read the conversation the user was looking
+   * at and send the procedure INTO it. So the first phase resets and the second
+   * fires once the reset has actually landed (`conversationId === null`), which
+   * is also when performSubmit's own closure sees the empty chat.
+   *
+   * Taken from the store rather than read, so it is consumed exactly once even
+   * though both effects re-run on every render that follows.
+   */
+  const pendingPrompt = useChatRuntime((state) => state.pendingPrompt)
+  useEffect(() => {
+    if (pendingPrompt === null || conversationId === null) return
+    startNewChat()
+  }, [pendingPrompt, conversationId, startNewChat])
+  useEffect(() => {
+    if (pendingPrompt === null || conversationId !== null) return
+    useChatRuntime.getState().setPendingPrompt(null)
+    performSubmit({ kind: 'text', text: pendingPrompt, files: [] })
+  }, [pendingPrompt, conversationId, performSubmit])
 
   // Emptiness is a property of the FEED, not of the stored transcript: a turn
   // in flight is on screen whether or not anything has been saved for it yet,
@@ -468,66 +663,11 @@ export default function ChatScreen(): React.JSX.Element {
   const showSkeleton = !feedRevealed && (loading || !empty)
 
   return (
-    <View className="bg-bg flex-1" style={{ paddingTop: insets.top }}>
-      {/* Header */}
-      <View className="border-border-soft flex-row items-center gap-1 border-b px-2 pb-2">
-        {/* Paired, there is nowhere to go back to: the entry screen is behind
-            a replace, and the only thing it offers is a way to drop this very
-            connection. Absent rather than disabled — a dead control invites
-            the tap that a missing one never gets. */}
-        {!paired && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('common.back')}
-            hitSlop={8}
-            onPress={() => router.back()}
-            className="h-9 w-9 items-center justify-center rounded-lg active:bg-border/40"
-          >
-            <BackIcon size={20} className="text-fg" />
-          </Pressable>
-        )}
-        <Text numberOfLines={1} className="text-fg font-sans-semibold flex-1 text-left text-base">
-          {title}
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('settings.title')}
-          hitSlop={8}
-          onPress={() => router.push('/settings')}
-          className="h-9 w-9 items-center justify-center rounded-lg active:bg-border/40"
-        >
-          <Settings02Icon size={18} className="text-fg" />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('chat.history')}
-          hitSlop={8}
-          onPress={() => router.push('/history')}
-          className="h-9 w-9 items-center justify-center rounded-lg active:bg-border/40"
-        >
-          <Clock01Icon size={18} className="text-fg" />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('chat.newChat')}
-          hitSlop={8}
-          onPress={() => {
-            // A turn still running in the conversation being left keeps its own
-            // live entry, keyed by its id — leaving is not stopping. What must
-            // not follow the user to the empty chat is this screen's copy of the
-            // last prompt, or messages queued behind a turn they are walking
-            // away from.
-            setPendingUser(null)
-            setSending(false)
-            setQueued([])
-            setConversationId(null)
-          }}
-          className="h-9 w-9 items-center justify-center rounded-lg active:bg-border/40"
-        >
-          <PlusSignIcon size={18} className="text-fg" />
-        </Pressable>
-      </View>
-
+    // No top padding, and no top bar: the transcript owns the whole column and
+    // runs under the status bar, with the two floating controls (below) laid
+    // over it. What keeps the first message clear of them is padding INSIDE the
+    // scroller, which is also what lets the conversation pass beneath them.
+    <View className="bg-bg flex-1">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
@@ -535,26 +675,60 @@ export default function ChatScreen(): React.JSX.Element {
       >
         <View className="flex-1">
           {empty && !loading ? (
+            // Project mode swaps the wolffish hero for the project's own
+            // identity — emoji, title, and its instructions in the same
+            // recessed block the cards use — because that IS what a new
+            // conversation here starts from. The desktop makes the same swap.
             <View className="flex-1 items-center justify-center gap-4 px-8">
-              <Image
-                source={require('@/assets/images/icon-trans.png')}
-                style={{ width: 80, height: 80 }}
-                contentFit="contain"
-              />
+              {activeProject ? (
+                <Text className="text-6xl leading-[64px]">
+                  {activeProject.icon || DEFAULT_PROJECT_ICON}
+                </Text>
+              ) : (
+                <Image
+                  source={require('@/assets/images/icon-trans.png')}
+                  style={{ width: 80, height: 80 }}
+                  contentFit="contain"
+                />
+              )}
               <Text className="text-fg font-sans-semibold text-center text-2xl">
-                {t('chat.empty.title')}
+                {activeProject
+                  ? activeProject.title.trim() || t('projects.untitled')
+                  : t('chat.empty.title')}
               </Text>
-              <Text className="text-muted text-center font-sans text-sm leading-relaxed">
-                {t('chat.empty.subtitle')}
-              </Text>
+              {activeProject ? (
+                activeProject.instructions.trim() ? (
+                  <View className="w-full">
+                    <PromptPreview
+                      value={activeProject.instructions}
+                      empty={t('projects.noInstructions')}
+                      maxHeight={140}
+                      // The hero has no card around it, so the block takes the
+                      // card colour rather than the recessed one.
+                      onSurface
+                    />
+                  </View>
+                ) : null
+              ) : (
+                <Text className="text-muted text-center font-sans text-sm leading-relaxed">
+                  {t('chat.empty.subtitle')}
+                </Text>
+              )}
             </View>
           ) : (
             <ChatFeed
               // A different conversation is a different scroll position and a
               // different gate; keying on the opened id restarts both.
-              key={openedId ?? 'new'}
+              key={opened ?? 'new'}
               ref={feedRef}
-              gated={openedId !== null}
+              gated={opened !== null}
+              // The gate opens on rows, never on the empty feed that stands
+              // here for the frames before the transcript arrives — that is
+              // the window the skeleton is covering.
+              hasContent={!empty}
+              // Clearance for the floating controls, which the transcript
+              // scrolls under rather than stopping below.
+              topInset={insets.top + FLOATING_AREA}
               onReady={() => setFeedRevealed(true)}
             >
               {feed.map((item) =>
@@ -571,6 +745,9 @@ export default function ChatScreen(): React.JSX.Element {
                     conversationId={conversationId ?? undefined}
                     verbose={verbose}
                     streaming={item.streaming}
+                    // The in-flight turn's row is the one that hosts the
+                    // conversation's live ask/approval cards.
+                    liveTurn={item.key === LIVE_KEY}
                   />
                 )
               )}
@@ -587,6 +764,17 @@ export default function ChatScreen(): React.JSX.Element {
         </View>
 
         <View style={{ paddingBottom: insets.bottom }}>
+          {/* The score bar for the turn that just ended, above the composer
+              exactly as on the desktop. Mutually exclusive with the queued
+              rows in practice — those only exist while a turn runs. */}
+          {ratableId !== null && conversationId !== null && (
+            <TurnRating
+              score={ratableScore}
+              onRate={(score) => {
+                void rateTurn(conversationId, ratableId, score)
+              }}
+            />
+          )}
           <Composer
             streaming={streaming}
             conversation={conversation}
@@ -594,9 +782,25 @@ export default function ChatScreen(): React.JSX.Element {
             onSubmit={handleSubmit}
             onCancelQueued={cancelQueued}
             onStop={handleStop}
+            onNewConversation={startNewChat}
           />
         </View>
       </KeyboardAvoidingView>
+
+      {/* Last, so they paint over the transcript and the skeleton alike. The
+          navigator on the leading edge, a new chat on the trailing one — the
+          only two things the header held that were worth a fixed strip. */}
+      <FloatingChrome
+        top={insets.top + FLOATING_GAP}
+        onOpenSheet={() => setSheetOpen(true)}
+        onNewChat={startNewChat}
+      />
+      <ConversationsSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        activeId={conversationId}
+        onSelect={openConversation}
+      />
     </View>
   )
 }

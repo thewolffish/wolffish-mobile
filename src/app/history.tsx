@@ -1,19 +1,13 @@
-import {
-  Activity04Icon,
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  Delete01Icon,
-  PlayIcon,
-  SmartPhone01Icon,
-  TelegramLogo,
-  WhatsAppLogo
-} from '@/components/core/icons'
+import { ArrowLeft01Icon, ArrowRight01Icon, Bug01Icon, Delete01Icon } from '@/components/core/icons'
+import { ChannelBadge } from '@/components/conversations/ChannelBadge'
+import { DiagnosticExportOverlay } from '@/components/conversations/DiagnosticExportOverlay'
 import { ConfirmDialog } from '@/components/core/ConfirmDialog'
 import { HistorySkeleton } from '@/components/history/HistorySkeleton'
 import { groupConversations } from '@/lib/conversations/grouping'
 import { removeConversation, useConversationList } from '@/lib/conversations/hooks'
 import type { ConversationMeta } from '@/lib/conversations/types'
 import { cn } from '@/lib/utils/cn'
+import { useDesktopReachable } from '@/lib/tunnel/useTunnelStatus'
 import { formatRelativeTime } from '@/lib/utils/relativeTime'
 import { router } from 'expo-router'
 import { memo, useMemo, useState } from 'react'
@@ -33,41 +27,14 @@ function RowSeparator(): React.JSX.Element {
   return <View className="h-2" />
 }
 
-/**
- * Where a conversation came from, as one glyph — the desktop's ChannelIcon,
- * under the desktop's precedence: a source emoji (a project's icon, an
- * automation's) wins outright, because it says something this row cannot say
- * twice over. The channel badge is the fallback, and `mobile` sits in it with
- * the rest — a conversation started on the phone shows a phone unless it has
- * an emoji of its own to show instead. In-app conversations show nothing: the
- * app is the default, not a badge.
- */
-function ChannelBadge({ meta }: { meta: ConversationMeta }): React.JSX.Element | null {
-  if (meta.icon) {
-    return <Text className="text-left text-sm">{meta.icon}</Text>
-  }
-  switch (meta.channel) {
-    case 'telegram':
-      return <TelegramLogo size={14} className="text-muted" />
-    case 'whatsapp':
-      return <WhatsAppLogo size={14} className="text-muted" />
-    case 'mobile':
-      return <SmartPhone01Icon size={14} className="text-muted" />
-    case 'heartbeat':
-      return <Activity04Icon size={14} className="text-muted" />
-    case 'procedure':
-      return <PlayIcon size={14} className="text-muted" />
-    default:
-      return null
-  }
-}
-
 const Row = memo(function Row({
   meta,
   position,
   time,
   untitledLabel,
   deleteLabel,
+  diagnosticsLabel,
+  onDiagnostics,
   onDelete
 }: {
   meta: ConversationMeta
@@ -76,6 +43,9 @@ const Row = memo(function Row({
   time: string
   untitledLabel: string
   deleteLabel: string
+  diagnosticsLabel: string
+  /** Absent unless a desktop is reachable — see the screen below. */
+  onDiagnostics?: (meta: ConversationMeta) => void
   onDelete: (meta: ConversationMeta) => void
 }): React.JSX.Element {
   const title = meta.title === 'Untitled' ? untitledLabel : meta.title
@@ -96,7 +66,7 @@ const Row = memo(function Row({
       </View>
       <View className="flex-1 flex-col gap-0.5">
         <View className="flex-row items-center gap-1.5">
-          <ChannelBadge meta={meta} />
+          <ChannelBadge icon={meta.icon} channel={meta.channel} />
           <Text
             numberOfLines={1}
             className="text-fg font-sans-medium flex-shrink text-left text-sm"
@@ -106,6 +76,23 @@ const Row = memo(function Row({
         </View>
         <Text className="text-muted text-left font-sans text-xs">{time}</Text>
       </View>
+      {/* The desktop's per-row Debug button, in the same place: beside delete,
+          on the trailing edge. Absent rather than disabled without a desktop —
+          the bundle is collected THERE, and a control that can only fail is
+          worse than one that is not offered. */}
+      {onDiagnostics && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={diagnosticsLabel}
+          hitSlop={8}
+          onPress={() => onDiagnostics(meta)}
+          className="h-8 w-8 items-center justify-center rounded-lg active:bg-amber-500/10"
+        >
+          {({ pressed }) => (
+            <Bug01Icon size={16} className={pressed ? 'text-amber-500' : 'text-muted'} />
+          )}
+        </Pressable>
+      )}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={deleteLabel}
@@ -127,6 +114,12 @@ export default function HistoryScreen(): React.JSX.Element {
   const { data, isLoading } = useConversationList()
   const [doomed, setDoomed] = useState<ConversationMeta | null>(null)
   const [deleting, setDeleting] = useState(false)
+  // The conversation whose bundle is being collected, if any.
+  const [diagnosing, setDiagnosing] = useState<string | null>(null)
+  // The bundle is collected on the DESKTOP. Demo mode has none, and neither
+  // does a paired phone that cannot reach its own right now — the same rule
+  // every other write-through control on this app follows.
+  const canDiagnose = useDesktopReachable()
 
   const rows = useMemo(() => data ?? [], [data])
   // Sliced into the same recency buckets the desktop's History page and rail
@@ -186,6 +179,8 @@ export default function HistoryScreen(): React.JSX.Element {
               time={formatRelativeTime(item.updatedAt, t)}
               untitledLabel={t('chat.conversationsUntitled')}
               deleteLabel={t('history.delete')}
+              diagnosticsLabel={t('diagnostics.button')}
+              onDiagnostics={canDiagnose ? (meta) => setDiagnosing(meta.id) : undefined}
               onDelete={setDoomed}
             />
           )}
@@ -216,6 +211,19 @@ export default function HistoryScreen(): React.JSX.Element {
           })
         }}
       />
+
+      {/* Blocking, and mounted only while a run is asked for: the overlay
+          starts the export on mount and owns the screen until the archive is
+          ready. Keyed by conversation so pressing Debug on a second row after
+          the first has finished starts a fresh run rather than re-showing the
+          old card. */}
+      {diagnosing !== null && (
+        <DiagnosticExportOverlay
+          key={diagnosing}
+          conversationId={diagnosing}
+          onClose={() => setDiagnosing(null)}
+        />
+      )}
     </View>
   )
 }

@@ -8,8 +8,9 @@ import { Directory, File, Paths } from 'expo-file-system'
  * workspace-relative paths ("uploads/conv-…/photo.png", "files/report.pdf").
  * Files are materialized on demand into Documents/workspace and tracked in
  * the cached_files table; when the cache grows past the budget the least
- * recently used files are deleted. A deleted file is simply re-fetched the
- * next time its conversation is opened.
+ * recently used CONVERSATIONS give up their media first — oldest out, recent
+ * ones untouched (see lru.ts). A deleted file is simply re-fetched the next
+ * time its conversation is opened.
  *
  * The fetch source follows the app's mode. Paired, a path's real bytes come
  * from the desktop's workspace over the tunnel — and only from there: falling
@@ -23,8 +24,8 @@ import { beginDownload, endDownload, reportDownload } from '@/lib/files/download
 import { selectPrunable, type CachedFileRow } from '@/lib/files/lru'
 import { sampleUrlFor } from '@/lib/files/sampleFiles'
 
-/** Default budget — release content beyond 10 GB, per product requirement. */
-export const DEFAULT_CACHE_BUDGET_BYTES = 10 * 1024 * 1024 * 1024
+/** Default budget — release content beyond 50 GB, per product requirement. */
+export const DEFAULT_CACHE_BUDGET_BYTES = 50 * 1024 * 1024 * 1024
 
 export type { CachedFileRow }
 
@@ -321,8 +322,11 @@ export async function enforceCacheBudget(
   budgetBytes: number = DEFAULT_CACHE_BUDGET_BYTES
 ): Promise<number> {
   const db = await getDb()
+  // conversation_id is part of the release decision, not just bookkeeping: it
+  // is what groups a conversation's media so the oldest conversation goes
+  // first and a recent one is never broken up (see lru.ts).
   const rows = await db.getAllAsync<CachedFileRow>(
-    'SELECT rel_path, size_bytes, last_access_at FROM cached_files'
+    'SELECT rel_path, size_bytes, last_access_at, conversation_id FROM cached_files'
   )
   const doomed = selectPrunable(rows, budgetBytes)
   for (const row of doomed) {

@@ -4,9 +4,11 @@ import Constants from 'expo-constants'
 import * as Linking from 'expo-linking'
 import * as Notifications from 'expo-notifications'
 import * as SecureStore from 'expo-secure-store'
+import { router, type Href } from 'expo-router'
 import { Platform } from 'react-native'
 import {
   ANDROID_CHANNEL_ID,
+  DEEPLINK_SCHEME,
   PUSH_WIRE_VERSION,
   isAllowedDeeplink,
   parseNotification,
@@ -155,7 +157,20 @@ function routeResponse(response: Notifications.NotificationResponse | null): voi
   // The allowlist is the whole security story here: notification payloads
   // are data, and only the app's own scheme may steer navigation.
   if (!isAllowedDeeplink(url)) return
-  Linking.openURL(url).catch(() => undefined)
+  // Navigate IN-APP: `wolffish://chat?id=X` is the expo-router path
+  // `/chat?id=X`, `wolffish://settings/model` is `/settings/model`, and so
+  // on — the desktop composes deeplinks to match this app's own routes. A
+  // push keeps whatever screen the user was on underneath (back returns to
+  // it); an unknown path lands on the router's not-found screen, which is
+  // the honest answer for a link from a newer desktop. The OS round trip
+  // (Linking.openURL) stays as the fallback only for a router not ready to
+  // navigate yet — a cold start racing the first mount.
+  const path = `/${url.slice(DEEPLINK_SCHEME.length)}` as Href
+  try {
+    router.push(path)
+  } catch {
+    Linking.openURL(url).catch(() => undefined)
+  }
 }
 
 // ----------------------------------------------------------- registration

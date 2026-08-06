@@ -1,6 +1,6 @@
 import { Copy01Icon, Tick02Icon } from '@/components/core/icons'
 import { buildRenderBlocks, messageText, toWorkspaceRelative } from '@/lib/conversations/segments'
-import type { RenderBlock } from '@/lib/conversations/segments'
+import type { RenderBlock, ToolResultInfo } from '@/lib/conversations/segments'
 import { respondApproval, respondAsk } from '@/lib/sync/cards'
 import type {
   ApprovalDecision,
@@ -115,7 +115,11 @@ export const UserBubble = memo(function UserBubble({
   message: ConversationMessage
   conversationId?: string
 }): React.JSX.Element {
-  const hasText = message.content.trim().length > 0
+  // A voice note's own player IS the prompt on screen. The desktop still stores
+  // the transcript as this message's content — that is what it feeds the model
+  // as `<voice_note>`, and what titling reads — but printing it back under the
+  // player only repeats what the user just said out loud.
+  const hasText = message.content.trim().length > 0 && message.voicePrompt !== true
   return (
     <View className="flex-col gap-1.5">
       {hasText && (
@@ -139,19 +143,26 @@ export const AssistantMessageView = memo(function AssistantMessageView({
   message,
   conversationId,
   verbose,
-  streaming
+  streaming,
+  liveTurn
 }: {
   message: ConversationMessage
   conversationId?: string
   verbose: boolean
   streaming?: boolean
+  /** True for the in-flight turn's own row (feed.ts LIVE_KEY) — the only row
+   *  that may host the conversation's live cards. */
+  liveTurn?: boolean
 }): React.JSX.Element {
   const blocks = useMemo(() => buildRenderBlocks(message), [message])
   const fullText = useMemo(() => messageText(message), [message])
   // Cards the desktop is holding this turn open for. Live state wins over the
   // persisted record for the same tool call: the two describe one approval,
-  // and the live one is the one that can still be acted on.
-  const live = useChatRuntime(selectCards(conversationId))
+  // and the live one is the one that can still be acted on. Subscribed only by
+  // the live row — the cards belong to the running turn, and letting every
+  // stored message consult them is what once drew a copy of the card under
+  // each of them (selectCards(undefined) is the shared empty pair).
+  const live = useChatRuntime(selectCards(liveTurn ? conversationId : undefined))
   const approvals: Record<string, ApprovalCardState> = useMemo(
     () => ({ ...(message.approvals ?? {}), ...live.approvals }),
     [message.approvals, live.approvals]
@@ -166,18 +177,26 @@ export const AssistantMessageView = memo(function AssistantMessageView({
     // ask_user renders as its card while the turn is parked on it and once it
     // has been answered; with neither there is nothing to show yet.
     if (block.type === 'question') return !!asks[block.call.toolCallId] || !!block.result
+    // An anchor earns its place only when a live card renders on it.
+    if (block.type === 'toolAnchor')
+      return !!asks[block.toolCallId] || !!live.approvals[block.toolCallId]
     return true
   })
 
   // A card whose tool_call segment never reached this phone still has to be
   // answerable: the live mirror strips tool calls from the clean feed, and the
-  // parked card is the whole reason the turn stopped. Anchored where the
-  // segment exists (the desktop's inline placement), appended at the tail
-  // where it doesn't — which mid-turn is the same position, since a parked
-  // turn has written nothing after it.
+  // parked card is the whole reason the turn stopped. Anchored where its call
+  // segment exists (the desktop's inline placement) or where its result landed
+  // (the toolAnchor — the park position, once the turn has moved on); appended
+  // at the tail only while it has neither, which is exactly the parked window,
+  // when the tail IS the park position — nothing has been written after it.
   const anchored = new Set(
     blocks.flatMap((block) =>
-      block.type === 'tool' || block.type === 'question' ? [block.call.toolCallId] : []
+      block.type === 'tool' || block.type === 'question'
+        ? [block.call.toolCallId]
+        : block.type === 'toolAnchor'
+          ? [block.toolCallId]
+          : []
     )
   )
   const orphans = [
@@ -187,7 +206,11 @@ export const AssistantMessageView = memo(function AssistantMessageView({
 
   // Nothing renderable while the turn streams → typed thinking words. A parked
   // card counts as renderable: the turn is waiting on the user, not thinking.
-  if (streaming && orphans.length === 0 && visible.every((block) => block.type !== 'text')) {
+  if (
+    streaming &&
+    orphans.length === 0 &&
+    visible.every((block) => block.type !== 'text' && block.type !== 'toolAnchor')
+  ) {
     return <ThinkingIndicator />
   }
 
@@ -213,10 +236,15 @@ export const AssistantMessageView = memo(function AssistantMessageView({
 })
 
 /** The question card, live: answering it resolves the desktop's parked turn. */
-function renderAsk(ask: AskCardState, conversationId?: string): React.ReactNode {
+function renderAsk(
+  ask: AskCardState,
+  conversationId?: string,
+  result?: ToolResultInfo
+): React.ReactNode {
   return (
     <QuestionCard
       call={{ toolCallId: ask.toolCallId, name: 'ask_user', args: {} }}
+      result={result}
       ask={ask}
       onRespond={
         conversationId
@@ -318,6 +346,17 @@ function renderBlock(
           }
         />
       )
+    }
+    case 'toolAnchor': {
+      // A live card's park position, held by its result segment (the clean
+      // feed strips the call segment this card would otherwise anchor to).
+      // Rendering it HERE is what keeps everything the turn writes after the
+      // user's answer below the card rather than above it.
+      const ask = asks[block.toolCallId]
+      if (ask) return renderAsk(ask, conversationId, block.result)
+      const approval = liveApprovals[block.toolCallId]
+      if (approval) return renderApproval(approval, conversationId, true)
+      return null
     }
     case 'file':
       // The marker's kind is only a hint — the extension decides which viewer

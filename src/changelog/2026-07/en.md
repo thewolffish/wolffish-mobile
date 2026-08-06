@@ -1,4 +1,4 @@
-## v1.0.14 — 2026-07-26 `Latest`
+## v1.0.14 — 2026-07-26
 
 ### Demo Mode, Steadier on the Way In
 

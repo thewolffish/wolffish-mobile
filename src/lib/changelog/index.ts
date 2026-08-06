@@ -9,6 +9,8 @@ import { File } from 'expo-file-system'
 // tsconfig paths before it decides source-vs-asset.
 import ar202607 from '@/changelog/2026-07/ar.md'
 import en202607 from '@/changelog/2026-07/en.md'
+import ar202608 from '@/changelog/2026-08/ar.md'
+import en202608 from '@/changelog/2026-08/en.md'
 
 /**
  * Release notes — one markdown page per month per locale, the desktop's
@@ -22,7 +24,8 @@ import en202607 from '@/changelog/2026-07/en.md'
  * the binary, so the registry cannot be built by globbing a folder.
  */
 const PAGES: Record<string, Record<SupportedLocale, number>> = {
-  '2026-07': { en: en202607, ar: ar202607 }
+  '2026-07': { en: en202607, ar: ar202607 },
+  '2026-08': { en: en202608, ar: ar202608 }
 }
 
 /** Months that have notes, newest first — the order the page lists them in. */

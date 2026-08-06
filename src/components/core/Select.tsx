@@ -67,6 +67,10 @@ export function Select<T extends string>({
       {label && <Text className="text-muted font-sans-medium text-left text-sm">{label}</Text>}
       <Pressable
         accessibilityRole="button"
+        // The visible label is a SIBLING Text, so without this the button
+        // announces only its current value — "Anthropic", with no hint that it
+        // is the model picker. The label is the field's name either way.
+        accessibilityLabel={label}
         accessibilityState={{ disabled, expanded: open }}
         disabled={disabled}
         onPress={() => setOpen(true)}

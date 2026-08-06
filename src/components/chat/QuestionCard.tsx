@@ -290,12 +290,16 @@ export const QuestionCard = memo(function QuestionCard({
                   }}
                   onPress={() => setActiveIdx(i)}
                   className={cn(
+                    // Desktop tones are bg-accent/10, border-accent/40, bg-bg/40
+                    // — precomputed tokens here, because an alpha modifier on a
+                    // var() color silently drops in RN and a dropped BORDER
+                    // color paints black (see global.css).
                     'h-6 w-6 shrink-0 items-center justify-center rounded-md border',
                     isActive
-                      ? 'border-accent bg-accent/10'
+                      ? 'border-accent bg-accent-soft'
                       : isDone
-                        ? 'border-accent/40 bg-accent'
-                        : 'border-border bg-bg/40'
+                        ? 'border-accent-line bg-accent'
+                        : 'border-border bg-bg-soft'
                   )}
                 >
                   {isDone && !isActive ? (
@@ -347,7 +351,7 @@ export const QuestionCard = memo(function QuestionCard({
               onPress={() => record(current, { kind: 'option', index })}
               className={cn(
                 'w-full flex-row items-start gap-3 rounded-xl border px-3 py-2.5',
-                isChosen ? 'border-accent bg-accent/10' : 'border-border bg-bg/40',
+                isChosen ? 'border-accent bg-accent-soft' : 'border-border bg-bg-soft',
                 live && !isChosen && 'active:bg-bg',
                 dimmed && 'opacity-50'
               )}
@@ -355,7 +359,7 @@ export const QuestionCard = memo(function QuestionCard({
               <View
                 className={cn(
                   'mt-0.5 h-5 w-5 shrink-0 items-center justify-center rounded-md',
-                  isChosen ? 'bg-accent' : 'bg-primary/10'
+                  isChosen ? 'bg-accent' : 'bg-primary-soft'
                 )}
               >
                 {isChosen ? (
@@ -382,7 +386,7 @@ export const QuestionCard = memo(function QuestionCard({
           <View
             className={cn(
               'rounded-xl border px-3 py-2.5',
-              otherChosen ? 'border-accent bg-accent/10' : 'border-border bg-bg/40',
+              otherChosen ? 'border-accent bg-accent-soft' : 'border-border bg-bg-soft',
               answered && !answeredByCustom && 'opacity-50'
             )}
           >
@@ -390,7 +394,7 @@ export const QuestionCard = memo(function QuestionCard({
               <View
                 className={cn(
                   'mt-0.5 h-5 w-5 shrink-0 items-center justify-center rounded-md',
-                  otherChosen ? 'bg-accent' : 'bg-primary/10'
+                  otherChosen ? 'bg-accent' : 'bg-primary-soft'
                 )}
               >
                 {otherChosen ? (
@@ -413,7 +417,7 @@ export const QuestionCard = memo(function QuestionCard({
 
             {answered ? (
               answeredByCustom && customAnswer ? (
-                <View className="border-border/60 bg-bg/60 mt-2 rounded-lg border px-3 py-2">
+                <View className="border-border-soft bg-bg-soft mt-2 rounded-lg border px-3 py-2">
                   <Text className="text-fg text-left font-sans text-xs leading-snug">
                     {customAnswer}
                   </Text>
@@ -460,7 +464,7 @@ export const QuestionCard = memo(function QuestionCard({
           be parsed back into per-question answers). */}
       {answered && multi ? (
         answers ? (
-          <View className="border-border/60 mt-3 flex-col gap-1.5 border-t pt-2.5">
+          <View className="border-border-soft mt-3 flex-col gap-1.5 border-t pt-2.5">
             <Text className="text-muted font-sans-medium mb-0 text-left text-xs">
               {t('chat.questionCard.yourAnswers')}
             </Text>
@@ -469,7 +473,7 @@ export const QuestionCard = memo(function QuestionCard({
               const chosen = answer?.kind === 'option' ? q.options[answer.index] : undefined
               return (
                 <View key={i} className="flex-row items-start gap-2">
-                  <View className="bg-primary/10 mt-px h-4 w-4 shrink-0 items-center justify-center rounded">
+                  <View className="bg-primary-soft mt-px h-4 w-4 shrink-0 items-center justify-center rounded">
                     <Text className="text-primary font-sans-semibold text-[10px]">{i + 1}</Text>
                   </View>
                   <Text className="text-muted min-w-0 flex-1 text-left font-sans text-xs leading-snug">

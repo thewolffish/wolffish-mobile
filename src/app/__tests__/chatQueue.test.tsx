@@ -10,7 +10,7 @@
  * is a message the user believes they sent.
  */
 
-import { act, fireEvent, render } from '@testing-library/react-native'
+import { cleanup, act, fireEvent, render } from '@testing-library/react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { ThemeContext } from '@/providers/theme/useTheme'
 
@@ -111,6 +111,8 @@ jest.mock('@/lib/sync/prompt', () => ({
 
 import ChatScreen from '@/app/chat'
 import { sendPrompt } from '@/lib/sync/prompt'
+import { queryClient } from '@/lib/query/queryClient'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { ToastProvider } from '@/providers/toast/ToastProvider'
 import { useAppStore } from '@/state/appStore'
 import { useChatRuntime } from '@/state/chatRuntime'
@@ -122,20 +124,22 @@ let view: Awaited<ReturnType<typeof render>>
 
 async function mount(): Promise<void> {
   view = await render(
-    <SafeAreaProvider
-      initialMetrics={{
-        frame: { x: 0, y: 0, width: 390, height: 844 },
-        insets: { top: 0, left: 0, right: 0, bottom: 0 }
-      }}
-    >
-      <ThemeContext.Provider
-        value={{ theme: 'light', isDark: false, setTheme: async () => undefined }}
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 0, left: 0, right: 0, bottom: 0 }
+        }}
       >
-        <ToastProvider>
-          <ChatScreen />
-        </ToastProvider>
-      </ThemeContext.Provider>
-    </SafeAreaProvider>
+        <ThemeContext.Provider
+          value={{ theme: 'light', isDark: false, setTheme: async () => undefined }}
+        >
+          <ToastProvider>
+            <ChatScreen />
+          </ToastProvider>
+        </ThemeContext.Provider>
+      </SafeAreaProvider>
+    </QueryClientProvider>
   )
 }
 
@@ -160,8 +164,24 @@ async function turnEnded(): Promise<void> {
 /** How many rows are waiting above the composer. */
 const queuedCount = (): string => view.getByTestId('queued').props.children as string
 
+/**
+ * A press WITHOUT act() around it, so several can be put inside one act and
+ * land in a single frame — which is the whole subject of the two same-frame
+ * tests below. `fireEvent` acts on each press, and a frame it flushes is not
+ * the frame being tested.
+ */
+const press = (testID: string): void => (view.getByTestId(testID).props.onPress as () => void)()
+
 /** The text of the nth prompt handed to the desktop. */
 const sentText = (nth: number): unknown => send.mock.calls[nth]?.[0]?.text
+
+afterEach(() => {
+  // Two open handles, or the jest worker never exits after the last assertion:
+  // the mounted tree (any interval it holds is cleared on unmount) and the query
+  // cache (a query that loses its last observer arms a 7-day gc timer).
+  cleanup()
+  queryClient.clear()
+})
 
 beforeEach(() => {
   useAppStore.setState({ paired: true })
@@ -232,6 +252,56 @@ describe('queueing messages mid-turn', () => {
     expect(send).toHaveBeenCalledTimes(2)
     expect(sentText(1)).toBe('second')
     expect(queuedCount()).toBe('0')
+  })
+
+  /**
+   * Two submits inside ONE frame — a double tap on send, or a tap landing in
+   * the same commit as the flush. `sending` is state and does not exist yet
+   * for the second one, so without the synchronous guard both take the send
+   * path: two sendMessage RPCs for one conversation, which the desktop runs in
+   * sequence, so the second answer reads as a hang.
+   */
+  it('queues a second submit handed over before the first send has committed', async () => {
+    await mount()
+    await act(async () => {
+      press('send-first')
+      press('send-second')
+    })
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(sentText(0)).toBe('first')
+    expect(queuedCount()).toBe('1')
+
+    // And it goes out by itself when the send it was waiting on lands.
+    await act(async () => mockResolveSend({ conversationId: CONVERSATION }))
+    expect(send).toHaveBeenCalledTimes(2)
+    expect(sentText(1)).toBe('second')
+    expect(queuedCount()).toBe('0')
+  })
+
+  /**
+   * The same frame, on the queue side. Both rows are real and both belong in
+   * the queue — what must not happen is the two of them sharing an identity,
+   * which is what an id read inside the setState updater produces (React runs
+   * updaters after both increments). Cancel is the observable: one row taken
+   * out must take exactly one row with it.
+   */
+  it('gives each row its own identity when two are queued in one frame', async () => {
+    await mount()
+    await fireEvent.press(view.getByTestId('send-first'))
+    await turnRunning()
+
+    await act(async () => {
+      press('send-second')
+      press('send-third')
+    })
+    expect(queuedCount()).toBe('2')
+
+    await fireEvent.press(view.getByTestId('cancel-head'))
+    expect(queuedCount()).toBe('1')
+
+    // The survivor is the one behind it, and it is still sendable.
+    await turnEnded()
+    expect(sentText(1)).toBe('third')
   })
 
   it('drops the queue when the user walks away to a new chat', async () => {

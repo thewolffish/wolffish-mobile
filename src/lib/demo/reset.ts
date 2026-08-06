@@ -3,6 +3,7 @@ import { QUERY_CACHE_KEY, queryClient } from '@/lib/query/queryClient'
 import { useAppStore } from '@/state/appStore'
 import { useChatRuntime } from '@/state/chatRuntime'
 import { useDemoConfig } from '@/state/demoConfig'
+import { useRunStatus } from '@/state/runStatus'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Directory, Paths } from 'expo-file-system'
 
@@ -70,6 +71,8 @@ export async function purgeDemoState(): Promise<void> {
 
   try {
     useChatRuntime.getState().reset()
+    // The chip tints point at conversations that are about to stop existing.
+    useRunStatus.getState().reset()
   } catch {
     // In-memory only — a failure here costs nothing durable.
   }

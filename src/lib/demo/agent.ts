@@ -10,6 +10,7 @@ import type { ConversationMessage, MessageAttachment, Segment } from '@/lib/conv
 import { mintConversationId, mintMessageId } from '@/lib/conversations/types'
 import { foldDemoTurn } from '@/lib/demo/turnStats'
 import { useChatRuntime } from '@/state/chatRuntime'
+import { markRun } from '@/state/runStatus'
 import { useDemoConfig } from '@/state/demoConfig'
 import i18n from '@/lib/i18n'
 
@@ -228,6 +229,10 @@ function startAssistantTurn(
     // the reply in neither place for a frame. Same contract as a paired turn.
     await refetchConversation(conversationId)
     useChatRuntime.getState().endStream(conversationId)
+    // The same terminal record a paired turn gets from the desktop's
+    // turn.status, so the conversations sheet tints this row identically with
+    // or without a desktop behind it.
+    markRun(conversationId, 'completed')
   }
 
   turn.timer = setTimeout(() => void finish(), DEMO_THINKING_MS)
@@ -240,4 +245,5 @@ export function stopDemoTurn(conversationId: string): void {
   if (turn.timer) clearTimeout(turn.timer)
   activeTurns.delete(conversationId)
   useChatRuntime.getState().endStream(conversationId)
+  markRun(conversationId, 'stopped')
 }

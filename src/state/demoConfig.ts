@@ -228,6 +228,15 @@ export type DemoConfigValues = {
   // --- channels ---
   /** inapp.verbose — what the DESKTOP feed displays, not this device's. */
   inappVerbose: boolean
+  /**
+   * mobile.notifications — whether the model's notify_phone tool may reach
+   * THIS phone. Off makes the desktop withdraw the tool entirely, so it is
+   * the one channel setting on this screen that changes what a run can do.
+   */
+  mobileNotifications: boolean
+  /** mobile.verbose — what this phone's feed shows mid-turn: off (default)
+   *  is the clean feed, on relays every tool call and activity card. */
+  mobileVerbose: boolean
   telegramEnabled: boolean
   telegramAllowedUserIds: string
   telegramVerbose: boolean
@@ -275,6 +284,21 @@ export type DemoConfigValues = {
   reflectionScoringInapp: boolean
   reflectionScoringTelegram: boolean
   reflectionScoringWhatsapp: boolean
+  // --- customization ---
+  /**
+   * The three hand-written documents that shape the agent, verbatim — the
+   * desktop's Soul, User and Agents pages, which are one markdown editor over
+   * one workspace file each (brain/identity/soul.md, brain/identity/user.md,
+   * brain/prefrontal/agents.md).
+   *
+   * Flat string keys like every other editable setting on purpose: that is
+   * what buys them the whole write path for free — the outbox's dirty window
+   * and epoch guard, the configSet round trip, and the snapshot merge that
+   * refuses to overwrite a document being edited on this phone.
+   */
+  soulMarkdown: string
+  userMarkdown: string
+  agentsMarkdown: string
   // --- collections ---
   capabilities: Record<string, boolean>
   mcpServers: Record<string, boolean>
@@ -296,6 +320,66 @@ const FALLBACK_API_KEYS: Record<string, string> = {
   xai: 'xai-zyThW2ITW8goiJ8sQhDuCfdA0jXk1p',
   qwen: 'sk-53409f3702e74ff16b4cce5d2eba8bc3'
 }
+
+/**
+ * The demo workspace's three customization documents.
+ *
+ * Fallbacks, not fixtures: a paired phone replaces all three from the desktop's
+ * snapshot, and a demo bundle that carries a `customization` section replaces
+ * them too. They exist so demo mode — and a bundle published before this
+ * section shipped — shows the Customization screen doing its job on real-shaped
+ * markdown instead of three empty cards. Same posture as FALLBACK_API_KEYS: a
+ * fake workspace's real-looking content, written for the demo persona
+ * (Younes Alharbi, Riyadh, Sadeem) so nothing here contradicts the bundled
+ * conversations.
+ */
+const DEMO_SOUL_MD = `# Soul
+
+You are Wolffish — Younes's own agent, not a product demo of one.
+
+## Voice
+- Answer first, then the reasoning. Never open with a restatement of the question.
+- Short sentences. No filler, no "great question", no apologising for limits.
+- Arabic in, Arabic out — match the language of the message, not of this file.
+
+## Rules
+- Say "I don't know" rather than producing a plausible-looking guess.
+- Never invent a number, a date, or a file path. Look it up or say it's unchecked.
+- Money, calendar invites and messages to other people: confirm before acting.
+- When a task turns out to be bigger than asked, do it and say what changed.
+
+## Humor
+Dry, occasional, never at the user's expense. Skip it entirely when something
+is actually broken.
+`
+
+const DEMO_USER_MD = `# User
+
+- Name: Younes Alharbi
+- Location: Riyadh (Asia/Riyadh)
+- Works at: Sadeem — builds and ships mobile + desktop apps
+- Languages: Arabic (native), English (fluent) — code and commits in English
+
+## Preferences
+- Work hours 9:00–18:00; do not schedule anything before 09:00.
+- Prefers being shown the diff over being told about the diff.
+- Hates half-answers: finish the whole task, then name what was left out.
+- Coffee order worth remembering: flat white, no sugar.
+
+## Standing facts
+- Mom: Reem — SMS forwarder set up on her phone, checks in most evenings.
+- Brother handles the family car paperwork; do not duplicate those reminders.
+`
+
+const DEMO_AGENTS_MD = `# Agents
+
+Overrides for this workspace. These win over the built-in procedures.
+
+- Before any release: run the full test suite, then the simulator smoke pass.
+- Never push straight to \`main\` — branch, then open a PR.
+- Screenshots for issues go in \`~/Desktop/wolffish-issues/\`, dated folders.
+- When summarising a long thread, lead with what changed since the last summary.
+`
 
 const DEFAULTS: DemoConfigValues = {
   brainProvider: 'anthropic',
@@ -321,6 +405,8 @@ const DEFAULTS: DemoConfigValues = {
   weekStartsOn: 1,
   updatesEnabled: true,
   inappVerbose: false,
+  mobileNotifications: true,
+  mobileVerbose: false,
   telegramEnabled: true,
   telegramAllowedUserIds: '429753549',
   telegramVerbose: false,
@@ -362,6 +448,9 @@ const DEFAULTS: DemoConfigValues = {
   reflectionScoringInapp: true,
   reflectionScoringTelegram: true,
   reflectionScoringWhatsapp: true,
+  soulMarkdown: DEMO_SOUL_MD,
+  userMarkdown: DEMO_USER_MD,
+  agentsMarkdown: DEMO_AGENTS_MD,
   capabilities: DEFAULT_CAPABILITIES,
   mcpServers: DEFAULT_MCP_SERVERS,
   variables: [
@@ -496,6 +585,10 @@ export type ConfigSnapshot = {
   channels: {
     /** Absent in bundles published before the in-app feed setting shipped. */
     inapp?: { verbose?: boolean }
+    /** This phone's own channel. Absent in bundles (and on desktops) from
+     *  before these two settings reached the snapshot; notifications then
+     *  falls back to ON and the feed to clean, as the desktop defaults them. */
+    mobile?: { notifications?: boolean; verbose?: boolean }
     telegram: {
       enabled: boolean
       allowedUserIds: string
@@ -623,6 +716,27 @@ export type ConfigSnapshot = {
    * notes synced; those render the What's-new desktop tab's empty state.
    */
   changelog?: { months?: string[] }
+  /**
+   * The three hand-written documents behind the Customization screen, verbatim
+   * (desktop: brain/identity/soul.md, brain/identity/user.md,
+   * brain/prefrontal/agents.md).
+   *
+   * Three states, all meaningful and all different:
+   * - a string (including '') — the document as it stands upstream, editable;
+   * - the key absent while `oversized` names it — too large to ride one RPC
+   *   frame, so no text was sent at all and the card stays read-only. Never a
+   *   truncated body: this phone writes what it holds back over the real file,
+   *   and a half-document saved is a document destroyed;
+   * - the whole section absent — a bundle or desktop from before customization
+   *   synced, which falls back to the demo documents like every other
+   *   later-added field.
+   */
+  customization?: {
+    soul?: string
+    user?: string
+    agents?: string
+    oversized?: string[]
+  }
 }
 
 /**
@@ -698,6 +812,13 @@ export type DemoConfigState = DemoConfigValues & {
    * are fetched on demand (lib/changelog readDesktopChangelog).
    */
   desktopChangelogMonths: string[]
+  /**
+   * Customization documents the desktop refused to send whole — 'soul',
+   * 'user', 'agents'. Desktop-managed and display-only: this device has no
+   * copy of an oversized document, so its card shows the size problem and
+   * offers no editor rather than an editor over text it does not have.
+   */
+  customizationOversized: string[]
   /** The one write path — updates a single flat key. */
   setValue: <K extends keyof DemoConfigValues>(key: K, value: DemoConfigValues[K]) => void
   /** Toggle one entry inside a Record<string, boolean> collection. */
@@ -779,6 +900,55 @@ function sanitizeChangelogMonths(months: unknown): string[] {
   return [...new Set(clean)].sort().reverse()
 }
 
+/** The customization docs, in the order the screen renders them. */
+export const CUSTOMIZATION_DOCS = ['soul', 'user', 'agents'] as const
+
+export type CustomizationDoc = (typeof CUSTOMIZATION_DOCS)[number]
+
+/** Which flat store key holds each document's markdown. */
+export const CUSTOMIZATION_KEYS: Record<
+  CustomizationDoc,
+  'soulMarkdown' | 'userMarkdown' | 'agentsMarkdown'
+> = {
+  soul: 'soulMarkdown',
+  user: 'userMarkdown',
+  agents: 'agentsMarkdown'
+}
+
+/**
+ * How much markdown may ride one RPC frame — the desktop's own
+ * CUSTOMIZATION_MAX_BYTES (channels/mobile/snapshot.ts), mirrored so this side
+ * stops an oversized save before it becomes a rejected round trip. Counted in
+ * UTF-8 bytes, not characters: the ceiling exists for the wire, and one Arabic
+ * document is roughly twice its length in bytes.
+ */
+export const CUSTOMIZATION_MAX_BYTES = 64 * 1024
+
+/** UTF-8 byte length, without allocating a Buffer/TextEncoder per keystroke. */
+export function utf8Bytes(text: string): number {
+  let bytes = 0
+  for (let index = 0; index < text.length; index += 1) {
+    const code = text.charCodeAt(index)
+    if (code < 0x80) bytes += 1
+    else if (code < 0x800) bytes += 2
+    else if (code >= 0xd800 && code <= 0xdbff) {
+      // Surrogate pair — one 4-byte code point, counted once.
+      bytes += 4
+      index += 1
+    } else bytes += 3
+  }
+  return bytes
+}
+
+/**
+ * Which documents the desktop declared too large to send. Sanitized to the
+ * three known names so a malformed list can only ever cost the card it names.
+ */
+function sanitizeOversized(oversized: unknown): string[] {
+  if (!Array.isArray(oversized)) return []
+  return CUSTOMIZATION_DOCS.filter((doc) => oversized.includes(doc))
+}
+
 /**
  * Desktop-sent variable rows folded onto this phone's list — the one shape
  * both ingest paths share (the full snapshot and the targeted
@@ -817,6 +987,7 @@ const INITIAL_STATE = {
   desktop: { version: null, platform: null, timezone: null, syncedAt: null } as DesktopInfo,
   desktopData: sanitizeDesktopData(undefined),
   desktopChangelogMonths: [] as string[],
+  customizationOversized: [] as string[],
   ollamaRunning: false
 }
 
@@ -889,6 +1060,15 @@ export const useDemoConfig = create<DemoConfigState>()(
             },
             desktopData: sanitizeDesktopData(snapshot.data),
             desktopChangelogMonths: sanitizeChangelogMonths(snapshot.changelog?.months),
+            customizationOversized: sanitizeOversized(snapshot.customization?.oversized),
+            // A document the source omitted keeps what is already here: an
+            // oversized one has no text to send, and a whole missing section
+            // means a bundle or desktop from before this shipped. Both cases
+            // must leave the card showing something rather than blanking a
+            // document that exists upstream. '' is a real value and lands.
+            soulMarkdown: snapshot.customization?.soul ?? state.soulMarkdown,
+            userMarkdown: snapshot.customization?.user ?? state.userMarkdown,
+            agentsMarkdown: snapshot.customization?.agents ?? state.agentsMarkdown,
             variables: mergeVariablesFromDesktop(snapshot.variables, state.variables),
             projects: snapshot.projects ?? [],
             brainProvider: snapshot.llm.brainProvider,
@@ -920,6 +1100,9 @@ export const useDemoConfig = create<DemoConfigState>()(
             })),
             restrictPowerfulModels: snapshot.llm.restrictPowerfulModels,
             inappVerbose: snapshot.channels.inapp?.verbose ?? DEFAULTS.inappVerbose,
+            mobileNotifications:
+              snapshot.channels.mobile?.notifications ?? DEFAULTS.mobileNotifications,
+            mobileVerbose: snapshot.channels.mobile?.verbose ?? DEFAULTS.mobileVerbose,
             launchAtStartup: snapshot.preferences.launchAtStartup,
             bypassPermissions: snapshot.preferences.bypassPermissions,
             blockCredentials: snapshot.preferences.blockCredentials,
@@ -1050,6 +1233,7 @@ export const useDemoConfig = create<DemoConfigState>()(
           desktop: state.desktop,
           desktopData: state.desktopData,
           desktopChangelogMonths: state.desktopChangelogMonths,
+          customizationOversized: state.customizationOversized,
           ollamaRunning: state.ollamaRunning
         }
         for (const key of Object.keys(DEFAULTS) as Array<keyof DemoConfigValues>) {
@@ -1100,6 +1284,12 @@ const DESKTOP_EDITABLE: ReadonlySet<keyof DemoConfigValues> = new Set<keyof Demo
   'bypassPermissions',
   'blockCredentials',
   'updatesEnabled',
+  // This phone's own two channel settings. The desktop routes them through
+  // the mobile channel's setters, not a bare config write — notifications
+  // registers or withdraws the model's notify_phone tool — so a flip here is
+  // in force for the next turn, and moves the desktop panel's control too.
+  'mobileNotifications',
+  'mobileVerbose',
   // Services — the whole editable surface of that screen, credentials
   // included. The extension PORT is deliberately absent on both sides:
   // moving it restarts the desktop's local pairing server.
@@ -1119,7 +1309,12 @@ const DESKTOP_EDITABLE: ReadonlySet<keyof DemoConfigValues> = new Set<keyof Demo
   'screenshotFormat',
   'browserScreenshotMaxWidth',
   'browserScreenshotFormat',
-  'browserScreenshotQuality'
+  'browserScreenshotQuality',
+  // Customization — the three markdown documents, written on the desktop
+  // through the exact call its own Soul/User/Agents pages' Save button makes.
+  'soulMarkdown',
+  'userMarkdown',
+  'agentsMarkdown'
 ])
 
 /**
@@ -1207,6 +1402,27 @@ export async function saveDesktopSetting<K extends keyof DemoConfigValues>(
 }
 
 /**
+ * Save one customization document — Soul, User or Agents.
+ *
+ * A thin, deliberate wrapper over saveDesktopSetting rather than a path of its
+ * own: these are ordinary editable settings, so they get the ordinary write
+ * (optimistic local set, outbox dirty window for the round trip, snapshot
+ * re-pull on refusal). All this adds is the doc → key mapping and the size
+ * ceiling, checked here so an oversized document is refused with a reason on
+ * screen instead of as an opaque failed RPC.
+ *
+ * `'too-large'` never writes anything, locally or upstream: a document the
+ * desktop would reject must not be left sitting in this mirror looking saved.
+ */
+export async function saveCustomizationDoc(
+  doc: CustomizationDoc,
+  text: string
+): Promise<'saved' | 'too-large' | 'failed'> {
+  if (utf8Bytes(text) > CUSTOMIZATION_MAX_BYTES) return 'too-large'
+  return (await saveDesktopSetting(CUSTOMIZATION_KEYS[doc], text)) ? 'saved' : 'failed'
+}
+
+/**
  * Fetch the desktop's snapshot and apply it with the outbox consulted: the
  * epochs are captured before the fetch, and any key edited, acknowledged, or
  * abandoned while the fetch was in the air — plus any key still dirty — keeps
@@ -1284,6 +1500,20 @@ export function useDesktopData(): DesktopData {
 /** Desktop release-note months, newest first — empty until a snapshot lands. */
 export function useDesktopChangelogMonths(): string[] {
   return useDemoConfig((state) => state.desktopChangelogMonths)
+}
+
+/**
+ * One customization document's markdown — the single-field subscription the
+ * store's performance contract asks for, so typing in Soul never re-renders
+ * the User and Agents cards beside it.
+ */
+export function useCustomizationDoc(doc: CustomizationDoc): string {
+  return useDemoConfig((state) => state[CUSTOMIZATION_KEYS[doc]])
+}
+
+/** Is this document too large for the desktop to have sent it at all? */
+export function useCustomizationOversized(doc: CustomizationDoc): boolean {
+  return useDemoConfig((state) => state.customizationOversized.includes(doc))
 }
 
 /**

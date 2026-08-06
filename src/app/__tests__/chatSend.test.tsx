@@ -14,7 +14,7 @@
  * tap, and the arrival of the conversation id.
  */
 
-import { act, fireEvent, render } from '@testing-library/react-native'
+import { cleanup, act, fireEvent, render } from '@testing-library/react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { ThemeContext } from '@/providers/theme/useTheme'
 
@@ -109,6 +109,8 @@ jest.mock('@/lib/sync/prompt', () => ({
 }))
 
 import ChatScreen from '@/app/chat'
+import { queryClient } from '@/lib/query/queryClient'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { ToastProvider } from '@/providers/toast/ToastProvider'
 import { useAppStore } from '@/state/appStore'
 import { useChatRuntime } from '@/state/chatRuntime'
@@ -120,22 +122,24 @@ let view: Awaited<ReturnType<typeof render>>
 // RTL 14 renders through act() and publishes the result asynchronously.
 async function mount(): Promise<void> {
   view = await render(
-    <SafeAreaProvider
-      initialMetrics={{
-        frame: { x: 0, y: 0, width: 390, height: 844 },
-        insets: { top: 0, left: 0, right: 0, bottom: 0 }
-      }}
-    >
-      <ThemeContext.Provider
-        value={{ theme: 'light', isDark: false, setTheme: async () => undefined }}
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 0, left: 0, right: 0, bottom: 0 }
+        }}
       >
-        {/* Real, not a stub: the send path raises toasts for a file that could
+        <ThemeContext.Provider
+          value={{ theme: 'light', isDark: false, setTheme: async () => undefined }}
+        >
+          {/* Real, not a stub: the send path raises toasts for a file that could
             not be sent, and a provider-less screen would throw on the first. */}
-        <ToastProvider>
-          <ChatScreen />
-        </ToastProvider>
-      </ThemeContext.Provider>
-    </SafeAreaProvider>
+          <ToastProvider>
+            <ChatScreen />
+          </ToastProvider>
+        </ThemeContext.Provider>
+      </SafeAreaProvider>
+    </QueryClientProvider>
   )
 }
 
@@ -144,6 +148,14 @@ const count = (pattern: RegExp): number => view.queryAllByText(pattern).length
 /** The typed thinking words render as "<word>…", starting empty. */
 const thinking = (): boolean => count(/…/) > 0
 const prompt = (): boolean => count(/hello there/) > 0
+
+afterEach(() => {
+  // Two open handles, or the jest worker never exits after the last assertion:
+  // the mounted tree (any interval it holds is cleared on unmount) and the query
+  // cache (a query that loses its last observer arms a 7-day gc timer).
+  cleanup()
+  queryClient.clear()
+})
 
 beforeEach(() => {
   useAppStore.setState({ paired: true })

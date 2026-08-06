@@ -59,11 +59,25 @@ export type ChatFeedProps = {
    * there is nothing to hide, and hiding it would itself be a flash.
    */
   gated: boolean
+  /**
+   * Whether there are rows to lay out yet. The gate may only open on a feed
+   * pinned to REAL content, and an empty one lays out all the same — so this
+   * is what separates "settled" from "still nothing here", not the measured
+   * height (see handleContentSizeChange).
+   */
+  hasContent: boolean
   onReady: () => void
+  /**
+   * Extra space above the first message. The screen has no top bar — its two
+   * controls float over this scroller — so the transcript starts below them and
+   * passes UNDER them on the way up, which is only possible if the clearance is
+   * padding inside the content rather than a bar outside it.
+   */
+  topInset?: number
 }
 
 export const ChatFeed = forwardRef<ChatFeedHandle, ChatFeedProps>(function ChatFeed(
-  { children, gated, onReady },
+  { children, gated, hasContent, onReady, topInset = 0 },
   ref
 ) {
   const scrollRef = useRef<ScrollView>(null)
@@ -108,15 +122,21 @@ export const ChatFeed = forwardRef<ChatFeedHandle, ChatFeedProps>(function ChatF
     (_width: number, height: number) => {
       if (stickRef.current) scrollRef.current?.scrollToEnd({ animated: readyRef.current })
       if (readyRef.current) return
-      // An empty feed (a conversation whose body is still downloading) has
-      // nothing to pin to — treating its layout as settled would reveal a
-      // blank screen, then jump when the messages land.
-      if (height <= 0) return
+      // An empty feed — a conversation still being read out of SQLite or
+      // downloaded — has nothing to pin to, and settling on it opens the gate
+      // on a blank page: the skeleton goes, nothing takes its place, and the
+      // transcript then lands and scrolls itself in. Which is what the height
+      // test below it used to allow: a ScrollView measures its CONTENT BOX,
+      // and an empty one is still the container's own 32pt of padding, never
+      // the zero this was watching for. So the question is asked of the rows,
+      // and the timers start at the arrival of the first of them — including
+      // the cap, whose whole point is to bound a feed that never goes quiet.
+      if (!hasContent || height <= 0) return
       if (settleTimer.current) clearTimeout(settleTimer.current)
       settleTimer.current = setTimeout(reveal, SETTLE_MS)
       capTimer.current ??= setTimeout(reveal, SETTLE_CAP_MS)
     },
-    [reveal]
+    [hasContent, reveal]
   )
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -140,7 +160,12 @@ export const ChatFeed = forwardRef<ChatFeedHandle, ChatFeedProps>(function ChatF
         // pin and leave the user parked mid-conversation.
         scrollEnabled={revealed}
         maintainVisibleContentPosition={revealed ? { minIndexForVisible: 0 } : null}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16, gap: 16 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 16 + topInset,
+          paddingBottom: 16,
+          gap: 16
+        }}
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
       >

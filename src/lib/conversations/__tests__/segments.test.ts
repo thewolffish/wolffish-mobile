@@ -201,6 +201,55 @@ describe('buildRenderBlocks', () => {
     expect(blocks[0]?.type).toBe('question')
   })
 
+  it('anchors an unmatched tool_result at its place in the stream', () => {
+    // The clean-feed live mirror strips tool_call segments, so mid-turn a
+    // parked card's result arrives with no call to pair with — the anchor
+    // preserves the position for the feed to render the live card at, so
+    // text streamed after the user's answer lands BELOW the card.
+    const blocks = buildRenderBlocks(
+      message([
+        textSeg('Before. ', 's1'),
+        {
+          kind: 'tool_result',
+          turnId: 't1',
+          segmentId: 's2',
+          toolCallId: 'c9',
+          status: 'success',
+          output: 'The user selected option 1 of 2: "Lusin" — Armenian'
+        },
+        textSeg('After.', 's3')
+      ])
+    )
+    expect(blocks.map((block) => block.type)).toEqual(['text', 'toolAnchor', 'text'])
+    expect(blocks[1]).toMatchObject({
+      toolCallId: 'c9',
+      result: expect.objectContaining({ status: 'success' })
+    })
+    // A result WITH its call pairs up as it always did — no anchor appears in
+    // a stored body, which carries every call.
+    const stored = buildRenderBlocks(
+      message([
+        {
+          kind: 'tool_call',
+          turnId: 't1',
+          segmentId: 's1',
+          toolCallId: 'c9',
+          name: 'ask_user',
+          args: { questions: [{ question: 'Which?', options: [] }] }
+        },
+        {
+          kind: 'tool_result',
+          turnId: 't1',
+          segmentId: 's2',
+          toolCallId: 'c9',
+          status: 'success',
+          output: 'The user selected option 1 of 2: "Lusin" — Armenian'
+        }
+      ])
+    )
+    expect(stored.some((block) => block.type === 'toolAnchor')).toBe(false)
+  })
+
   it('emits turn_end only for abnormal stops or reasoning', () => {
     const clean = buildRenderBlocks(
       message([

@@ -36,6 +36,25 @@ export default function ChannelsScreen(): React.JSX.Element {
         />
       </Section>
 
+      {/* This device, as the desktop's Mobile panel sees it — the same two
+          settings, the same words, in the desktop's own channel order
+          (in-app, phone, Telegram, WhatsApp). Both are real switches rather
+          than status rows: unlike a Telegram bridge, nothing has to be
+          started on the desktop for either to take effect, so the phone is
+          free to drive its own channel. */}
+      <Section title={t('settings.channels.phone')}>
+        <ConfigSwitchRow
+          field="mobileNotifications"
+          label={t('settings.channels.notifications')}
+          description={t('settings.channels.notificationsDescription')}
+        />
+        <ConfigSwitchRow
+          field="mobileVerbose"
+          label={t('settings.channels.taskResults')}
+          description={t('settings.channels.taskResultsDescription')}
+        />
+      </Section>
+
       <Section title="Telegram">
         <ConfigStatusRow
           field="telegramEnabled"

@@ -1,5 +1,6 @@
-import { TelegramLogo, WhatsAppLogo } from '@/components/core/icons'
+import { SmartPhone01Icon, TelegramLogo, WhatsAppLogo } from '@/components/core/icons'
 import { CodeChip } from '@/components/settings/SettingsUI'
+import { useConversationList } from '@/lib/conversations/hooks'
 import { formatBytes } from '@/lib/files/fileKinds'
 import { computeUsageStats } from '@/lib/usage/stats'
 import { cn } from '@/lib/utils/cn'
@@ -15,7 +16,7 @@ import {
   useUsageDays
 } from '@/state/demoConfig'
 import Constants from 'expo-constants'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Text, View } from 'react-native'
 
@@ -82,20 +83,30 @@ export function ModelSummary(): React.JSX.Element {
 }
 
 /**
- * Channels — the two bridges, as their own brand marks. A running bridge is
- * green; a stopped one stays muted rather than disappearing, so the row says
- * "WhatsApp is off" instead of leaving you to wonder whether it exists.
+ * Channels — this phone and the two bridges, as their own marks. A channel the
+ * agent can actually reach you on is green; one it cannot stays muted rather
+ * than disappearing, so the row says "WhatsApp is off" instead of leaving you
+ * to wonder whether it exists.
+ *
+ * The phone leads, in the desktop's own channel order, and reads its
+ * notifications switch: reachable is the question all three answer, and for
+ * this device the answer is whether notify_phone is allowed to ring it. Being
+ * paired is not the signal — you are looking at the app, so you know.
  */
 export function ChannelsSummary(): React.JSX.Element {
   const { t } = useTranslation()
+  const phone = useConfigValue('mobileNotifications')
   const telegram = useConfigValue('telegramEnabled')
   const whatsapp = useConfigValue('whatsappEnabled')
   const state = (on: boolean): string => (on ? t('settings.toggle.on') : t('settings.toggle.off'))
   return (
     <View
       className="shrink-0 flex-row items-center gap-2"
-      accessibilityLabel={`Telegram ${state(telegram)}, WhatsApp ${state(whatsapp)}`}
+      accessibilityLabel={`${t('settings.channels.notifications')} ${state(phone)}, Telegram ${state(
+        telegram
+      )}, WhatsApp ${state(whatsapp)}`}
     >
+      <SmartPhone01Icon size={15} className={phone ? TONES.ok : TONES.muted} />
       <TelegramLogo size={15} className={telegram ? TONES.ok : TONES.muted} />
       <WhatsAppLogo size={15} className={whatsapp ? TONES.ok : TONES.muted} />
     </View>
@@ -130,6 +141,22 @@ export function McpSummary(): React.JSX.Element {
       value={`${names.filter((name) => servers[name]).length}/${names.length}`}
     />
   )
+}
+
+/**
+ * Conversations — a plain count of what is on this device.
+ *
+ * `isLoading` renders an em dash rather than a `0`: "none" and "not read yet"
+ * are different facts, and printing the first while the second is true is how a
+ * list that has content reads as empty for a beat.
+ *
+ * Projects, Procedures, Automations and Customization used to have summaries
+ * here too. They left Settings for the chat sheet, which renders label + icon
+ * only, and their summaries left with them.
+ */
+export function ConversationsSummary(): React.JSX.Element {
+  const { data, isLoading } = useConversationList()
+  return <CodeChip mono className="shrink-0" value={isLoading ? '—' : `${data?.length ?? 0}`} />
 }
 
 /** Variables — a plain count: a variable is defined or it is not. */
