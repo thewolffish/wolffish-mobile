@@ -2,6 +2,9 @@ import { upsertConversation } from '@/lib/conversations/repo'
 import type { ConversationFile } from '@/lib/conversations/types'
 import { purgeDemoState } from '@/lib/demo/reset'
 import { seedWorkspaceFile } from '@/lib/files/fileCache'
+import { invalidateAutomations } from '@/lib/sync/automations'
+import { invalidateProcedures } from '@/lib/sync/procedures'
+import { invalidateProjects } from '@/lib/sync/projects'
 import { useDemoConfig, type ConfigSnapshot } from '@/state/demoConfig'
 import { Directory, File, Paths } from 'expo-file-system'
 
@@ -163,9 +166,20 @@ export async function fetchDemoManifest(timeoutMs = 4000): Promise<DemoManifest>
 /**
  * Apply the real-workspace config snapshot into the demo config store —
  * capabilities with their SKILL.md descriptions, MCP servers, connections,
- * channel settings, brain/preferences. Reads the copy saved at import time, so
- * it runs offline on every demo entry (cheap), modeling live sync's
- * cached-then-refresh behavior.
+ * channel settings, brain/preferences, and the workspace content the
+ * Projects / Procedures / Automations / Customization screens render. Reads
+ * the copy saved at import time, so it runs offline on every demo entry
+ * (cheap), modeling live sync's cached-then-refresh behavior.
+ *
+ * The invalidation at the end is not housekeeping. Three screens read the
+ * snapshot through react-query rather than off the store, and each of those
+ * queries answers `[]` when the store is still empty — which it is right up
+ * until this function returns. A query that ran first caches that empty answer
+ * for its whole staleTime, and the screen's own refetch reads the same empty
+ * cache straight back: an automation would render under the default heart with
+ * no project name, on the one visit a demo actually gets looked at. Announcing
+ * the change is what the desktop's own pushes do (lib/sync invalidate*), and
+ * this is the same event from the other source.
  */
 export async function applyConfigSnapshot(): Promise<boolean> {
   try {
@@ -174,6 +188,9 @@ export async function applyConfigSnapshot(): Promise<boolean> {
     const snapshot = JSON.parse(await file.text()) as ConfigSnapshot
     if (!Array.isArray(snapshot.capabilities)) return false
     useDemoConfig.getState().applySnapshot(snapshot)
+    invalidateProjects()
+    invalidateProcedures()
+    invalidateAutomations()
     return true
   } catch {
     return false

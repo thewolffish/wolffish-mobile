@@ -76,7 +76,7 @@
     },
     "model": {
       "subtitle": "Which model answers, and how it thinks.",
-      "brainTitle": "Brain",
+      "modelTitle": "Model",
       "brainLabel": "Model",
       "localOnly": "Local only",
       "localOnlyDescription": "Answer with the local model.",
@@ -1184,7 +1184,7 @@
         "failed": "Model did not respond",
         "empty": "Model returned nothing"
       },
-      "forward": "Send this archive to the developer so they can analyse the problem and fix it. It is used for that analysis only and discarded immediately afterwards.",
+      "forward": "Send it to the developer — used to fix this, then deleted.",
       "failedTitle": "Diagnostic export failed",
       "failedBody": "The archive could not be created.",
       "failedHint": "Nothing was changed. You can close this and try again.",

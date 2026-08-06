@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils/cn'
 import { formatTokens } from '@/lib/utils/formatTokens'
 import { formatDayFromNow } from '@/lib/utils/relativeTime'
 import { useTheme, useTokens } from '@/providers/theme/useTheme'
+import { useAppStore } from '@/state/appStore'
 import { useConfigValue, useUsageDays } from '@/state/demoConfig'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useRef, useState } from 'react'
@@ -85,11 +86,22 @@ export default function UsageScreen(): React.JSX.Element {
 
   const stats = useMemo(() => computeUsageStats(days, range, now), [days, range, now])
   const summary = useMemo(() => computeUsageSummary(days, range, now), [days, range, now])
-  const { data: conversations } = useQuery({
+  const { data: storedConversations } = useQuery({
     queryKey: ['usage-conversations', range],
     queryFn: () => countConversationsSince(rangeCutoffMs(range, new Date())),
     staleTime: 60_000
   })
+  /**
+   * Paired: the conversations this phone actually holds, which is the honest
+   * answer and the one the desktop gives.
+   *
+   * Demo: the ledger's own figure. The bundled conversations stop when the
+   * bundle was built while the ledger runs forward, so a range near now counts
+   * zero of them beside a Messages card in the hundreds — the two halves are on
+   * different clocks by construction (LEDGER_TURNS_PER_CONVERSATION says more).
+   */
+  const paired = useAppStore((state) => state.paired)
+  const conversations = paired ? (storedConversations ?? 0) : stats.conversations
 
   return (
     <PanelScreen title={t('settings.tabs.usage')} subtitle={t('settings.usage.subtitle')}>
@@ -104,7 +116,7 @@ export default function UsageScreen(): React.JSX.Element {
         <View className="flex-row flex-wrap gap-3">
           <StatCard
             label={t('settings.usage.stats.conversations')}
-            value={formatTokens(conversations ?? 0, locale)}
+            value={formatTokens(conversations, locale)}
             Icon={MessageMultiple01Icon}
           />
           <StatCard
@@ -178,9 +190,17 @@ export default function UsageScreen(): React.JSX.Element {
 
 /**
  * The desktop's six-range pill row in the ModelSwitch's binary-switch chrome.
- * Six labels don't fit a phone row, so the pills ride a free horizontal
- * scroll — still one lit segment, exactly like the desktop.
+ *
+ * The pills SHARE the row rather than hugging their labels: `flexGrow` on the
+ * content container makes it at least as wide as the switch, and `flex-1` on
+ * each pill splits that evenly, so six ranges fill the control instead of
+ * leaving a dead gap on the trailing edge. `RANGE_PILL_MIN_WIDTH` is the floor
+ * that keeps it honest — once the pills can no longer all fit at that width
+ * (a seventh range, or a locale whose labels are longer, as Arabic's YTD is)
+ * the container outgrows the switch and the whole row scrolls, which is why
+ * this is still a ScrollView and not a plain flex row.
  */
+const RANGE_PILL_MIN_WIDTH = 58
 function RangeSelector({
   range,
   onChange
@@ -202,35 +222,52 @@ function RangeSelector({
   }
 
   return (
-    <View className="border-border bg-bg rounded-lg border p-0.5">
-      <ScrollView ref={scrollRef} horizontal showsHorizontalScrollIndicator={false}>
-        <View className="flex-row">
-          {USAGE_TIME_RANGES.map((candidate) => {
-            const active = candidate === range
-            return (
-              <Pressable
-                key={candidate}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-                onPress={() => onChange(candidate)}
-                onLayout={active ? onActiveLayout : undefined}
+    // `bg-surface`, not the `bg-bg` the in-card switches use (ModePills, the
+    // automations toggles). Those sit INSIDE a surface card, where the page
+    // colour is what gives them their well. This one sits directly on the page
+    // between the activity grid and the stat cards, so `bg-bg` painted it the
+    // same colour as the screen and the control read as a floating row of words
+    // with a hairline around it. It is a card here, so it takes the card recipe
+    // every other block on this screen uses.
+    <View className="border-border bg-surface rounded-lg border p-0.5">
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        // Row direction comes from `horizontal`; flexGrow is what lets the
+        // pills stretch to the switch's width instead of hugging their text.
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
+        {USAGE_TIME_RANGES.map((candidate) => {
+          const active = candidate === range
+          return (
+            <Pressable
+              key={candidate}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              onPress={() => onChange(candidate)}
+              onLayout={active ? onActiveLayout : undefined}
+              style={{ minWidth: RANGE_PILL_MIN_WIDTH }}
+              className={cn(
+                'h-9 flex-1 items-center justify-center rounded-md px-2',
+                active && 'bg-primary'
+              )}
+            >
+              <Text
+                // One line always: a label that outgrows its share pushes the
+                // row into scrolling, which is the intended answer — wrapping
+                // would silently make the switch two lines tall instead.
+                numberOfLines={1}
                 className={cn(
-                  'h-9 items-center justify-center rounded-md px-3.5',
-                  active && 'bg-primary'
+                  'font-sans-medium text-xs',
+                  active ? 'text-primary-fg' : 'text-muted'
                 )}
               >
-                <Text
-                  className={cn(
-                    'font-sans-medium text-xs',
-                    active ? 'text-primary-fg' : 'text-muted'
-                  )}
-                >
-                  {t(`settings.usage.range.${candidate}`)}
-                </Text>
-              </Pressable>
-            )
-          })}
-        </View>
+                {t(`settings.usage.range.${candidate}`)}
+              </Text>
+            </Pressable>
+          )
+        })}
       </ScrollView>
     </View>
   )

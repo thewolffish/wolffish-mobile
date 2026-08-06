@@ -13,19 +13,14 @@ import {
 import { Input } from '@/components/core/Input'
 import { Modal } from '@/components/core/Modal'
 import { InfoRow, PanelScreen, Section } from '@/components/settings/SettingsUI'
-import { countConversations } from '@/lib/conversations/repo'
 import { factoryResetDevice } from '@/lib/demo/factoryReset'
-import {
-  DEFAULT_CACHE_BUDGET_BYTES,
-  enforceCacheBudget,
-  getCacheUsage,
-  type CacheUsage
-} from '@/lib/files/fileCache'
+import { DEFAULT_CACHE_BUDGET_BYTES, enforceCacheBudget } from '@/lib/files/fileCache'
+import { dataUsageKey, useDataUsage, type DataUsage } from '@/lib/files/useDataUsage'
 import { cn } from '@/lib/utils/cn'
 import { formatRelativeTime } from '@/lib/utils/relativeTime'
 import { useToast } from '@/providers/toast/useToast'
 import { useDesktopData, useDesktopInfo } from '@/state/demoConfig'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import Constants from 'expo-constants'
 import * as Device from 'expo-device'
 import { router } from 'expo-router'
@@ -70,21 +65,14 @@ export default function DataScreen(): React.JSX.Element {
   const [releasing, setReleasing] = useState(false)
   const [resetOpen, setResetOpen] = useState(false)
 
-  const { data: usage } = useQuery<{ cache: CacheUsage; conversations: number }>({
-    queryKey: ['data-usage'],
-    queryFn: async () => ({
-      cache: await getCacheUsage(),
-      conversations: await countConversations()
-    }),
-    staleTime: 10_000
-  })
+  const { data: usage } = useDataUsage()
 
   const release = async (): Promise<void> => {
     setReleasing(true)
     try {
       const removed = await enforceCacheBudget(0)
       toast.show({ tone: 'success', message: t('settings.data.released', { count: removed }) })
-      void queryClient.invalidateQueries({ queryKey: ['data-usage'] })
+      void queryClient.invalidateQueries({ queryKey: dataUsageKey })
     } finally {
       setReleasing(false)
     }
@@ -259,7 +247,7 @@ function DeviceSection({
   releasing,
   onRelease
 }: {
-  usage?: { cache: CacheUsage; conversations: number }
+  usage?: DataUsage
   releasing: boolean
   onRelease: () => void
 }): React.JSX.Element {

@@ -28,7 +28,7 @@ export const queryClient = new QueryClient({
 })
 
 /** Query families whose source of truth is on-device SQLite. */
-const LOCAL_QUERY_KEYS = new Set(['conversations', 'conversation'])
+const LOCAL_QUERY_KEYS = new Set(['conversations', 'conversation', 'data-usage'])
 
 export function shouldPersistQuery(query: Query): boolean {
   if (typeof query.queryKey[0] === 'string' && LOCAL_QUERY_KEYS.has(query.queryKey[0])) {

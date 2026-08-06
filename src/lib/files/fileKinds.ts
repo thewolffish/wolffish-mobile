@@ -201,6 +201,34 @@ export function formatBytes(bytes: number | undefined | null): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
+/**
+ * A transfer's counter — "0 KB / 645 KB" — for a bar that knows its total.
+ *
+ * NOT `formatBytes(a) / formatBytes(b)`, for two reasons. Zero bytes render as
+ * an empty string there, which is right for a file card whose size is unknown
+ * and wrong here: the first frame of every download would read " / 645 KB"
+ * until the first chunk landed. And a received side free to pick its own unit
+ * climbs "512 B → 45 KB → 1.2 MB" against a fixed total, which reads as churn
+ * rather than progress — so both sides are rendered in the TOTAL's unit.
+ *
+ * Received is clamped to the total, matching the bar the count sits above: a
+ * final chunk that overshoots a stale stat should not print past 100%.
+ */
+export function formatByteProgress(received: number, total: number): string {
+  if (!(total > 0)) return formatBytes(received)
+  const scale =
+    total < 1024
+      ? { divisor: 1, suffix: 'B', digits: 0 }
+      : total < 1024 * 1024
+        ? { divisor: 1024, suffix: 'KB', digits: 0 }
+        : total < 1024 * 1024 * 1024
+          ? { divisor: 1024 * 1024, suffix: 'MB', digits: 1 }
+          : { divisor: 1024 * 1024 * 1024, suffix: 'GB', digits: 2 }
+  const at = (bytes: number): string =>
+    `${(Math.min(Math.max(bytes, 0), total) / scale.divisor).toFixed(scale.digits)} ${scale.suffix}`
+  return `${at(received)} / ${at(total)}`
+}
+
 export type FileClassification = {
   kind: FileViewerKind
   ext: string

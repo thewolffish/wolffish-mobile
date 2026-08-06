@@ -94,7 +94,12 @@ export default function Home(): React.JSX.Element {
     }
     // Refresh the config surface from the saved snapshot on every entry — the
     // demo's stand-in for live sync's cached-then-refresh.
-    void applyConfigSnapshot()
+    //
+    // Awaited, not fired off: it is one local file read, and the screens the
+    // next line navigates to render THIS. Leaving it in flight let chat mount
+    // against an empty config and prime its queries from it, which is a whole
+    // staleTime of a demo describing a workspace with no projects in it.
+    await applyConfigSnapshot()
     setDemoMode(true)
     // replace, not push: this door is not somewhere to come back to. A back
     // gesture from chat would otherwise land on the entry screen, where the

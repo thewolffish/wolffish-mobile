@@ -2,6 +2,7 @@ import {
   classifyFile,
   fileExt,
   fileName,
+  formatByteProgress,
   formatBytes,
   isPlayable,
   isTextual,
@@ -176,6 +177,28 @@ describe('formatBytes', () => {
     expect(formatBytes(5 * 1024 * 1024)).toBe('5.0 MB')
     expect(formatBytes(0)).toBe('')
     expect(formatBytes(undefined)).toBe('')
+  })
+})
+
+describe('formatByteProgress', () => {
+  it('renders zero received rather than a blank side', () => {
+    expect(formatByteProgress(0, 660 * 1024)).toBe('0 KB / 660 KB')
+  })
+
+  it('holds both sides in the total unit while the transfer climbs', () => {
+    const total = 5 * 1024 * 1024
+    expect(formatByteProgress(512, total)).toBe('0.0 MB / 5.0 MB')
+    expect(formatByteProgress(2.5 * 1024 * 1024, total)).toBe('2.5 MB / 5.0 MB')
+    expect(formatByteProgress(total, total)).toBe('5.0 MB / 5.0 MB')
+  })
+
+  it('never prints past the total', () => {
+    expect(formatByteProgress(900, 512)).toBe('512 B / 512 B')
+  })
+
+  it('falls back to the plain size when no total is known', () => {
+    expect(formatByteProgress(2048, 0)).toBe('2 KB')
+    expect(formatByteProgress(0, 0)).toBe('')
   })
 })
 

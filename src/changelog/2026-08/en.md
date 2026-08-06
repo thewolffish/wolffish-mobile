@@ -1,4 +1,22 @@
-## v1.0.19 — 2026-08-06 `Latest`
+## v1.0.20 — 2026-08-07 `Latest`
+
+### Six Ranges, Six Answers
+
+The Usage screen's time ranges now each **report their own window**. Every total is closed at today as well as opened at its start, so a figure labelled Today can never quietly carry tomorrow, and stepping from 3 Months to 6 Months to Year to Date moves the numbers instead of repeating them. The switch itself now **fills its row** as a single control, splitting the width evenly between the six rather than trailing off into empty space, and it sits in the same card the rest of the screen is built from.
+
+### The Sheet Keeps Its Destinations
+
+Settings, Projects, Automations, Procedures and Customization now **stay put at the top of the conversations sheet** while the conversations scroll underneath them. They are the five places the sheet exists to reach, and a destination that scrolls away with the list is one you have to scroll back up to find.
+
+### More to See Before You Pair
+
+Demo mode gains three conversations that show the parts of Wolffish the earlier set never reached: an agent **asking permission** before it does something dangerous — and being refused once — a **twenty-question card** answered one chip at a time, and a whole session **held by voice**, spoken in both directions. The workspace behind the demo is populated too, so Projects, Procedures, Automations and the customization documents carry real content from the first screen rather than filling in a moment later.
+
+### Smaller Things
+
+The Model screen now leads with **how the model behaves** — chat mode and thinking — and keeps the picker below them, since those are the two knobs touched every session; the section holding them is called **Model** rather than Brain. The settings list's **Data** row shows two figures where it showed one: the desktop's workspace beside what this phone is actually holding. And a diagnostic bundle's download **counts from 0 KB rather than from nothing**, both sides in the same unit, so the first seconds of a transfer read as progress rather than a stall.
+
+## v1.0.19 — 2026-08-06
 
 ### The Workspace, Editable
 

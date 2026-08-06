@@ -2,6 +2,7 @@ import { SmartPhone01Icon, TelegramLogo, WhatsAppLogo } from '@/components/core/
 import { CodeChip } from '@/components/settings/SettingsUI'
 import { useConversationList } from '@/lib/conversations/hooks'
 import { formatBytes } from '@/lib/files/fileKinds'
+import { useDataUsage } from '@/lib/files/useDataUsage'
 import { computeUsageStats } from '@/lib/usage/stats'
 import { cn } from '@/lib/utils/cn'
 import { formatTokens } from '@/lib/utils/formatTokens'
@@ -215,13 +216,19 @@ export function UsageSummary(): React.JSX.Element {
 }
 
 /**
- * Data — the workspace's size on the desktop. Same tiers the Data screen's
- * Workspace row prints, and the same em dash when no snapshot has landed:
- * this device cannot measure that machine.
+ * Data — the two figures the panel opens with, in its own order: the
+ * workspace's size on the desktop, then what this phone has downloaded.
+ * Same tiers the Data screen prints, and the same em dash on the desktop
+ * side when no snapshot has landed — this device cannot measure that
+ * machine. The phone's side is a measurement, so it stays an em dash only
+ * while the query is in flight and reads `0 B` once it answers with nothing.
  */
 export function DataSummary(): React.JSX.Element {
   const { workspaceBytes } = useDesktopData()
-  return <CodeChip mono className="shrink-0" value={formatBytes(workspaceBytes) || '—'} />
+  const { data: usage } = useDataUsage()
+  const desktop = formatBytes(workspaceBytes) || '—'
+  const device = usage ? formatBytes(usage.cache.totalBytes) || '0 B' : '—'
+  return <CodeChip mono className="shrink-0" value={`${desktop} · ${device}`} />
 }
 
 /** Updates — which build of THIS app is running, as its own screen prints it. */

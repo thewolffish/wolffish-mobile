@@ -5,10 +5,12 @@ import {
   dailyTokens,
   dayDetails,
   ledgerYears,
+  LEDGER_TURNS_PER_CONVERSATION,
   longestConsecutiveStreak,
   rangeCutoff,
   rangeCutoffMs,
   USAGE_PROVIDERS,
+  USAGE_TIME_RANGES,
   type UsageDay
 } from '@/lib/usage/stats'
 
@@ -101,6 +103,7 @@ describe('computeUsageStats', () => {
     const stats = computeUsageStats([], 'all_time', NOW)
     expect(stats).toEqual({
       messages: 0,
+      conversations: 0,
       activeDays: 0,
       longestStreak: 0,
       totalTokens: 0,
@@ -182,5 +185,94 @@ describe('ledgerYears', () => {
   it('always includes the current year, ascending', () => {
     expect(ledgerYears(DAYS, NOW)).toEqual([2025, 2026])
     expect(ledgerYears([], NOW)).toEqual([2026])
+  })
+})
+
+/**
+ * Rows dated after today.
+ *
+ * The desktop cannot produce one — a ledger line is written when a turn ends.
+ * The demo bundle deliberately does: its ledger runs to the end of the year so
+ * `today` and `this_month` keep answering as the device clock advances past
+ * publication. That only works if every reader closes the window at today;
+ * without it the dormant rows land in every range and `today` reports the rest
+ * of the year (see rangeEnd).
+ */
+describe('rows the calendar has not reached', () => {
+  const FUTURE: UsageDay[] = [
+    llm('2026-07-30', [['deepseek', 'deepseek-v4-pro', 50, 25, 0.05, 1]], 10),
+    llm('2026-07-31', [['deepseek', 'deepseek-v4-pro', 900, 100, 9, 40]], 500),
+    llm('2026-12-24', [['deepseek', 'deepseek-v4-pro', 900, 100, 9, 40]], 500)
+  ]
+
+  it('never counts tomorrow in today', () => {
+    const stats = computeUsageStats(FUTURE, 'today', NOW)
+    expect(stats.messages).toBe(1)
+    expect(stats.activeDays).toBe(1)
+    expect(stats.totalCost).toBeCloseTo(0.05 + 10 * BRAVE_COST_PER_QUERY)
+  })
+
+  it('leaves them out of every other range too, all time included', () => {
+    for (const range of ['this_month', '3_months', '6_months', 'ytd', 'all_time'] as const) {
+      const stats = computeUsageStats(FUTURE, range, NOW)
+      expect(`${range}:${stats.messages}`).toBe(`${range}:1`)
+    }
+  })
+
+  it('keeps them out of the provider cards', () => {
+    const summary = computeUsageSummary(FUTURE, 'all_time', NOW)
+    const deepseek = summary.providers.find((p) => p.provider === 'deepseek')!
+    expect(deepseek.totalInputTokens).toBe(50)
+    expect(summary.brave.totalQueries).toBe(10)
+  })
+
+  it('still draws them on the calendar, which is a view of the ledger', () => {
+    // The opposite rule to the ranges above, and deliberately so: a month the
+    // clock has not reached rendering blank is indistinguishable from a month
+    // with no usage, so the heatmap shows every row the ledger holds.
+    expect(dailyTokens(FUTURE, 2026).has('2026-12-24')).toBe(true)
+  })
+
+  it('opens a future day to the same numbers the calendar drew', () => {
+    expect(dayDetails(FUTURE, '2026-12-24').messages).toBe(40)
+  })
+})
+
+/**
+ * The Conversations figure.
+ *
+ * Demo mode's two halves run on different clocks — a fixed conversation import
+ * against a ledger filled forward — so the screen derives this from the ledger
+ * rather than counting stored rows that stop at the build date. The ratio is
+ * measured off the dataset's own curated window, not invented.
+ */
+describe('conversations implied by the ledger', () => {
+  it('scales with the turns in range', () => {
+    const stats = computeUsageStats(DAYS, 'all_time', NOW)
+    expect(stats.conversations).toBe(
+      Math.max(1, Math.round(stats.messages / LEDGER_TURNS_PER_CONVERSATION))
+    )
+  })
+
+  it('never reports zero conversations for a range that had turns', () => {
+    // The whole reason this exists: a Conversations card reading 0 beside a
+    // Messages card reading 98.
+    for (const range of USAGE_TIME_RANGES) {
+      const stats = computeUsageStats(DAYS, range, NOW)
+      if (stats.messages === 0) continue
+      expect(`${range}:${stats.conversations > 0}`).toBe(`${range}:true`)
+    }
+  })
+
+  it('stays at zero when nothing happened', () => {
+    expect(computeUsageStats([], 'all_time', NOW).conversations).toBe(0)
+  })
+
+  it('never claims more conversations than turns', () => {
+    // One conversation is several turns, so this can only ever be a fraction.
+    for (const range of USAGE_TIME_RANGES) {
+      const stats = computeUsageStats(DAYS, range, NOW)
+      expect(`${range}:${stats.conversations <= Math.max(stats.messages, 0)}`).toBe(`${range}:true`)
+    }
   })
 })

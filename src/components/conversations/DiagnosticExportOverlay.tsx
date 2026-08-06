@@ -5,7 +5,7 @@ import {
   Download01Icon,
   SentIcon
 } from '@/components/core/icons'
-import { formatBytes } from '@/lib/files/fileKinds'
+import { formatByteProgress, formatBytes } from '@/lib/files/fileKinds'
 import {
   exportDiagnostics,
   onDiagnosticProgress,
@@ -130,7 +130,10 @@ export function DiagnosticExportOverlay({
         : t('diagnostics.overlay.progress')
   const stepCount =
     phase.kind === 'downloading'
-      ? `${formatBytes(phase.receivedBytes)} / ${formatBytes(phase.totalBytes)}`
+      ? // Zero reads as "0 KB", not as a blank: the first frame of the download
+        // is a full round-trip long (the file's stat), and a counter that shows
+        // only its total there looks like a stall in the numbers.
+        formatByteProgress(phase.receivedBytes, phase.totalBytes)
       : `${stepIndex} / ${TOTAL_STEPS}`
 
   return (

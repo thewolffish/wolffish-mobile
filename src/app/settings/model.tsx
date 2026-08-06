@@ -21,10 +21,11 @@ import { useTranslation } from 'react-i18next'
 import { ActivityIndicator, Text, View } from 'react-native'
 
 /**
- * Model — the Brain, desktop UX: the Local/Cloud ModelSwitch up top, the
- * active side's picker, behavior controls, then a card per cloud provider
- * (logo, key state, masked key, test). In live mode key changes and tests
- * are commands the desktop executes; demo mode mocks the happy path.
+ * Model, desktop UX: behavior controls up top — the two knobs touched every
+ * session — then the Model card (Local/Cloud ModelSwitch and the active
+ * side's picker), Local, then a card per cloud provider (logo, key state,
+ * masked key, test). In live mode key changes and tests are commands the
+ * desktop executes; demo mode mocks the happy path.
  */
 
 const ProviderCard = memo(function ProviderCard({
@@ -108,7 +109,7 @@ const ProviderCard = memo(function ProviderCard({
  * snapshot time, which models it has pulled, the folder it scans — since this
  * device cannot reach that machine's localhost. Choosing among the installed
  * models is ours; pulling a new one, the endpoint, and the enabled switch are
- * not, and the Brain switch above already shows which side is answering.
+ * not, and the Model switch above already shows which side is answering.
  */
 const LocalSection = memo(function LocalSection(): React.JSX.Element {
   const { t } = useTranslation()
@@ -193,13 +194,13 @@ export default function ModelScreen(): React.JSX.Element {
 
   return (
     <PanelScreen title={t('settings.tabs.model')} subtitle={t('settings.model.subtitle')}>
-      <Section title={t('settings.model.brainTitle')}>
-        <ModelSwitch />
-        <ModelSelector />
-      </Section>
-
       <Section title={t('settings.model.behaviorTitle')}>
         <ModeAndThinkingControls />
+      </Section>
+
+      <Section title={t('settings.model.modelTitle')}>
+        <ModelSwitch />
+        <ModelSelector />
       </Section>
 
       <LocalSection />

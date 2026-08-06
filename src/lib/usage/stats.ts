@@ -63,9 +63,37 @@ export type UsageProviderId = (typeof USAGE_PROVIDERS)[number]
 /** Desktop usage.ts BRAVE_COST_PER_QUERY. */
 export const BRAVE_COST_PER_QUERY = 0.005
 
+/**
+ * Ledger entries per conversation, measured off the demo dataset's own curated
+ * window: 2,018 entries across the 162 conversations of June and July 2026.
+ *
+ * It exists because the two halves of demo mode run on different clocks. The
+ * conversation set is a fixed import that ends when the bundle was built; the
+ * usage ledger is filled forward so `today` and `this_month` still answer
+ * (build-usage-ledger.mjs). Counting stored conversations for a range near now
+ * therefore returns zero against thousands of ledger turns — a Conversations
+ * card reading 0 beside a Messages card reading 98.
+ *
+ * So demo mode derives the figure from the ledger like every other number on
+ * that screen, at the ratio the real data actually showed. The divergence this
+ * introduces is the one already on screen: All time reports 4.7k messages
+ * against the 594 the stored conversations hold, because the ledger describes a
+ * workspace that kept working after the conversations were captured.
+ *
+ * A PAIRED phone never uses this — it has the real conversations and counts
+ * them (see the Usage screen).
+ */
+export const LEDGER_TURNS_PER_CONVERSATION = 12.46
+
 export type UsageStats = {
   /** Ledger entries in range — the desktop's definition of "messages". */
   messages: number
+  /**
+   * Conversations the ledger implies for this range — see
+   * LEDGER_TURNS_PER_CONVERSATION. Only demo mode reads it; a paired phone
+   * counts the conversations it actually holds.
+   */
+  conversations: number
   activeDays: number
   longestStreak: number
   totalTokens: number
@@ -118,6 +146,30 @@ export function rangeCutoff(range: UsageTimeRange, now: Date): string {
   }
 }
 
+/**
+ * The last ledger date any range includes: today, always.
+ *
+ * Every `rangeCutoff` is a lower bound alone, which is all the desktop needs —
+ * a ledger line is written when a turn ends, so it cannot carry a date that has
+ * not happened. The demo bundle can: its ledger runs to the end of the year so
+ * that `today` and `this_month` still answer on whatever date the demo is
+ * opened (they read the device clock, which keeps moving after publication).
+ *
+ * Without an upper bound those rows land in EVERY range — `today` would report
+ * the rest of the year, which is the one reading that is definitely wrong. So
+ * the window is closed here rather than in the demo pipeline: a total labelled
+ * "today" must never include tomorrow, whatever put tomorrow in the ledger. A
+ * real desktop has no such rows and is unaffected.
+ *
+ * Applies to the RANGE TOTALS only. The activity calendar and its day card are
+ * a view of the ledger itself, not an "as of now" figure, so they render every
+ * day the ledger holds — paging to a later month and finding it blank reads as
+ * a dataset that stops, which is the opposite of what it is.
+ */
+export function rangeEnd(now: Date): string {
+  return formatDate(now)
+}
+
 /** The same cutoff as epoch ms, for the conversations COUNT query. */
 export function rangeCutoffMs(range: UsageTimeRange, now: Date): number {
   switch (range) {
@@ -159,6 +211,7 @@ export function longestConsecutiveStreak(dates: string[]): number {
 /** The desktop's usage.getStats over the folded rows (minus conversations). */
 export function computeUsageStats(days: UsageDay[], range: UsageTimeRange, now: Date): UsageStats {
   const cutoff = rangeCutoff(range, now)
+  const end = rangeEnd(now)
 
   let messages = 0
   let totalTokens = 0
@@ -168,7 +221,7 @@ export function computeUsageStats(days: UsageDay[], range: UsageTimeRange, now: 
   const modelCounts = new Map<string, number>()
 
   for (const day of days) {
-    if (day.date < cutoff) continue
+    if (day.date < cutoff || day.date > end) continue
     let dayCost = 0
     let dayEntries = 0
     for (const row of day.models) {
@@ -202,6 +255,10 @@ export function computeUsageStats(days: UsageDay[], range: UsageTimeRange, now: 
 
   return {
     messages,
+    // Derived from the range total, not summed per day: rounding each day up to
+    // at least one conversation would turn 710 quiet days into 710 of them.
+    conversations:
+      messages > 0 ? Math.max(1, Math.round(messages / LEDGER_TURNS_PER_CONVERSATION)) : 0,
     activeDays: activeDays.length,
     longestStreak: longestConsecutiveStreak(activeDays),
     totalTokens,
@@ -218,6 +275,7 @@ export function computeUsageSummary(
   now: Date
 ): UsageSummary {
   const cutoff = rangeCutoff(range, now)
+  const end = rangeEnd(now)
 
   const byProvider = new Map<
     string,
@@ -231,7 +289,7 @@ export function computeUsageSummary(
   let totalQueries = 0
 
   for (const day of days) {
-    if (day.date < cutoff) continue
+    if (day.date < cutoff || day.date > end) continue
     totalQueries += day.braveQueries
     for (const row of day.models) {
       const bucket = byProvider.get(row.provider) ?? {
@@ -272,7 +330,14 @@ export function computeUsageSummary(
   }
 }
 
-/** Per-day LLM token totals for one year — the desktop's usage.getDaily. */
+/**
+ * Per-day LLM token totals for one year — the desktop's usage.getDaily.
+ *
+ * Deliberately NOT clipped at today (unlike the range totals — see rangeEnd):
+ * the calendar draws what the ledger holds for the month being looked at, and
+ * a month that renders blank because the clock has not reached it is
+ * indistinguishable on screen from a month with no usage at all.
+ */
 export function dailyTokens(days: UsageDay[], year: number): Map<string, number> {
   const prefix = `${year}-`
   const byDay = new Map<string, number>()
@@ -295,8 +360,11 @@ export type UsageDayDetails = {
   models: UsageModelDay[]
 }
 
-export function dayDetails(days: UsageDay[], date: string): UsageDayDetails {
-  const day = days.find((candidate) => candidate.date === date)
+export function dayDetails(days: UsageDay[], date: string, now?: Date): UsageDayDetails {
+  // A day the ledger holds but the calendar has not reached reads as empty —
+  // the same window every other reader applies (see rangeEnd).
+  const day =
+    now && date > rangeEnd(now) ? undefined : days.find((candidate) => candidate.date === date)
   const details: UsageDayDetails = {
     date,
     totalTokens: 0,

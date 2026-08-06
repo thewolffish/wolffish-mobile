@@ -46,6 +46,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
  *  - every conversation, grouped by the same recency buckets under the same
  *    labels, each row a numbered status chip + origin badge + one line of title.
  *
+ * Only the second half scrolls. The pages are a fixed header ABOVE the list
+ * rather than the list's own ListHeaderComponent: they are the sheet's five
+ * destinations, and a destination that scrolls off the top of its own navigator
+ * is one the user has to scroll back up to find. The list gets the space that
+ * is left and scrolls inside it.
+ *
  * The chip is the whole state readout, exactly as on the desktop: it counts the
  * conversation's rank in the WHOLE list (continuing across the date headers
  * rather than restarting under each), and it is tinted by what the last turn in
@@ -439,89 +445,98 @@ function SheetBody({
   )
 
   return (
-    <SectionList
-      sections={groups}
-      keyExtractor={(row) => row.id}
-      // The desktop's headers scroll away with their group rather than pinning;
-      // RN sticks them on iOS by default.
-      stickySectionHeadersEnabled={false}
-      onEndReached={loadMore}
-      onEndReachedThreshold={0.6}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{
-        paddingTop: insets.top + 12,
-        paddingBottom: insets.bottom + 16,
-        paddingHorizontal: 10
-      }}
-      ListHeaderComponent={
-        <View className="flex-col gap-0.5 pb-1">
-          {NAV.map(({ key, href, Icon, labelKey }) => (
-            <Pressable
-              key={key}
-              accessibilityRole="button"
-              accessibilityLabel={t(labelKey)}
-              onPress={() => go(href)}
-              className="flex-row items-center gap-2.5 rounded-lg px-1.5 py-2.5 active:bg-surface"
-            >
-              <View className="h-6 w-6 items-center justify-center">
-                <Icon size={17} className="text-muted" />
-              </View>
-              <Text
-                numberOfLines={1}
-                className="text-fg font-sans-medium flex-1 text-left text-[13px]"
-              >
-                {t(labelKey)}
-              </Text>
-            </Pressable>
-          ))}
-          {/* The rule between what you MAKE and what you have SAID. */}
-          <View className="border-border-soft mx-1.5 mt-2 border-t" />
-          {/* Inside a project the list below is only that project's, so it says
-              whose it is. Without this the list simply looks short, which is
-              indistinguishable from conversations having gone missing. */}
-          {activeProject && (
-            <View className="flex-row items-center gap-1.5 px-1.5 pt-3">
-              <Text className="text-[11px] leading-none">
-                {activeProject.icon || DEFAULT_PROJECT_ICON}
-              </Text>
-              <Text
-                numberOfLines={1}
-                className="text-muted font-sans-medium min-w-0 flex-1 text-left text-[10px] uppercase"
-              >
-                {activeProject.title.trim() || t('projects.untitled')}
-              </Text>
+    <View className="flex-1">
+      {/* Fixed. It carries the top inset and the horizontal padding the list's
+          content container used to give it, so the pages sit exactly where they
+          did — the only thing that changed is that they no longer move. */}
+      <View
+        className="flex-col gap-0.5 pb-1"
+        style={{ paddingTop: insets.top + 12, paddingHorizontal: 10 }}
+      >
+        {NAV.map(({ key, href, Icon, labelKey }) => (
+          <Pressable
+            key={key}
+            accessibilityRole="button"
+            accessibilityLabel={t(labelKey)}
+            onPress={() => go(href)}
+            className="flex-row items-center gap-2.5 rounded-lg px-1.5 py-2.5 active:bg-surface"
+          >
+            <View className="h-6 w-6 items-center justify-center">
+              <Icon size={17} className="text-muted" />
             </View>
-          )}
-        </View>
-      }
-      renderSectionHeader={({ section }) => (
-        <Text
-          className={cn(
-            'text-muted font-sans-medium px-1.5 pb-1 text-left text-[10px] uppercase',
-            // Only the first group sits directly under the divider; every later
-            // one gets the gap that separates it from the rows above.
-            section.startIndex > 1 ? 'pt-4' : 'pt-3'
-          )}
-        >
-          {t(section.labelKey)}
-        </Text>
-      )}
-      renderItem={({ item, index, section }) => (
-        <Row
-          row={item}
-          // Rank in the WHOLE list — the chip keeps counting past the group
-          // headers rather than restarting at 1 under each.
-          position={section.startIndex + index}
-          active={item.id === activeId}
-          onPress={select}
-        />
-      )}
-      ListEmptyComponent={
-        <Text className="text-muted px-1.5 pt-3 text-left font-sans text-xs">
-          {t('history.empty')}
-        </Text>
-      }
-    />
+            <Text
+              numberOfLines={1}
+              className="text-fg font-sans-medium flex-1 text-left text-[13px]"
+            >
+              {t(labelKey)}
+            </Text>
+          </Pressable>
+        ))}
+        {/* The rule between what you MAKE and what you have SAID. It stays with
+            the pages rather than the list: it is the lid the conversations
+            scroll under, and a scrolling rule is just another row. */}
+        <View className="border-border-soft mx-1.5 mt-2 border-t" />
+        {/* Inside a project the list below is only that project's, so it says
+            whose it is. Without this the list simply looks short, which is
+            indistinguishable from conversations having gone missing. */}
+        {activeProject && (
+          <View className="flex-row items-center gap-1.5 px-1.5 pt-3">
+            <Text className="text-[11px] leading-none">
+              {activeProject.icon || DEFAULT_PROJECT_ICON}
+            </Text>
+            <Text
+              numberOfLines={1}
+              className="text-muted font-sans-medium min-w-0 flex-1 text-left text-[10px] uppercase"
+            >
+              {activeProject.title.trim() || t('projects.untitled')}
+            </Text>
+          </View>
+        )}
+      </View>
+      {/* The one scroller. `flex: 1` rather than nothing: a virtualized list in
+          a column with a sibling above it sizes to its CONTENT unless it is told
+          to take what is left, which is how a long list ends up overflowing the
+          panel instead of scrolling inside it. */}
+      <SectionList
+        style={{ flex: 1 }}
+        sections={groups}
+        keyExtractor={(row) => row.id}
+        // The desktop's headers scroll away with their group rather than
+        // pinning; RN sticks them on iOS by default.
+        stickySectionHeadersEnabled={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.6}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 16, paddingHorizontal: 10 }}
+        renderSectionHeader={({ section }) => (
+          <Text
+            className={cn(
+              'text-muted font-sans-medium px-1.5 pb-1 text-left text-[10px] uppercase',
+              // Only the first group sits directly under the divider; every
+              // later one gets the gap that separates it from the rows above.
+              section.startIndex > 1 ? 'pt-4' : 'pt-3'
+            )}
+          >
+            {t(section.labelKey)}
+          </Text>
+        )}
+        renderItem={({ item, index, section }) => (
+          <Row
+            row={item}
+            // Rank in the WHOLE list — the chip keeps counting past the group
+            // headers rather than restarting at 1 under each.
+            position={section.startIndex + index}
+            active={item.id === activeId}
+            onPress={select}
+          />
+        )}
+        ListEmptyComponent={
+          <Text className="text-muted px-1.5 pt-3 text-left font-sans text-xs">
+            {t('history.empty')}
+          </Text>
+        }
+      />
+    </View>
   )
 }
