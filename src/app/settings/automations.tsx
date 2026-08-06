@@ -202,12 +202,19 @@ export default function AutomationsScreen(): React.JSX.Element {
    */
   const metaLine = useCallback(
     (block: AutomationBlock): string => {
+      // The desktop's own scheduler answers first (attachJobs). With nobody to
+      // ask — demo mode, where the heartbeat comes from the config snapshot and
+      // no scheduler is running anywhere — resolve the moment from the cron on
+      // this device's clock, exactly as the editor's preview does below. That
+      // is what keeps a bundled automation showing a live next fire instead of
+      // a timestamp baked at build time, which would read as a run in the past.
+      const nextRunMs = block.nextRunMs ?? (block.cron ? nextCronMs(block.cron, now) : null)
       const schedule = !block.active
         ? t('heartbeat.inactive')
         : block.type === 'startup'
           ? t('heartbeat.onLaunch')
-          : block.nextRunMs != null
-            ? `${t('heartbeat.nextRun', { time: formatSignedRelative(block.nextRunMs, now, t) })} · ${formatAbsoluteMoment(block.nextRunMs, locale)}`
+          : nextRunMs != null
+            ? `${t('heartbeat.nextRun', { time: formatSignedRelative(nextRunMs, now, t) })} · ${formatAbsoluteMoment(nextRunMs, locale)}`
             : t('heartbeat.active')
       const parts = [schedule]
       const project = block.project ? projectsById.get(block.project) : undefined

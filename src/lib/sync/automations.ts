@@ -1,6 +1,7 @@
 import { queryClient } from '@/lib/query/queryClient'
 import { tunnelClient } from '@/lib/tunnel/client'
 import { Rpc, type AutomationJob, type AutomationRuns } from '@/lib/tunnel/protocol'
+import { useDemoConfig } from '@/state/demoConfig'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 
 /**
@@ -65,9 +66,30 @@ async function call<T>(method: string, params?: Record<string, unknown>): Promis
   }
 }
 
+/**
+ * The heartbeat the config snapshot carries — the demo bundle's copy of the
+ * file, the scheduler's view of it, and its edit stamps. Peer of projects.ts
+ * snapshotProjects: an unpaired phone renders workspace content from the
+ * bundle rather than showing an empty screen it cannot fill.
+ *
+ * `runs` is deliberately never seeded. A run is something happening on a
+ * machine this one cannot see right now, and an empty pool is the only honest
+ * answer with no desktop behind it (see lib/sync/overlays).
+ */
+function snapshotAutomations(): AutomationsSnapshot {
+  const { markdown, jobs, stamps } = useDemoConfig.getState().snapshotAutomations
+  if (!markdown && jobs.length === 0) return EMPTY
+  return { markdown, jobs, stamps, runs: { running: [], queued: [] } }
+}
+
 async function readSnapshot(): Promise<AutomationsSnapshot> {
   if (!tunnelClient.connected) {
-    return queryClient.getQueryData<AutomationsSnapshot>(automationKeys.snapshot) ?? EMPTY
+    // A cached file wins, so a paired phone that lost its link keeps the
+    // heartbeat it was reading. An EMPTY one falls through to the snapshot:
+    // this query can run before applyConfigSnapshot lands on demo entry, and a
+    // cached blank would be read straight back by the screen's own refetch.
+    const cached = queryClient.getQueryData<AutomationsSnapshot>(automationKeys.snapshot)
+    return cached?.markdown ? cached : snapshotAutomations()
   }
   const answer = await call<Partial<AutomationsSnapshot>>(Rpc.automationsRead)
   return {

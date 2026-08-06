@@ -1,8 +1,8 @@
 # PROVISION.md — Wolffish Mobile Release Procedure
 
-Instructions for an agent **preparing a release** of `wolffish-mobile`: check the work, write the app's own release notes, commit, push. That is the whole job.
+Instructions for an agent **provisioning the next build** of `wolffish-mobile`: check the work, write the app's own release notes, commit it, then hand off to `npm run provision` — which bumps the version and pushes.
 
-**Publishing is manual and belongs to the user.** Nothing in this procedure runs a script, builds a binary, creates a tag, or reaches a store. You leave `main` in a state the user can ship from whenever they choose.
+**Nothing here publishes.** `provision` creates no tag, and `.github/workflows/release.yml` fires on `v*` tags only, so no user's phone sees any of this. Building, submitting and shipping stay manual and belong to the user.
 
 Follow the steps **in order**. If anything looks wrong, **stop and report** (see [If issues are found](#if-issues-are-found--stop)).
 
@@ -10,15 +10,16 @@ Follow the steps **in order**. If anything looks wrong, **stop and report** (see
 
 ## Non-negotiables (read before doing anything)
 
-- **Never run `npm run ota`, `npm run provision`, `npm run release`, or `npm run rollback`.** Never run `eas` anything. Never create or push a tag. These are outward-facing — `ota` publishes to every installed device the moment it runs — and the user manages them by hand.
-- **Never edit the version.** `APP_VERSION`, `CODE_VERSION` and `UPDATE_DATE` in `app.config.ts`, `version` in `package.json` / `package-lock.json`, and the **README version badge** are all bumped by the scripts the user runs. You write no version anywhere.
+- **`npm run provision` is the last step and the only script you run.** It is safe because it publishes nothing — but it does bump the version, commit and push, so it runs once, at the end, after everything below is clean.
+- **Never run `npm run ota`, `npm run release`, or `npm run rollback`.** Never run `eas` anything. Never create or push a tag. `ota` publishes to every installed device the moment it runs; `release` tags a build as shipped. Both are the user's to run.
+- **Never edit the version by hand.** `APP_VERSION`, `CODE_VERSION` and `UPDATE_DATE` in `app.config.ts`, `version` in `package.json` / `package-lock.json`, and the **README version badge** are all written by `provision` itself. You write no version anywhere; you just run the script that does.
 - **The changelog is the one thing you author**, and it is **this app's own** changelog — `src/changelog/<YYYY-MM>/en.md` and `ar.md`, bundled into the binary and read by the Changelog screen. It is not the paired desktop's notes, which the app fetches separately over the tunnel and which are none of this repo's business.
 - **Nothing is committed until the changelog entries exist.** A user-facing batch that reaches `main` without them ships a version the app cannot describe, and the entry then has to be backfilled against a version that already went out.
 - **Both changelog languages, always.** AR is a full translation, not a stub.
 - **A new month needs a code change too.** `src/lib/changelog/index.ts` holds a `PAGES` registry of **static** imports — Metro cannot glob a folder, so a new `src/changelog/<YYYY-MM>/` directory that isn't registered there ships as a month the app cannot read.
-- **Leave the tree clean.** Every ship script the user runs afterwards refuses a dirty working tree, so anything left uncommitted blocks them.
-- **Stay on `main`.** No branches. Plain `git push origin main` — a commit without a tag publishes nothing.
-- **When in doubt, stop.** A halted release costs nothing.
+- **Commit everything before you run it.** `provision` refuses a dirty working tree, and its own commit deliberately carries nothing but the bump — so your work has to already be a commit of its own.
+- **Stay on `main`.** No branches.
+- **When in doubt, stop.** A halted release costs nothing. Stopping before step 6 costs nothing at all.
 
 ---
 
@@ -34,7 +35,7 @@ Follow the steps **in order**. If anything looks wrong, **stop and report** (see
 
 ### 2. Code checks
 
-Run the same three gates the user's ship scripts will run, so nothing you push can be the thing that blocks them later:
+Run the same three gates step 6 will re-run, so a problem surfaces here rather than halfway through a version bump:
 
 ```bash
 npx prettier --check "**/*.{js,jsx,ts,tsx}" --ignore-path .gitignore
@@ -78,45 +79,62 @@ Only reach this step if steps 2 and 3 came back clean and the batch has user-fac
 4. Use today's real date, and keep EN and AR in lockstep.
 5. **If an entry for this version already exists** (an earlier pass wrote one and more work has since landed), append `### Headline` sections to that same block and refresh its header date to today. Never open a second block for one version.
 
-### 5. Commit and push
+### 5. Commit and push the work
 
 1. **One regular commit** with everything: source changes (including step-2 formatting fixes) + changelog EN/AR + any `PAGES` registration. Concise message summarizing the headline change (e.g. `add: turn rating, conversations sheet`).
-2. **Do not touch `app.config.ts` / `package.json` / `package-lock.json` / the README badge.** `scripts/ota.js` and `scripts/provision.js` bump all four and carry them in their own commit — see [What the user does next](#what-the-user-does-next-reference-only--not-yours-to-run).
-3. Confirm the tree is clean: `git status` shows nothing to commit.
+2. **Do not touch `app.config.ts` / `package.json` / `package-lock.json` / the README badge.** Step 6 writes all four.
+3. Confirm the tree is clean: `git status` shows nothing to commit — `provision` refuses a dirty tree.
 4. Push:
    ```bash
    git push origin main
    ```
    Plain push, **no tags**. Nothing publishes.
 
-### 6. Report
+### 6. Provision
+
+```bash
+npm run provision
+```
+
+It re-runs the same three gates on the exact tree it is about to bump, then raises `APP_VERSION` by a patch, `CODE_VERSION` by one, and stamps `UPDATE_DATE`; mirrors the version into `package.json` / `package-lock.json` and the README badge; commits that as `provision: vX.Y.Z (build N)`; and pushes it.
+
+**No tag, so nothing publishes.** The release workflow only fires on a `v*` tag, and only `ota` and `release` create one.
+
+Two things to watch:
+
+- **A failing gate here is a hard stop**, not something to work around. It means step 2 was run against a different tree than the one being provisioned — re-read the diff rather than re-running the command.
+- **`provision` bumps `CODE_VERSION`, the store build counter.** That is right for a batch heading to the App Store, and wrong for one the user intends to send out over the air — `npm run ota` does its own bump, so provisioning first burns a build number and a version. If step 1 found **no** native-surface change and the user has said they want this as an OTA, **stop before this step**, report that the work is committed and ready, and let them run `npm run ota` themselves.
+
+To provision an explicit version rather than a patch bump: `npm run provision 1.1.0`.
+
+### 7. Report
 
 Tell the user, briefly:
 
-- What's in the release, and the version the changelog was written for.
-- **Whether the batch touched the native surface** — the answer from step 1, because it decides which command they run.
+- What's in the release, and the version `provision` created — `vX.Y.Z (build N)`, straight from its output.
+- **Whether the batch touched the native surface** — the answer from step 1, because it decides how they ship it.
 - Anything you fixed yourself (formatting), and anything you noted but left alone.
 - What you actually verified on a device.
 
-Then stop. **Do not run the ship command, and do not offer to.**
+Then stop. **Do not build, submit, tag, or publish, and do not offer to.**
 
 ---
 
 ## What the user does next (reference only — not yours to run)
 
-Listed so your report can name the right one, never so you can execute it.
+Provisioning leaves a version that exists in git and nowhere else. Getting it to a phone is theirs:
 
 | | **OTA update** | **Store build** |
 |---|---|---|
 | Carries | JS, assets, locales | Everything, including native |
-| Their command | `npm run ota` | `npm run provision` → EAS build → submit → `npm run release` |
+| Their command | `npm run ota` | EAS build → submit → `npm run release` once it's live |
 | Reaches users | Minutes, no review | After store review |
 
 A native change forks the fingerprint runtime version and can only reach users in a new binary; `npm run ota` checks this itself and refuses to publish an update no installed binary could receive. A bad update is reversible with `npm run rollback`.
 
-Both `ota` and `provision` bump `APP_VERSION`, `UPDATE_DATE`, `package.json` **and the README version badge** together, and commit them as one bump commit — which is why none of those are yours to edit. (`release` deliberately stays an empty marker commit so its tag points at exactly the tree that was built.)
+`release` records an **empty** marker commit and tags it, so the tag points at exactly the tree that was built — which is why it changes no files and why only the provisioned build that actually shipped ever gets a tag.
 
-All four scripts refuse a dirty working tree — which is why step 6 exists.
+All four scripts refuse a dirty working tree — which is why step 5 commits before step 6 runs.
 
 ---
 
@@ -124,7 +142,7 @@ All four scripts refuse a dirty working tree — which is why step 6 exists.
 
 Applies to any blocker: a failing typecheck or test, a bad or breaking change spotted in step 2, a formatting error that can't be fixed without changing behavior, a protocol split against `wolffish-app`, an unclear diff — anything that means this should not be pushed as-is. (Plain formatting failures are NOT blockers — step 2 has you fix those yourself and continue.)
 
-1. **Stop immediately.** Do not write the changelog, do not bump the badge, do not commit, do not push.
+1. **Stop immediately.** Do not write the changelog, do not commit, do not push, and above all do not run `npm run provision` — a version bumped over a known problem is a version someone has to unpick.
 2. **Report the issues minimally** — just *what* they are, briefly. One line each. No fixes applied, no long analysis.
 3. **Hand the decision to the user.** Wait for them to decide how to address each issue.
 4. Once addressed / approved, **start over from step 1**.
@@ -140,8 +158,8 @@ Do not partially release, do not work around a flagged issue, and do not decide 
 | App version | `app.config.ts` → `APP_VERSION` | **No** — the user's script bumps it |
 | Store build counter | `app.config.ts` → `CODE_VERSION` | **No** — `npm run provision` only |
 | Update date | `app.config.ts` → `UPDATE_DATE` | **No** — the scripts stamp it |
-| npm version mirror | `package.json` → `"version"` | **No** — kept in lockstep by the scripts |
-| Version badge | `README.md` badge line | **No** — `ota` / `provision` bump it |
+| npm version mirror | `package.json` → `"version"` | **No** — `provision` writes it |
+| Version badge | `README.md` badge line | **No** — `provision` writes it |
 | Changelog (English) | `src/changelog/<YYYY-MM>/en.md` | **Yes** — the one thing you author |
 | Changelog (Arabic) | `src/changelog/<YYYY-MM>/ar.md` | **Yes** — full translation |
 | Month registry | `src/lib/changelog/index.ts` → `PAGES` | **Yes** — only for a new month |
@@ -153,8 +171,9 @@ npx tsc --noEmit && npx jest --silent                                    #    ty
 diff -r src/lib/tunnel ../wolffish-app/src/main/tunnel                   # 3. sync gate, if relevant
 # 4. write src/changelog/<YYYY-MM>/{en,ar}.md   (next = patch bump of APP_VERSION)
 #    — required before anything is committed; no versions, no badge
-git add -A && git commit -m "<summary>"   # 5. one regular commit …
-git push origin main                      #    … plain push — NO scripts, NO tags, NO publishing
+git add -A && git commit -m "<summary>"   # 5. one regular commit, then …
+git push origin main                      #    … plain push — no tags, nothing publishes
+npm run provision                         # 6. bumps version + build + badge, commits, pushes
 ```
 
-**One-line summary:** analyze → run the three checks (formatting: fix yourself; types, tests, code: stop) → run the sync gate if the diff touches the tunnel → write this app's own EN+AR changelog for the next version, before committing anything → commit everything → plain `git push origin main` → report what's ready and whether it needs a store build. Versions and the README badge are the scripts' business; you never run a script, create a tag, or publish anything.
+**One-line summary:** analyze → run the three checks (formatting: fix yourself; types, tests, code: stop) → run the sync gate if the diff touches the tunnel → write this app's own EN+AR changelog for the next version → commit and push the work → `npm run provision` to bump the version and push the bump → report the version it created and whether the batch needs a store build. `provision` publishes nothing; building, submitting, `ota`, `release` and `rollback` stay the user's.

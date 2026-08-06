@@ -81,7 +81,7 @@ npm run format         # prettier --write
 
 After structural changes always run `npm run ts:check` **and** `npm run test`. The ship scripts gate on Prettier too, so run `npm run format` before committing.
 
-Preparing a release is [PROVISION.md](PROVISION.md) — checks, this app's own changelog, commit, push. **Publishing is manual and belongs to the user:** never run `ota` / `provision` / `release` / `rollback`, never run `eas`, never create or push a tag. Versions and the README version badge are bumped by `scripts/ota.js` and `scripts/provision.js`; never write them by hand.
+Provisioning a build is [PROVISION.md](PROVISION.md) — checks, this app's own changelog, commit, push, then `npm run provision`, which bumps the version and pushes the bump. It creates no tag, so nothing reaches a phone. **Shipping is manual and belongs to the user:** never run `ota` / `release` / `rollback`, never run `eas`, never create or push a tag. Versions and the README badge are written by `scripts/provision.js` and `scripts/ota.js`; never write them by hand.
 
 ---
 

@@ -1,6 +1,7 @@
 import { queryClient } from '@/lib/query/queryClient'
 import { tunnelClient } from '@/lib/tunnel/client'
 import { Rpc, type SyncProcedure } from '@/lib/tunnel/protocol'
+import { useDemoConfig } from '@/state/demoConfig'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 
 /**
@@ -8,9 +9,11 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query'
  * here on the same contract as projects (lib/sync/projects.ts): every write
  * goes to the desktop and the stored row is what lands in the cache.
  *
- * Unlike projects there is no snapshot copy to fall back on — procedures are
- * not part of the config snapshot — so an unpaired phone shows the empty state,
- * which is the truth: demo mode has no procedures.
+ * Unpaired (demo mode) the rows come from the config snapshot the bundle
+ * carries, exactly as projects do — the screen is workspace CONTENT, and an
+ * empty one says the workspace has no procedures rather than that this phone
+ * has no desktop. There is still nowhere for a write to land, and the screen
+ * says so (useProjectsWritable, which both screens read).
  */
 
 export const procedureKeys = { list: ['procedures'] as const }
@@ -30,11 +33,25 @@ async function call<T>(method: string, params?: Record<string, unknown>): Promis
   }
 }
 
+/**
+ * The snapshot's procedures — the demo bundle's copy, already in wire shape.
+ * Peer of projects.ts snapshotProjects, and read on the same terms.
+ */
+function snapshotProcedures(): SyncProcedure[] {
+  return useDemoConfig.getState().snapshotProcedures
+}
+
 async function fetchProcedures(): Promise<SyncProcedure[]> {
   // Disconnected keeps whatever the cache holds rather than emptying a list the
   // user is looking at; the reconnect's re-list is what corrects it.
+  //
+  // An EMPTY cached answer falls through to the snapshot on purpose. Demo entry
+  // races: this query can run before applyConfigSnapshot has landed, caching
+  // the empty list — and since the screen's own refetch would then read that
+  // same empty cache back, the bundle's rows would never appear at all.
   if (!tunnelClient.connected) {
-    return queryClient.getQueryData<SyncProcedure[]>(procedureKeys.list) ?? []
+    const cached = queryClient.getQueryData<SyncProcedure[]>(procedureKeys.list)
+    return cached?.length ? cached : snapshotProcedures()
   }
   const answer = await call<{ procedures?: SyncProcedure[] }>(Rpc.proceduresList)
   return Array.isArray(answer?.procedures) ? answer.procedures : []

@@ -1,4 +1,5 @@
 import type { UsageDay } from '@/lib/usage/stats'
+import type { AutomationJob, SyncProcedure } from '@/lib/tunnel/protocol'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
@@ -525,6 +526,35 @@ export type ConfigSnapshot = {
   variables: DemoVariable[]
   /** Absent in bundles published before projects shipped. */
   projects?: DemoProject[]
+  /**
+   * The workspace's saved procedures (desktop: `brain/procedures.json`).
+   *
+   * Carried for exactly the reason `projects` is: the Procedures screen is
+   * workspace content, not a knob, and an unpaired phone has to render it from
+   * something. A paired phone never reads this — `Rpc.proceduresList` answers
+   * first and every write goes there — so a real desktop omitting the section
+   * costs nothing (lib/sync/procedures falls back only when there is no
+   * tunnel).
+   */
+  procedures?: SyncProcedure[]
+  /**
+   * The heartbeat as the Automations screen needs it: the file, the
+   * scheduler's live view of the ACTIVE jobs in it, and the per-label edit
+   * stamps. Same contract as `procedures` above — snapshot copy for the
+   * unpaired case, ignored entirely once a tunnel can answer
+   * `Rpc.automationsRead`.
+   *
+   * The run pool is deliberately NOT here: a run is something happening right
+   * now on a machine this one cannot see, and a bundled one would be a claim
+   * with no evidence behind it (see lib/sync/overlays).
+   */
+  automations?: {
+    /** heartbeat.md verbatim. */
+    markdown?: string
+    jobs?: AutomationJob[]
+    /** label → epoch ms of its last edit. */
+    stamps?: Record<string, number>
+  }
   services: {
     google: { status: string; projectId: string }
     github: ServiceConnection[]
@@ -819,6 +849,14 @@ export type DemoConfigState = DemoConfigValues & {
    * offers no editor rather than an editor over text it does not have.
    */
   customizationOversized: string[]
+  /**
+   * The snapshot's procedures and heartbeat — desktop-managed and display-only
+   * here, exactly like `compactionRuns`. They are NOT in DemoConfigValues
+   * because this device cannot edit them without a desktop to write to; the
+   * two sync modules read them only when there is no tunnel to ask.
+   */
+  snapshotProcedures: SyncProcedure[]
+  snapshotAutomations: { markdown: string; jobs: AutomationJob[]; stamps: Record<string, number> }
   /** The one write path — updates a single flat key. */
   setValue: <K extends keyof DemoConfigValues>(key: K, value: DemoConfigValues[K]) => void
   /** Toggle one entry inside a Record<string, boolean> collection. */
@@ -988,6 +1026,12 @@ const INITIAL_STATE = {
   desktopData: sanitizeDesktopData(undefined),
   desktopChangelogMonths: [] as string[],
   customizationOversized: [] as string[],
+  snapshotProcedures: [] as SyncProcedure[],
+  snapshotAutomations: {
+    markdown: '',
+    jobs: [] as AutomationJob[],
+    stamps: {} as Record<string, number>
+  },
   ollamaRunning: false
 }
 
@@ -1071,6 +1115,18 @@ export const useDemoConfig = create<DemoConfigState>()(
             agentsMarkdown: snapshot.customization?.agents ?? state.agentsMarkdown,
             variables: mergeVariablesFromDesktop(snapshot.variables, state.variables),
             projects: snapshot.projects ?? [],
+            snapshotProcedures: Array.isArray(snapshot.procedures) ? snapshot.procedures : [],
+            snapshotAutomations: {
+              markdown:
+                typeof snapshot.automations?.markdown === 'string'
+                  ? snapshot.automations.markdown
+                  : '',
+              jobs: Array.isArray(snapshot.automations?.jobs) ? snapshot.automations.jobs : [],
+              stamps:
+                snapshot.automations?.stamps && typeof snapshot.automations.stamps === 'object'
+                  ? snapshot.automations.stamps
+                  : {}
+            },
             brainProvider: snapshot.llm.brainProvider,
             brainModel: snapshot.llm.brainModel,
             chatMode: snapshot.llm.chatMode,
@@ -1234,6 +1290,8 @@ export const useDemoConfig = create<DemoConfigState>()(
           desktopData: state.desktopData,
           desktopChangelogMonths: state.desktopChangelogMonths,
           customizationOversized: state.customizationOversized,
+          snapshotProcedures: state.snapshotProcedures,
+          snapshotAutomations: state.snapshotAutomations,
           ollamaRunning: state.ollamaRunning
         }
         for (const key of Object.keys(DEFAULTS) as Array<keyof DemoConfigValues>) {
