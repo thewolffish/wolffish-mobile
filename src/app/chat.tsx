@@ -201,13 +201,9 @@ export default function ChatScreen(): React.JSX.Element {
    * the FEED, not from the stored transcript — the desktop's bar appears the
    * moment its turn ends, and on the phone the finished turn is still the live
    * overlay for the beat before its saved copy takes over.
-   *
-   * Deliberately not gated on the score being persisted anywhere: a turn is
-   * rateable exactly when it is complete, and the write path resolves what the
-   * desktop actually holds (sync/rating.ts).
    */
   const lastItem = feed[feed.length - 1]
-  const ratableId =
+  const completedId =
     scoringEnabled &&
     writable &&
     !streaming &&
@@ -218,11 +214,24 @@ export default function ChatScreen(): React.JSX.Element {
     lastItem.message.id
       ? lastItem.message.id
       : null
-  const ratableScore = useMemo(() => {
-    if (!ratableId) return null
-    const rating = conversation?.ratings?.find((entry) => entry.messageId === ratableId)
-    return rating ? rating.score : null
-  }, [ratableId, conversation])
+  /**
+   * ...and only for as long as it has NO score. The bar retires on the vote
+   * rather than sitting there already-answered — the desktop's rule, and for
+   * the same reason: a standing prompt over a turn the user has answered
+   * reads as nagging.
+   *
+   * The score comes from `conversation.ratings` — the desktop's ratings[] as
+   * this phone stores it — so the bar retires for a vote cast on ANY surface:
+   * this phone (written locally the moment the finger lands, taken back down
+   * if the write never reaches the desktop), the desktop's own bar, or a
+   * bare-number Telegram/WhatsApp reply arriving on the `turn.scored` push.
+   * One source of truth, one condition.
+   */
+  const ratableId = useMemo(() => {
+    if (!completedId) return null
+    const scored = conversation?.ratings?.some((entry) => entry.messageId === completedId)
+    return scored ? null : completedId
+  }, [completedId, conversation])
 
   /**
    * A send that will not happen, taken back down. The live turn opened at the
@@ -766,10 +775,12 @@ export default function ChatScreen(): React.JSX.Element {
         <View style={{ paddingBottom: insets.bottom }}>
           {/* The score bar for the turn that just ended, above the composer
               exactly as on the desktop. Mutually exclusive with the queued
-              rows in practice — those only exist while a turn runs. */}
+              rows in practice — those only exist while a turn runs. Always
+              unscored: a turn that has a score has no bar (see ratableId), so
+              the tap both records the vote and dismisses the bar. */}
           {ratableId !== null && conversationId !== null && (
             <TurnRating
-              score={ratableScore}
+              score={null}
               onRate={(score) => {
                 void rateTurn(conversationId, ratableId, score)
               }}

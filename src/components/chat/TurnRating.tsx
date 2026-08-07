@@ -4,11 +4,12 @@ import { Pressable, Text, View } from 'react-native'
 
 /**
  * The turn score bar — the desktop's NPS-style 0-10 strip, shown above the
- * composer once a turn has finished. One tap records the score; the chosen
- * segment stays filled and can be re-tapped to change the vote. Entirely
- * optional: an unrated turn is fine, the nightly reflection simply reviews it
- * without a user signal. Gated by Settings → Knowledge → Reflection, the same
- * switch that gates the desktop's own bar.
+ * composer once a turn has finished. One tap records the score and the bar
+ * retires: a turn that has a score has no bar, so `score` arrives null in
+ * practice and the filled state is the caller's to use if it ever shows a
+ * scored turn again. Entirely optional: an unrated turn is fine, the nightly
+ * reflection simply reviews it without a user signal. Gated by Settings →
+ * Knowledge → Reflection, the same switch that gates the desktop's own bar.
  *
  * The desktop's is a floating pill — label and eleven segments on one line.
  * That does not fit a phone: eleven touch targets plus a sentence would leave

@@ -1,13 +1,15 @@
 /**
- * The turn score bar on the chat screen — WHEN it is offered and what it shows.
+ * The turn score bar on the chat screen — WHEN it is offered.
  *
  * The desktop's rule, ported: a completed turn in an idle chat is rateable
- * 0-10, and the bar appears the moment that turn ends rather than when its
- * saved copy arrives. Both halves are load-bearing and both fail invisibly —
- * a bar that only shows up after the body refetch looks like a slow render, a
- * bar that shows up mid-turn invites a vote on an answer that is still being
- * written, and one that forgets a score already cast looks like the vote never
- * landed.
+ * 0-10, the bar appears the moment that turn ends rather than when its saved
+ * copy arrives, and it retires the moment that turn has a score — from any
+ * surface, since the score is a fact about the turn and not about the device
+ * that cast it. Every half is load-bearing and every one fails invisibly: a
+ * bar that only shows up after the body refetch looks like a slow render, a
+ * bar that shows up mid-turn invites a vote on an answer still being written,
+ * and a bar that outlives the vote it asked for is the one users read as
+ * nagging.
  */
 
 import { cleanup, act, fireEvent, render, screen } from '@testing-library/react-native'
@@ -173,11 +175,19 @@ describe('the rating bar', () => {
     expect(mockRateTurn).toHaveBeenCalledWith(CONVERSATION, ANSWER, 8)
   })
 
-  it('shows the score the turn already carries, from whichever surface cast it', async () => {
+  it('retires once the turn has a score, from whichever surface cast it', async () => {
+    // A vote from a bare-number Telegram reply, arriving here on the
+    // turn.scored push. The bar is answered — for THIS turn there is nothing
+    // left to ask, whoever did the asking.
     mockConversation.data = stored([{ messageId: ANSWER, score: 3, at: 10, source: 'telegram' }])
     await mount()
-    expect(screen.getByLabelText('Rate 3 out of 10').props.accessibilityState.selected).toBe(true)
-    expect(screen.getByLabelText('Rate 4 out of 10').props.accessibilityState.selected).toBe(false)
+    expect(bar()).toBeNull()
+  })
+
+  it('retires a turn scored from this phone, not just one scored elsewhere', async () => {
+    mockConversation.data = stored([{ messageId: ANSWER, score: 8, at: 10, source: 'mobile' }])
+    await mount()
+    expect(bar()).toBeNull()
   })
 
   it('stays away while the turn is being written', async () => {

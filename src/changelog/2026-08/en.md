@@ -1,4 +1,10 @@
-## v1.0.21 — 2026-08-07 `Latest`
+## v1.0.22 — 2026-08-07 `Latest`
+
+### A Rating Bar That Knows When It's Done
+
+The 0-10 strip above the composer asked you to score a turn, and then went on asking. You tapped a number, the segment filled, and **the bar stayed exactly where it was** until the next turn came along — an answered question still sitting over the composer, holding room on a screen that has none to spare. It **retires the moment the turn has a score** now: one tap, the vote is in, the bar is gone. And because a score is a fact about the turn rather than about the device that cast it, the bar goes away **wherever the vote came from** — this phone, the desktop, or a bare number typed into Telegram or WhatsApp. Score a turn on the desktop and the chat open on your phone **stops asking in the same moment**. A vote that never reaches the desktop brings the bar back rather than leaving a score sitting there looking recorded. One deliberate trade comes with it: the bar is no longer where you go to change a vote, because a bar that lingers to allow second thoughts is precisely the one that was in the way.
+
+## v1.0.21 — 2026-08-07
 
 ### PDFs, Read Where They Sit
 
