@@ -6,6 +6,7 @@ import { HistorySkeleton } from '@/components/history/HistorySkeleton'
 import { groupConversations } from '@/lib/conversations/grouping'
 import { removeConversation, useConversationList } from '@/lib/conversations/hooks'
 import type { ConversationMeta } from '@/lib/conversations/types'
+import { goBack } from '@/lib/utils/back'
 import { cn } from '@/lib/utils/cn'
 import { useDesktopReachable } from '@/lib/tunnel/useTunnelStatus'
 import { formatRelativeTime } from '@/lib/utils/relativeTime'
@@ -135,7 +136,7 @@ export default function HistoryScreen(): React.JSX.Element {
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
           hitSlop={8}
-          onPress={() => router.back()}
+          onPress={goBack}
           className="h-9 w-9 items-center justify-center rounded-lg active:bg-border/40"
         >
           <BackIcon size={20} className="text-fg" />

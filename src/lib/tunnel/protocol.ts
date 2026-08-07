@@ -694,6 +694,104 @@ export function isAllowedDeeplink(value: unknown): value is string {
   )
 }
 
+/**
+ * Every screen a notification tap can land on, spelled exactly as this app's
+ * router knows it (the expo-router file routes under src/app).
+ *
+ * This list IS the contract, and both ends hold it: the desktop refuses a
+ * deeplink naming anything else — so the model is corrected inside the call
+ * that got it wrong, instead of sending someone to a screen that does not
+ * exist — and this app ignores one it cannot resolve, which is what keeps an
+ * older build safe against a newer desktop. `chat` is the only route that
+ * takes a parameter (`?id=<conversationId>`); without one it opens a new chat.
+ *
+ * Deliberately absent: `/` (the pairing door, which a paired phone bounces off
+ * anyway) and `/showcase` (a component gallery, not a destination). Keep it in
+ * step with the routes themselves — a screen missing from here is a screen no
+ * notification can reach.
+ */
+export const DEEPLINK_ROUTES = [
+  'chat',
+  'history',
+  'settings',
+  'settings/model',
+  'settings/appearance',
+  'settings/preferences',
+  'settings/projects',
+  'settings/automations',
+  'settings/procedures',
+  'settings/customization',
+  'settings/channels',
+  'settings/capabilities',
+  'settings/knowledge',
+  'settings/mcp',
+  'settings/services',
+  'settings/variables',
+  'settings/usage',
+  'settings/data',
+  'settings/updates',
+  'settings/relay',
+  'settings/changelog'
+] as const
+
+export type DeeplinkRoute = (typeof DEEPLINK_ROUTES)[number]
+
+/** A deeplink resolved to a screen this build actually has. */
+export type DeeplinkTarget = {
+  route: DeeplinkRoute
+  /** Only ever set for `chat` — the conversation the tap opens. */
+  conversationId: string | null
+}
+
+/** Conversation ids ARE filenames on the desktop (see conversations.ts), so
+ *  this is that same safe set — and a title, a sentence or a URL fails it. */
+const CONVERSATION_ID_SHAPE = /^[A-Za-z0-9._-]{1,128}$/
+
+/**
+ * Resolve a `wolffish://…` link to a screen, or null when it names one this
+ * build does not have.
+ *
+ * Tolerant where tolerance is harmless — extra slashes (`wolffish:///chat`), a
+ * trailing slash, unknown query parameters — and strict about the only two
+ * things that decide where a tap lands: the route and the conversation id.
+ */
+export function parseDeeplink(value: unknown): DeeplinkTarget | null {
+  if (!isAllowedDeeplink(value)) return null
+  const withoutScheme = value.slice(DEEPLINK_SCHEME.length)
+  const queryAt = withoutScheme.indexOf('?')
+  const rawRoute = queryAt === -1 ? withoutScheme : withoutScheme.slice(0, queryAt)
+  const query = queryAt === -1 ? '' : withoutScheme.slice(queryAt + 1)
+  const route = rawRoute.replace(/^\/+/, '').replace(/\/+$/, '')
+  if (!(DEEPLINK_ROUTES as readonly string[]).includes(route)) return null
+  if (route !== 'chat') return { route: route as DeeplinkRoute, conversationId: null }
+  const conversationId = readQueryParam(query, 'id')
+  if (conversationId !== null && !CONVERSATION_ID_SHAPE.test(conversationId)) return null
+  return { route: 'chat', conversationId }
+}
+
+/** The canonical link for a target — the one shape the desktop ever sends,
+ *  so a phone parsing it naively still lands in the right place. */
+export function buildDeeplink(target: DeeplinkTarget): string {
+  const query =
+    target.route === 'chat' && target.conversationId ? `?id=${target.conversationId}` : ''
+  return `${DEEPLINK_SCHEME}${target.route}${query}`
+}
+
+function readQueryParam(query: string, name: string): string | null {
+  for (const pair of query.split('&')) {
+    if (!pair) continue
+    const equals = pair.indexOf('=')
+    if ((equals === -1 ? pair : pair.slice(0, equals)) !== name) continue
+    const raw = equals === -1 ? '' : pair.slice(equals + 1)
+    try {
+      return decodeURIComponent(raw) || null
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
 /** Phone → relay, on pairing and on every app foreground. */
 export type RegisterPushFrame = {
   v: 1

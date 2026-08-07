@@ -1,7 +1,7 @@
 import { ArrowLeft01Icon, ArrowRight01Icon } from '@/components/core/icons'
 import { Toggle } from '@/components/settings/ConfigRows'
+import { goBack } from '@/lib/utils/back'
 import { cn } from '@/lib/utils/cn'
-import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { I18nManager, Pressable, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -33,7 +33,7 @@ export function PanelScreen({
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
           hitSlop={8}
-          onPress={() => router.back()}
+          onPress={goBack}
           className="h-9 w-9 items-center justify-center rounded-lg active:bg-border/40"
         >
           <BackIcon size={20} className="text-fg" />

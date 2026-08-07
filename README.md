@@ -185,7 +185,7 @@ Notifications are **100% model-initiated**: the desktop agent decides to tell yo
 - **In-band** over the live tunnel when the phone is connected, and
 - **Expo push** as the fallback when it isn't.
 
-The phone registers its push token by a stable per-device id on pairing, on reconnect and on every foreground, and dedupes by notification id, because both routes can legitimately fire. Deep links in a notification are restricted to the app's own `wolffish://` scheme.
+The phone registers its push token by a stable per-device id on pairing, on reconnect and on every foreground, and dedupes by notification id, because both routes can legitimately fire. Where a tap lands is the model's choice, from a fixed list: a deep link must be the app's own `wolffish://` scheme **and** name a screen that exists — the desktop refuses anything else before sending, and the phone ignores a link it cannot resolve rather than navigating somewhere arbitrary.
 
 ---
 
@@ -351,7 +351,7 @@ Conversation data never leaves the pair. The relay stores none of it, and there 
 - **Paths are validated on the desktop** — anything escaping the workspace root is refused, and upload destinations are the desktop's choice, not the phone's.
 - **Dangerous tool calls still gate.** The desktop's approval flow reaches the phone as a card and fails closed if nobody answers.
 - **Camera is pairing-only.** No capture, no library access, no recording — the photo picker runs out of process and returns only what you chose.
-- **Notifications are desktop-stamped.** Ids and targets come from the pairing record, never from the model, and deep links are restricted to the app's own scheme.
+- **Notifications are desktop-stamped.** Ids and targets come from the pairing record, never from the model, and deep links are restricted to the app's own scheme and to screens it actually has.
 
 ---
 

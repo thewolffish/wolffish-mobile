@@ -105,6 +105,7 @@
       "<rootDir>/node_modules/react-native-gesture-handler/jestSetup.js"
     ],
     "moduleNameMapper": {
+      "\\.webjs$": "<rootDir>/jest/webjsAsset.js",
       "^@/assets/(.*)$": "<rootDir>/assets/$1",
       "^@/(.*)$": "<rootDir>/src/$1"
     },

@@ -1,4 +1,18 @@
-## v1.0.20 — 2026-08-07 `Latest`
+## v1.0.21 — 2026-08-07 `Latest`
+
+### PDFs, Read Where They Sit
+
+A PDF in a conversation used to be a file row on Android — tap it and the document left for whatever viewer the phone happened to have. It now **opens in the card itself**, showing a real first page and expanding to the whole document, scrollable and pinch-zoomable, exactly as it already did on iPhone. The reader travels with the app rather than depending on one being installed, and the document is read where it sits: nothing is handed to another app, and the page drawing it can reach no file but the one you opened. Very large PDFs still go to the system viewer, which is where they belong.
+
+### A Tap That Lands Where It Says
+
+Tapping a notification now **opens the thing the notification is about** — the conversation that just finished, the schedule that ran, the screen that needs you — including when that tap is what launched the app. It used to open Wolffish and stop there, because the app was already on its way somewhere else by the time the tap was read. A conversation reached this way **waits for the desktop** rather than flashing an empty new chat and correcting itself a second later, and the back arrow on a screen opened straight from a notification now leads into the app instead of doing nothing. A link Wolffish cannot place leaves you exactly where you are — and the desktop, for its part, can no longer point a notification at a screen this app does not have.
+
+### Smaller Things
+
+The composer's controls button **has its own glyph** now — vertical faders, for the sheet that holds mode, thinking, model and the context meter — so it no longer reads as a second copy of the conversations navigator sitting next to it. And entering demo mode **keeps its progress bar** until the chat is actually on screen, instead of dropping it for a few frames right before the app moved anyway.
+
+## v1.0.20 — 2026-08-07
 
 ### Six Ranges, Six Answers
 

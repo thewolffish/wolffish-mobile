@@ -1,17 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as Device from 'expo-device'
 import Constants from 'expo-constants'
-import * as Linking from 'expo-linking'
 import * as Notifications from 'expo-notifications'
 import * as SecureStore from 'expo-secure-store'
 import { router, type Href } from 'expo-router'
 import { Platform } from 'react-native'
 import {
   ANDROID_CHANNEL_ID,
-  DEEPLINK_SCHEME,
   PUSH_WIRE_VERSION,
-  isAllowedDeeplink,
+  parseDeeplink,
   parseNotification,
+  type DeeplinkTarget,
   type RegisterPushFrame
 } from '@/lib/tunnel/protocol'
 import { toHex } from '@/lib/tunnel/pairing'
@@ -37,6 +36,12 @@ import type { Tunnel } from '@/lib/tunnel/tunnel'
  * Nothing here sends notifications. The phone registers where it can be
  * reached and renders what arrives; whether anything is sent at all is the
  * desktop model's deliberate tool call, rate-limited over there.
+ *
+ * WHERE A TAP GOES is the third thing this file owns, and it has two arrivals
+ * that look alike and are not: a tap on a running app (the response listener,
+ * which navigates on the spot) and the tap that STARTED the app, which has to
+ * be read before the entry screen redirects or it ends up racing it. See
+ * launchDeeplink.
  */
 
 /** Stable device id — THE phoneId push registrations are keyed by. Minted
@@ -143,33 +148,99 @@ function installForegroundHandler(): void {
 
 // ------------------------------------------------------------ tap handling
 
-/** Responses already routed, by notification request identifier — the
- *  cold-start probe can replay the same response the listener already saw. */
+/** Responses already dealt with, by notification request identifier — the
+ *  launch tap is seen twice (the entry screen reads it, the listener replays
+ *  it) and must move the app exactly once. */
 const routedResponses = new Set<string>()
 
-function routeResponse(response: Notifications.NotificationResponse | null): void {
-  if (!response) return
+/** The launch tap's destination: undefined until read, null once read and
+ *  found absent or unusable. */
+let launchHref: Href | null | undefined
+
+/** The in-app route a target names. `wolffish://chat?id=X` is `/chat?id=X`,
+ *  `wolffish://settings/model` is `/settings/model` — the deeplink table and
+ *  this app's own routes are the same list, by construction. */
+function hrefFor(target: DeeplinkTarget): Href {
+  if (target.route === 'chat' && target.conversationId) {
+    return { pathname: '/chat', params: { id: target.conversationId } } as Href
+  }
+  return `/${target.route}` as Href
+}
+
+/**
+ * Resolve a tap to a screen, once.
+ *
+ * Null for a response already handled, and null for a link this build cannot
+ * resolve — a deeplink naming a screen that does not exist here (an older app,
+ * a newer desktop) must leave the user exactly where they are. It used to fall
+ * through to the not-found route, which redirects home, which on a paired
+ * phone redirects into whatever chat was last open: a tap that appeared to do
+ * something arbitrary rather than nothing.
+ *
+ * The route table is also the whole security story: notification payloads are
+ * data, and only a link naming one of this app's own screens may steer it.
+ */
+function takeResponseHref(response: Notifications.NotificationResponse | null): Href | null {
+  if (!response) return null
   const requestId = response.notification.request.identifier
-  if (routedResponses.has(requestId)) return
+  if (routedResponses.has(requestId)) return null
   routedResponses.add(requestId)
   const data = response.notification.request.content.data as Record<string, unknown> | undefined
-  const url = data?.url
-  // The allowlist is the whole security story here: notification payloads
-  // are data, and only the app's own scheme may steer navigation.
-  if (!isAllowedDeeplink(url)) return
-  // Navigate IN-APP: `wolffish://chat?id=X` is the expo-router path
-  // `/chat?id=X`, `wolffish://settings/model` is `/settings/model`, and so
-  // on — the desktop composes deeplinks to match this app's own routes. A
-  // push keeps whatever screen the user was on underneath (back returns to
-  // it); an unknown path lands on the router's not-found screen, which is
-  // the honest answer for a link from a newer desktop. The OS round trip
-  // (Linking.openURL) stays as the fallback only for a router not ready to
-  // navigate yet — a cold start racing the first mount.
-  const path = `/${url.slice(DEEPLINK_SCHEME.length)}` as Href
+  const target = parseDeeplink(data?.url)
+  return target ? hrefFor(target) : null
+}
+
+/** A tap that arrived while the app was already running. Pushed, so the screen
+ *  the user was on stays underneath and back returns to it — the same thing
+ *  opening a conversation from History does. */
+function routeResponse(response: Notifications.NotificationResponse | null): void {
+  const href = takeResponseHref(response)
+  if (href) router.push(href)
+}
+
+/**
+ * Where the notification that LAUNCHED the app points, or null.
+ *
+ * Read synchronously: expo-notifications keeps the launch tap on the native
+ * side, so this answers on the entry screen's FIRST render, before anything
+ * has navigated. That timing is the whole point. A paired phone's entry screen
+ * redirects into the app the moment it mounts, and a destination resolved even
+ * one tick later (an async probe, the response listener) arrives as a SECOND
+ * navigation racing that redirect — sometimes landing under it, sometimes
+ * replaced by it, which is what made tapping a notification open the app but
+ * not the conversation. Read here, the tap's destination simply IS the boot
+ * destination: one navigation, nothing to race.
+ *
+ * Idempotent — the answer is latched, so a re-render cannot change it — and
+ * marked routed, so the listener replaying the same tap does not move the app
+ * a second time.
+ */
+export function launchDeeplink(): Href | null {
+  if (launchHref !== undefined) return launchHref
+  launchHref = takeResponseHref(lastNotificationResponse())
+  return launchHref
+}
+
+/**
+ * Forget the launch tap, once the entry screen has had it. Both halves matter:
+ * the latch, so a later mount of that screen cannot navigate on a tap from
+ * minutes ago, and the native copy, which `getLastNotificationResponse` would
+ * otherwise keep answering with for the life of the process.
+ */
+export function forgetLaunchDeeplink(): void {
+  launchHref = null
   try {
-    router.push(path)
+    Notifications.clearLastNotificationResponse()
   } catch {
-    Linking.openURL(url).catch(() => undefined)
+    // Not available on this runtime — the latch above is what matters.
+  }
+}
+
+function lastNotificationResponse(): Notifications.NotificationResponse | null {
+  try {
+    return Notifications.getLastNotificationResponse()
+  } catch {
+    return null // unsupported runtime (web, an old dev client)
   }
 }
 
@@ -191,10 +262,11 @@ export function initNotifications(): void {
   listenersInstalled = true
   Notifications.addNotificationResponseReceivedListener((response) => routeResponse(response))
   // Cold start: the tap that launched the app fired before any listener
-  // existed. The routed-set keeps this from double-routing a warm tap.
-  Notifications.getLastNotificationResponseAsync()
-    .then((response) => routeResponse(response))
-    .catch(() => undefined)
+  // existed, and the native module does not replay it to one. Normally the
+  // entry screen has already taken it (launchDeeplink, read on its first
+  // render — which happens before this effect) and this is a no-op; it stays
+  // as the path for a launch that never went through that screen.
+  routeResponse(lastNotificationResponse())
   // Token rotation — rare, silent, and fatal to push delivery if missed.
   Notifications.addPushTokenListener(() => {
     void refreshPushRegistration()

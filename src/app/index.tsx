@@ -15,9 +15,10 @@ import { useAppStore } from '@/state/appStore'
 import { useToast } from '@/providers/toast/useToast'
 import { useTokens } from '@/providers/theme/useTheme'
 import { invalidateConversationList } from '@/lib/conversations/cache'
+import { forgetLaunchDeeplink, launchDeeplink } from '@/lib/notifications/push'
 import { Image } from 'expo-image'
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ActivityIndicator, Pressable, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -52,6 +53,16 @@ export default function Home(): React.JSX.Element {
   const setPaired = useAppStore((state) => state.setPaired)
   const paired = useAppStore((state) => state.paired)
   const params = useLocalSearchParams<{ stay?: string }>()
+  /**
+   * Where the notification that launched the app wants to go, if that is how
+   * this launch happened. Taken on the FIRST render, before the redirect
+   * below — a tap's destination has to BE the boot destination rather than a
+   * second navigation arriving a tick later, which the redirect could replace
+   * out from under it. Forgotten once taken, so a later visit to this screen
+   * cannot act on a tap from minutes ago. See launchDeeplink.
+   */
+  const [launchHref] = useState(launchDeeplink)
+  useEffect(forgetLaunchDeeplink, [])
   const [progress, setProgress] = useState<DemoProgress | null>(null)
   const [sync, setSync] = useState<SyncProgress | null>(null)
   const [pairing, setPairing] = useState(false)
@@ -170,7 +181,13 @@ export default function Home(): React.JSX.Element {
   // — so it is the wrong place to land on every launch. `stay` is how the
   // Relay screen reaches it deliberately, since the redirect would otherwise
   // make it unreachable.
-  if (paired && params.stay !== '1') return <Redirect href="/chat?boot=1" />
+  //
+  // Launched by tapping a notification, the somewhere is the screen that tap
+  // named — the one navigation this launch makes. `boot=1` is dropped for it
+  // on purpose: that flag silences the animation for a RESTORATION (the app
+  // reopening where the user already was), and this is the app going
+  // somewhere on their behalf, which should look like it.
+  if (paired && params.stay !== '1') return <Redirect href={launchHref ?? '/chat?boot=1'} />
 
   return (
     <View

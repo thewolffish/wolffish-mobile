@@ -119,6 +119,18 @@ jest.mock('@/lib/charts/html', () => ({
   }))
 }))
 
+// Same reason as the chart host, and one more: the module pulls in the whole
+// vendored pdf.js build, which boots a Node fallback path the moment it is
+// required. Nothing here needs the real composer — the PDF card is checked on
+// which document it points the frame at, not on how the page was written.
+jest.mock('@/lib/pdf/html', () => ({
+  PDF_MAX_INLINE_BYTES: 10 * 1024 * 1024,
+  ensurePdfHostDocument: jest.fn(async () => ({
+    uri: 'file:///cache/pdf-host/host.html',
+    directory: 'file:///cache/pdf-host/'
+  }))
+}))
+
 jest.mock('react-native-webview', () => {
   const { View } = jest.requireActual('react-native')
   return { WebView: (props: object) => <View testID="webview" {...props} /> }
@@ -155,7 +167,9 @@ jest.mock('expo-web-browser', () => ({ openBrowserAsync: jest.fn(async () => und
 import '@/lib/i18n'
 import { FileBlock } from '@/components/chat/FileBlock'
 import { resolveWorkspaceFile } from '@/lib/files/fileCache'
+import { ensurePdfHostDocument } from '@/lib/pdf/html'
 import * as Sharing from 'expo-sharing'
+import { Platform } from 'react-native'
 
 const SAFE_AREA = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -222,6 +236,38 @@ describe('FileBlock — one delivered file per supported type', () => {
     // the proof it is up.
     await waitFor(() => expect(screen.getByLabelText('Close')).toBeTruthy())
     expect(screen.getByTestId('webview')).toBeTruthy()
+  })
+
+  /**
+   * Android has no PDF engine in its WebView, so the same card has to point
+   * the frame at a composed pdf.js page instead of at the file — and at the
+   * right one: `#preview` is a single pinned page, `#full` the scrollable
+   * document. Getting the hash wrong is invisible in a snapshot and shows up
+   * as a card that scrolls inside the feed, or a sheet stuck on page 1.
+   */
+  it('renders the composed pdf.js document on Android', async () => {
+    Platform.OS = 'android'
+    try {
+      await renderBlock(<FileBlock relPath="files/report.pdf" declared="document" />)
+      await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy())
+      expect(ensurePdfHostDocument).toHaveBeenCalledWith(
+        'file:///cache/files/report.pdf',
+        `files/report.pdf:${FILES['files/report.pdf'].length}`
+      )
+      expect(screen.getByTestId('webview').props.source).toEqual({
+        uri: 'file:///cache/pdf-host/host.html#preview'
+      })
+      // The page may not read a second file — the document is inside it.
+      expect(screen.getByTestId('webview').props.allowFileAccessFromFileURLs).toBe(false)
+
+      await fireEvent.press(screen.getByLabelText('Expand'))
+      await waitFor(() => expect(screen.getByLabelText('Close')).toBeTruthy())
+      expect(screen.getByTestId('webview').props.source).toEqual({
+        uri: 'file:///cache/pdf-host/host.html#full'
+      })
+    } finally {
+      Platform.OS = 'ios'
+    }
   })
 
   it('renders HTML live, toggles to source, and expands', async () => {

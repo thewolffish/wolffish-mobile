@@ -17,7 +17,8 @@ import { useWorkspaceFileText } from '@/lib/files/useWorkspaceFileText'
 import { cn } from '@/lib/utils/cn'
 import * as Clipboard from 'expo-clipboard'
 import * as WebBrowser from 'expo-web-browser'
-import { useMemo, useState, type ReactNode } from 'react'
+import { ensurePdfHostDocument, PDF_MAX_INLINE_BYTES, type PdfHostDocument } from '@/lib/pdf/html'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { WebView } from 'react-native-webview'
@@ -605,10 +606,19 @@ export function SheetFileCard({
 }
 
 /**
- * PDFs. iOS renders them natively in WKWebView, so the card shows a real
- * first-page preview and expands to a scrollable document — the desktop's
- * PdfViewer. Android's WebView has no PDF engine, so there the card hands off
- * to the system viewer through the share sheet (`fallback`).
+ * PDFs — a first-page preview that expands to a scrollable document, the
+ * desktop's PdfViewer.
+ *
+ * Two engines behind one card. iOS renders PDFs natively in WKWebView, so
+ * there the frame is simply pointed at the file. Android's WebView has never
+ * shipped a PDF engine, so the renderer travels with the page: lib/pdf/html
+ * composes a self-contained pdf.js document around the file's bytes, and the
+ * frame loads that instead. Everything outside `source` is the same, including
+ * the closed sandbox — neither engine may read a second file.
+ *
+ * The card still degrades to the plain file row (`fallback`, which hands the
+ * document to the system viewer through the share sheet) when the file is past
+ * the inline ceiling or pdf.js cannot make a page out of it.
  */
 export function PdfFileCard({
   relPath,
@@ -624,8 +634,33 @@ export function PdfFileCard({
   const { uri, sizeBytes: cachedSize, loading, missing } = useWorkspaceFile(relPath, conversationId)
   const name = displayName ?? classification.name ?? baseName(relPath)
 
-  if (Platform.OS !== 'ios') return fallback
-  if (loading) {
+  const native = Platform.OS === 'ios'
+  const bytes = sizeBytes || cachedSize
+  const oversized = !native && bytes > PDF_MAX_INLINE_BYTES
+  const [host, setHost] = useState<PdfHostDocument | null>(null)
+  // Set by a page that loaded but could not render — a PDF pdf.js rejects, or
+  // a document too heavy for the WebView's renderer. Both end at the file row.
+  const [engineFailed, setEngineFailed] = useState(false)
+  // Remounts the frame if the renderer dies under a large document.
+  const [generation, setGeneration] = useState(0)
+
+  useEffect(() => {
+    if (native || !uri || oversized) return
+    let alive = true
+    ensurePdfHostDocument(uri, `${relPath}:${bytes}`)
+      .then((built) => {
+        if (alive) setHost(built)
+      })
+      .catch(() => {
+        // Asset read or a full disk — the file row still shares the document.
+        if (alive) setEngineFailed(true)
+      })
+    return () => {
+      alive = false
+    }
+  }, [native, uri, oversized, relPath, bytes])
+
+  if (loading || (!native && uri && !oversized && !host && !engineFailed)) {
     return (
       <ViewerSkeleton
         align={align}
@@ -643,11 +678,16 @@ export function PdfFileCard({
     )
   }
   if (missing || !uri) return fallback
+  if (!native && (oversized || engineFailed || !host)) return fallback
 
-  const directory = uri.slice(0, uri.lastIndexOf('/') + 1)
-  const frame = (
+  const directory = native ? uri.slice(0, uri.lastIndexOf('/') + 1) : host!.directory
+  // The composed page serves both mounts; the hash is how it knows which one
+  // is asking (page 1, pinned — or every page, scrollable and zoomable).
+  const documentUri = (mode: 'preview' | 'full'): string => (native ? uri : `${host!.uri}#${mode}`)
+  const frame = (mode: 'preview' | 'full'): React.JSX.Element => (
     <WebView
-      source={{ uri }}
+      key={`${mode}-${generation}`}
+      source={{ uri: documentUri(mode) }}
       // Without file:// in the whitelist the WebView refuses the document and
       // punts it to Linking.openURL, which can't open a sandbox path — the
       // card renders blank. This is what makes the PDF preview appear at all.
@@ -657,10 +697,27 @@ export function PdfFileCard({
       // away from the rest of the cache.
       allowingReadAccessToURL={directory}
       allowFileAccess
+      // Shut on both platforms, and load-bearing on Android: it is what says
+      // the pdf.js page may not go reading the rest of the sandbox. Closing it
+      // is why the document is inlined into the page rather than fetched.
       allowFileAccessFromFileURLs={false}
       allowUniversalAccessFromFileURLs={false}
+      javaScriptEnabled
+      domStorageEnabled={false}
+      setSupportMultipleWindows={false}
       style={{ backgroundColor: 'white' }}
       onShouldStartLoadWithRequest={(request) => request.url.startsWith('file://')}
+      onMessage={(event) => {
+        let message: { type?: string }
+        try {
+          message = JSON.parse(event.nativeEvent.data) as typeof message
+        } catch {
+          return
+        }
+        if (message.type === 'error') setEngineFailed(true)
+      }}
+      onContentProcessDidTerminate={() => setGeneration((n) => n + 1)}
+      onRenderProcessGone={() => setGeneration((n) => n + 1)}
     />
   )
 
@@ -669,12 +726,10 @@ export function PdfFileCard({
       <CardHeader icon={<Pdf02Icon size={14} className="text-muted" />} name={name} />
       <PreviewTap onPress={() => setOpen(true)} label={name} height={INLINE_BODY_HEIGHT + 60}>
         {/* One document renderer at a time — see HtmlFileCard. */}
-        {open ? <View className="bg-surface flex-1" /> : frame}
+        {open ? <View className="bg-surface flex-1" /> : frame('preview')}
       </PreviewTap>
       <CardFooter
-        label={[classification.ext.toUpperCase(), formatBytes(sizeBytes || cachedSize)]
-          .filter(Boolean)
-          .join(' · ')}
+        label={[classification.ext.toUpperCase(), formatBytes(bytes)].filter(Boolean).join(' · ')}
       >
         <ShareAction uri={uri} />
         <ExpandAction onPress={() => setOpen(true)} />
@@ -685,7 +740,7 @@ export function PdfFileCard({
         title={name}
         actions={<ShareAction uri={uri} />}
       >
-        {frame}
+        {frame('full')}
       </ExpandedSheet>
     </CardShell>
   )
