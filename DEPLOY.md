@@ -211,8 +211,10 @@ After an **OTA**, nothing: the update is live and the tag is pushed.
 After a **provision**, the version exists in git and nowhere else, and getting it to a phone is theirs:
 
 ```
-EAS build (production)  →  submit  →  App Store review  →  npm run release
+npm run ios:prod / npm run android:prod  →  submit  →  App Store review  →  npm run release
 ```
+
+Use those npm scripts rather than a bare `eas build`: they run `fix:fingerprint` first, and a bare invocation after a local `npm run android` fails EAS's own runtime-version check for the reason gate A describes.
 
 `release` records an **empty** marker commit and tags it, so the tag points at exactly the tree that was built — which is why it changes no files and why only the provisioned build that actually shipped ever gets a tag. Releases stay 1:N with provisions.
 

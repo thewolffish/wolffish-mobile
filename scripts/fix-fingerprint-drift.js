@@ -34,26 +34,26 @@ const pkgDir = path.join(root, 'node_modules', '@react-native-masked-view', 'mas
 const manifestPath = path.join(pkgDir, 'android', 'src', 'main', 'AndroidManifest.xml')
 const gradlePath = path.join(pkgDir, 'android', 'build.gradle')
 
-// Read the attribute back from the library's own build.gradle, which declares
-// it as `def PACKAGE_PROP = "package=\"org.reactnative.maskedview\""`, so a
-// version bump that renames the package keeps working. Falls back to the value
-// shipped by 0.3.2 if that line ever moves.
-const FALLBACK = 'package="org.reactnative.maskedview"'
+if (!fs.existsSync(manifestPath) || !fs.existsSync(gradlePath)) process.exit(0)
 
-function packageProp() {
-  try {
-    const gradle = fs.readFileSync(gradlePath, 'utf8')
-    const match = gradle.match(/PACKAGE_PROP\s*=\s*"(package=\\"[^"\\]+\\")"/)
-    return match ? match[1].replace(/\\"/g, '"') : FALLBACK
-  } catch {
-    return FALLBACK
-  }
-}
+// Everything is read from the library's own build.gradle, which declares the
+// attribute it strips as `def PACKAGE_PROP = "package=\"org.…\""` and writes
+// the file with `manifestOutFile.write(...)`. Requiring BOTH is what keeps this
+// honest over time:
+//   - a version bump that renames the package keeps working, because the name
+//     is never hardcoded here
+//   - if masked-view ever drops the hack (upstream migrating to a proper
+//     namespace), those lines go with it, this script becomes a permanent
+//     no-op, and it never invents an attribute the package no longer ships
+// A hardcoded default would be worse than doing nothing: inserting `package=`
+// into a manifest that EAS installs without it recreates, from this very
+// script, the exact drift it exists to prevent.
+const gradle = fs.readFileSync(gradlePath, 'utf8')
+const declared = gradle.match(/PACKAGE_PROP\s*=\s*"(package=\\"[^"\\]+\\")"/)
+if (!declared || !/manifestOutFile\.write\(/.test(gradle)) process.exit(0)
 
-if (!fs.existsSync(manifestPath)) process.exit(0)
-
+const prop = declared[1].replace(/\\"/g, '"')
 const before = fs.readFileSync(manifestPath, 'utf8')
-const prop = packageProp()
 
 // Already pristine — the common case, and the one that must stay quiet.
 if (before.includes(prop)) process.exit(0)
