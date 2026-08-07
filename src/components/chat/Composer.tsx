@@ -3,8 +3,8 @@ import {
   ArrowUp02Icon,
   Delete02Icon,
   Image02Icon,
-  Menu01Icon,
   Mic01Icon,
+  PreferenceVerticalIcon,
   StopCircleIcon,
   Tick02Icon
 } from '@/components/core/icons'
@@ -271,9 +271,14 @@ export function Composer({
           textarea — visible, removable, and not yet anywhere but this phone. */}
       {!recording && <AttachmentTray files={files} onRemove={remove} />}
       <View className="flex-row items-end gap-2 px-3 py-2.5">
-        {/* In project mode this slot becomes the PROJECT button — the project's
-            own emoji instead of the menu glyph, opening a dialog that carries
-            BOTH halves behind one switch: the project (instructions, files, new
+        {/* Faders, not the hamburger the floating chrome uses to open the
+            navigator: this button tunes the turn about to be sent (mode,
+            thinking, model, context), so it reads as controls rather than as a
+            second way out of the chat.
+
+            In project mode this slot becomes the PROJECT button — the project's
+            own emoji instead of the faders, opening a dialog that carries BOTH
+            halves behind one switch: the project (instructions, files, new
             conversation, close) and the chat controls this glyph opens otherwise.
             Nothing is lost by the swap. The desktop makes the same swap, on the
             New-Chat slot its composer has and this one does not. */}
@@ -293,7 +298,7 @@ export function Composer({
                 {activeProject.icon || DEFAULT_PROJECT_ICON}
               </Text>
             ) : (
-              <Menu01Icon size={18} className="text-fg" />
+              <PreferenceVerticalIcon size={18} className="text-fg" />
             )}
           </Pressable>
         )}
