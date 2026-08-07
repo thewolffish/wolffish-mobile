@@ -67,7 +67,19 @@ import { router } from 'expo-router'
 import '@/lib/i18n'
 
 const DAY = 24 * 60 * 60 * 1000
+const HOUR = 60 * 60 * 1000
 const NOW = Date.now()
+/**
+ * Today's local midnight — the boundary grouping.ts actually slices on, and so
+ * the only fixed point a date-group fixture may be written against. Offsets
+ * from `now` are not: "yesterday" as now − 25h is two calendar days back for
+ * every run between midnight and 1am, which is how CI, on UTC, caught it.
+ */
+const MIDNIGHT = ((): number => {
+  const d = new Date(NOW)
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+})()
 
 function meta(
   id: string,
@@ -123,13 +135,14 @@ describe('the conversations sheet', () => {
   })
 
   it('groups by date and keeps the numbers counting across the headers', async () => {
+    // Anchored to midnight, so each row sits in its bucket at every hour of the
+    // day: today's newest and today's oldest possible, the last hour of
+    // yesterday, and three calendar days back.
     mockMetas = [
-      meta('first', NOW - 1000),
-      meta('second', NOW - 2000),
-      // Yesterday, an hour before now — inside the calendar day, not a rolling
-      // 24 hours (see grouping.ts).
-      meta('third', NOW - DAY - 60 * 60 * 1000),
-      meta('fourth', NOW - 3 * DAY)
+      meta('first', NOW),
+      meta('second', MIDNIGHT),
+      meta('third', MIDNIGHT - HOUR),
+      meta('fourth', MIDNIGHT - 3 * DAY)
     ]
     await draw()
 
