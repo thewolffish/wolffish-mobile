@@ -75,36 +75,39 @@ export default function Home(): React.JSX.Element {
   const enterDemo = async (): Promise<void> => {
     if (busy) return
     setProgress({ phase: 'download', ratio: 0, imported: 0, total: 0 })
-    if (await needsImport()) {
-      try {
+    try {
+      if (await needsImport()) {
         const result = await importDemoData(setProgress)
         setDemoVersion(result.version)
         invalidateConversationList()
         toast.show({ tone: 'success', message: t('demo.imported', { count: result.imported }) })
-      } catch {
-        // Offline, or the bundle is mid-publish. Nothing is marked imported,
-        // so the next tap starts over; already-inserted conversations upsert.
-        toast.show({ tone: 'error', message: t('demo.failed') })
-        return
-      } finally {
-        setProgress(null)
       }
-    } else {
+      // Refresh the config surface from the saved snapshot on every entry — the
+      // demo's stand-in for live sync's cached-then-refresh.
+      //
+      // Awaited, not fired off: it is one local file read, and the screens the
+      // next line navigates to render THIS. Leaving it in flight let chat mount
+      // against an empty config and prime its queries from it, which is a whole
+      // staleTime of a demo describing a workspace with no projects in it.
+      await applyConfigSnapshot()
+      setDemoMode(true)
+      // replace, not push: this door is not somewhere to come back to. A back
+      // gesture from chat would otherwise land on the entry screen, where the
+      // next tap can drop a live connection by accident.
+      router.replace('/chat')
+      // Progress stays up on the way out, deliberately. Clearing it here — as
+      // the import's own `finally` used to — puts the demo-mode button back for
+      // the frames between the last byte and chat taking the screen, which
+      // reads as "done, nothing happened" right before the app moves anyway.
+      // The screen is replaced, so the held state goes with it.
+    } catch {
+      // Offline, or the bundle is mid-publish. Nothing is marked imported, so
+      // the next tap starts over; already-inserted conversations upsert. This
+      // is the only path that releases the button — a failure has to be
+      // retryable, a success never comes back here.
       setProgress(null)
+      toast.show({ tone: 'error', message: t('demo.failed') })
     }
-    // Refresh the config surface from the saved snapshot on every entry — the
-    // demo's stand-in for live sync's cached-then-refresh.
-    //
-    // Awaited, not fired off: it is one local file read, and the screens the
-    // next line navigates to render THIS. Leaving it in flight let chat mount
-    // against an empty config and prime its queries from it, which is a whole
-    // staleTime of a demo describing a workspace with no projects in it.
-    await applyConfigSnapshot()
-    setDemoMode(true)
-    // replace, not push: this door is not somewhere to come back to. A back
-    // gesture from chat would otherwise land on the entry screen, where the
-    // next tap can drop a live connection by accident.
-    router.replace('/chat')
   }
 
   /**
