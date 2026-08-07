@@ -86,6 +86,14 @@ run('npx', ['prettier', '--check', '**/*.{js,jsx,ts,tsx}', '--ignore-path', '.gi
 run('npx', ['tsc', '--noEmit'])
 run('npx', ['jest', '--silent'])
 
+// A local Android build strips an attribute from masked-view's manifest inside
+// node_modules, forking the fingerprint on both platforms (see the script).
+// Repair it before anything reads the hash — the guard below, and `eas update`
+// itself, which stamps the published update with the runtime version it
+// computes here. Runs even when the guard is skipped: an update published under
+// a drifted runtime version reaches no installed binary at all.
+run('node', ['scripts/fix-fingerprint-drift.js'])
+
 // Runtime guard: an update only reaches binaries whose build-time fingerprint
 // equals the publish-time fingerprint. Comparing against the latest shipped
 // store build catches the silent failure mode — publishing an update that no

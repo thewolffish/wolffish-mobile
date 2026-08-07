@@ -87,6 +87,7 @@ If any of these can't be confirmed, the deploy isn't ready. Report and stop.
 An update only reaches a binary whose build-time fingerprint equals the publish-time fingerprint. Compare the working tree against the latest shipped store build on **both** platforms — this is read-only and takes about a minute:
 
 ```bash
+npm run fix:fingerprint   # undo any node_modules drift first — see below
 for p in ios android; do
   npx expo-updates fingerprint:generate --platform $p \
     | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log('$p local   ',JSON.parse(s).hash))"
@@ -100,6 +101,8 @@ done
 - **A platform reports `none`** → no shipped store build there yet, so nothing on that platform can receive an update. If *no* platform has one, OTA is impossible: `provision`.
 
 What the fingerprint covers, and therefore what silently forks the runtime: autolinked native modules (so any dependency change), config plugins including `plugins/withQuietIosBuild.js`, the evaluated `app.config.ts`, `eas.json`, `.gitignore`, and the config's external assets — **the app icon, the splash image and the bundled fonts are in the fingerprint**, which is the one people get wrong. What it does *not* cover: everything under `src/`. Pure JS and TS never move the hash. That is the point, and it is also why gate A alone is not enough.
+
+The `fix:fingerprint` line is not ceremony, and it is the one false mismatch this gate can produce. `@react-native-masked-view/masked-view` rewrites its own `AndroidManifest.xml` **inside `node_modules`** from its `build.gradle`, at Gradle configuration time — so any local `npm run android` strips an attribute from an installed dependency, and that directory is hashed as an autolinked native source on **both** platforms. EAS installs fresh and fingerprints before Gradle runs, so it never sees the edit: local and EAS then disagree, `eas build` fails with *"Runtime version calculated on local machine not equal to runtime version calculated during build"*, and this gate reports a mismatch for a batch that never touched the native surface. `scripts/fix-fingerprint-drift.js` puts the attribute back (idempotent, and inert for the build itself — Gradle re-strips it next time). `ota`, `ios:prod`, `android:prod` and `android:preview` all run it for you; the snippet above needs it because it calls `fingerprint:generate` directly. A mismatch that survives it is real: obey the bullet above.
 
 `ota` re-runs this exact comparison itself and exits before writing, committing or publishing anything if it fails — so a wrong answer here fails safe rather than shipping. That is a backstop, **not** a substitute for deciding: "run it and see if it stops me" is not a decision, and it is not what gate B checks at all.
 
@@ -250,7 +253,8 @@ git status && git diff                                                   # 1. se
 npx prettier --check "**/*.{js,jsx,ts,tsx}" --ignore-path .gitignore     # 2. format: self-fix
 npx tsc --noEmit && npx jest --silent                                    #    types/tests/code: STOP
 diff -r src/lib/tunnel ../wolffish-app/src/main/tunnel                   # 3. sync gate, if relevant
-# 4. ship gate: fingerprint local vs shipped store build (both platforms) + the judgment list
+npm run fix:fingerprint                                                  # 4. undo node_modules drift, then …
+#    ship gate: fingerprint local vs shipped store build (both platforms) + the judgment list
 #    both clean -> ota   ·   anything else, or unsure -> provision
 # 5. write src/changelog/<YYYY-MM>/{en,ar}.md   (next = patch bump of APP_VERSION)
 git add -A && git commit -m "<summary>"   # 6. one regular commit, then …
