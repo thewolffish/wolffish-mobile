@@ -325,7 +325,7 @@ A bad update is reversible: `npm run rollback` republishes the previous update g
 
 Versions live in `app.config.ts` — `APP_VERSION` (user-visible) and `CODE_VERSION` (the store build counter). `ota` and `provision` own them, and bump `package.json` and the version badge at the top of this file in the same commit, so nothing about a version is ever written by hand. Pushing a `v*` tag creates the GitHub Release with a sideload APK, the released `.ipa` and checksums.
 
-**[PROVISION.md](PROVISION.md)** is the procedure for cutting the next build — checks, changelog, commit, push, then `npm run provision`. It stops at a provisioned version in git; building, submitting and publishing are run by hand.
+**[DEPLOY.md](DEPLOY.md)** is the procedure for shipping the next version — checks, changelog, commit, push, then a gate that picks the path: `npm run ota` for a batch the shipped binaries can actually receive and that is safe to land on every phone at once, `npm run provision` for anything else. Building, submitting and `npm run release` stay manual.
 
 ---
 
