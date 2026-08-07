@@ -69,6 +69,7 @@ const ProviderCard = memo(function ProviderCard({
       </View>
       {provider.model ? (
         <Text
+          selectable
           numberOfLines={1}
           className="text-fg text-left font-mono text-xs"
           style={{ writingDirection: 'ltr' }}

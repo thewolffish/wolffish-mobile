@@ -32,6 +32,23 @@ export function invalidateProjects(): void {
   void queryClient.invalidateQueries({ queryKey: projectKeys.list })
 }
 
+/**
+ * Fill in fields a DESKTOP OLDER THAN THIS PHONE would not have sent.
+ *
+ * The wire type declares `directories` required, and the current desktop always
+ * sends it — but the phone updates independently of the desktop it is paired
+ * with, so "required" describes the contract, not what arrives. Everything
+ * downstream maps over these arrays; one absent field is a screen that renders
+ * nothing at all.
+ */
+function normalize(project: SyncProject): SyncProject {
+  return {
+    ...project,
+    files: project.files ?? [],
+    directories: project.directories ?? []
+  }
+}
+
 async function fetchProjects(): Promise<SyncProject[]> {
   const tunnel = tunnelClient.active
   if (!tunnel || !tunnelClient.connected) {
@@ -42,7 +59,7 @@ async function fetchProjects(): Promise<SyncProject[]> {
   }
   try {
     const answer = (await tunnel.rpc(Rpc.projectsList)) as { projects?: SyncProject[] }
-    return Array.isArray(answer?.projects) ? answer.projects : []
+    return Array.isArray(answer?.projects) ? answer.projects.map(normalize) : []
   } catch (error) {
     tunnelClient.reportRpcFailure(error)
     throw error
@@ -62,6 +79,7 @@ function snapshotProjects(): SyncProject[] {
     icon: project.icon,
     instructions: project.instructions,
     files: project.files ?? [],
+    directories: project.directories ?? [],
     createdAt: project.createdAt,
     updatedAt: project.updatedAt
   }))
@@ -130,7 +148,8 @@ async function call<T>(method: string, params?: Record<string, unknown>): Promis
  * triggers a re-list, but between the two the cache would still hold the old
  * row. Both land the same value — the desktop's — so the order cannot matter.
  */
-function absorb(project: SyncProject): SyncProject {
+function absorb(incoming: SyncProject): SyncProject {
+  const project = normalize(incoming)
   queryClient.setQueryData<SyncProject[]>(projectKeys.list, (current) => {
     const rows = current ?? []
     const index = rows.findIndex((row) => row.id === project.id)
@@ -156,6 +175,12 @@ export async function updateProject(input: {
   icon?: string
   instructions?: string
   files?: Array<{ path: string; name: string }>
+  /**
+   * Whole-list replace. References only, so nothing is deleted — but a path
+   * that is not a folder on the DESKTOP is REFUSED: the call rejects with the
+   * reason, which is the dialog's validation.
+   */
+  directories?: string[]
 }): Promise<SyncProject> {
   const answer = await call<{ project: SyncProject }>(Rpc.projectUpdate, input)
   return absorb(answer.project)

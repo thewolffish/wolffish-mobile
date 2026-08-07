@@ -120,6 +120,7 @@ export function MarkdownDocEditor({
             {/* The path is what makes this the same file the desktop edits —
                 worth one muted line, since nothing else on screen says so. */}
             <Text
+              selectable
               numberOfLines={1}
               style={{ writingDirection: 'ltr' }}
               className="text-muted text-left font-mono text-[11px]"

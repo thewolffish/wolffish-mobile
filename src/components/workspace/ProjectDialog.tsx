@@ -105,6 +105,9 @@ function ProjectDialogBody({
   const [draftIcon, setDraftIcon] = useState(project.icon)
   const [draftInstructions, setDraftInstructions] = useState(project.instructions)
   const [files, setFiles] = useState<SyncProjectFile[]>(project.files)
+  const [directories, setDirectories] = useState<string[]>(project.directories)
+  const [folderDraft, setFolderDraft] = useState('')
+  const [addingFolder, setAddingFolder] = useState(false)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [promptOpen, setPromptOpen] = useState(false)
   const [attachOpen, setAttachOpen] = useState(false)
@@ -181,6 +184,51 @@ function ProjectDialogBody({
     [project.id, onChanged, t]
   )
 
+  /**
+   * Add a working folder by naming it. A phone cannot browse the desktop's
+   * filesystem, so the path is typed — and the DESKTOP is what validates it:
+   * the update rejects anything that is not a folder over there, and its
+   * message is what shows here. A working folder the run cannot list would be
+   * worse than no folder at all.
+   */
+  const addFolder = useCallback((): void => {
+    const value = folderDraft.trim()
+    if (!value || addingFolder || readOnly) return
+    if (directories.includes(value)) {
+      setFolderDraft('')
+      return
+    }
+    setAddingFolder(true)
+    setError(null)
+    void updateProject({ id: project.id, directories: [...directories, value] })
+      .then((updated) => {
+        setTouched(true)
+        setDirectories(updated.directories)
+        setFolderDraft('')
+        onChanged(updated)
+      })
+      .catch((err: unknown) =>
+        setError(err instanceof Error ? err.message : t('projects.saveError'))
+      )
+      .finally(() => setAddingFolder(false))
+  }, [folderDraft, addingFolder, readOnly, directories, project.id, onChanged, t])
+
+  const removeFolder = useCallback(
+    (dir: string): void => {
+      const next = directories.filter((d) => d !== dir)
+      setTouched(true)
+      setError(null)
+      setDirectories(next)
+      void updateProject({ id: project.id, directories: next })
+        .then((updated) => {
+          setDirectories(updated.directories)
+          onChanged(updated)
+        })
+        .catch(() => setError(t('projects.saveError')))
+    },
+    [directories, project.id, onChanged, t]
+  )
+
   // An add is in flight — from the moment the picker opens. Adding and removing
   // both write the same file list, so both lock: a second write over the first
   // is only a race.
@@ -200,6 +248,7 @@ function ProjectDialogBody({
    * off screen mid-transfer.
    */
   const incomingFiles = project.files
+  const incomingDirs = project.directories
   useEffect(() => {
     if (adding) return
     setFiles((current) =>
@@ -208,7 +257,13 @@ function ProjectDialogBody({
         ? current
         : incomingFiles
     )
-  }, [incomingFiles, adding])
+    setDirectories((current) =>
+      current.length === incomingDirs.length &&
+      current.every((dir, index) => dir === incomingDirs[index])
+        ? current
+        : incomingDirs
+    )
+  }, [incomingFiles, incomingDirs, adding])
 
   /**
    * Pick, validate, upload. Validation is per file rather than per batch — the
@@ -488,6 +543,72 @@ function ProjectDialogBody({
                   </View>
                 )
               })}
+            </View>
+          )}
+
+          {/* Working folders: references on the DESKTOP's disk, never copies. A
+              phone cannot browse that filesystem, so the path is typed and the
+              desktop is what validates it — see addFolder. */}
+          <Text className="text-muted font-sans-medium text-left text-sm">
+            {t('projects.folders', { count: directories.length })}
+          </Text>
+          {!readOnly && (
+            <View className="flex-row items-end gap-2">
+              <View className="min-w-0 flex-1">
+                <Input
+                  value={folderDraft}
+                  editable={!addingFolder}
+                  onChangeText={setFolderDraft}
+                  onSubmitEditing={addFolder}
+                  placeholder="/Users/you/Documents/reports"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  // A filesystem path is LTR technical text in either locale.
+                  style={{ writingDirection: 'ltr' }}
+                  className="font-mono"
+                />
+              </View>
+              {/* size md, not sm: this one sits BESIDE the field, and the field
+                  is h-10 — an h-8 button next to it reads as misaligned. */}
+              <Button
+                variant="outline"
+                size="md"
+                disabled={addingFolder || folderDraft.trim() === ''}
+                onPress={addFolder}
+                className="shrink-0 flex-row items-center gap-1"
+              >
+                <PlusSignIcon size={13} className="text-fg" />
+                {t('projects.addFolder')}
+              </Button>
+            </View>
+          )}
+          {directories.length > 0 && (
+            <View className="border-border bg-bg flex-col gap-1.5 rounded-lg border p-1.5">
+              {directories.map((dir) => (
+                <View key={dir} className="flex-row items-center gap-2 px-1.5">
+                  <Text
+                    numberOfLines={1}
+                    selectable
+                    style={{ writingDirection: 'ltr' }}
+                    className="text-muted min-w-0 flex-1 text-left font-mono text-[11px]"
+                  >
+                    {dir}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('projects.removeFolder')}
+                    disabled={readOnly}
+                    hitSlop={6}
+                    onPress={() => removeFolder(dir)}
+                    className={cn(
+                      'h-7 w-7 shrink-0 items-center justify-center rounded-md',
+                      readOnly ? 'opacity-40' : 'active:bg-border/40'
+                    )}
+                  >
+                    <Delete02Icon size={13} className="text-muted" />
+                  </Pressable>
+                </View>
+              ))}
             </View>
           )}
 

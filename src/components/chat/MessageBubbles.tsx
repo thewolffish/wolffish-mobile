@@ -30,6 +30,7 @@ import {
 } from '@/components/chat/InlineCards'
 import { FileBlock } from '@/components/chat/FileBlock'
 import { MarkdownView, markdownHasTable } from '@/components/chat/MarkdownView'
+import { NEEDS_SELECT_SHEET, openSelectMarkdown } from '@/components/chat/SelectTextSheet'
 import { QuestionCard } from '@/components/chat/QuestionCard'
 import { TaskCard } from '@/components/chat/TaskCard'
 import { ThinkingIndicator } from '@/components/chat/ThinkingIndicator'
@@ -124,7 +125,12 @@ export const UserBubble = memo(function UserBubble({
     <View className="flex-col gap-1.5">
       {hasText && (
         <View className="bg-primary max-w-[85%] self-end overflow-hidden rounded-2xl px-4 py-2.5">
-          <MarkdownView variant="user">{message.content}</MarkdownView>
+          <MarkdownView
+            variant="user"
+            onLongPress={NEEDS_SELECT_SHEET ? () => openSelectMarkdown(message.content) : undefined}
+          >
+            {message.content}
+          </MarkdownView>
         </View>
       )}
       {message.attachments && message.attachments.length > 0 && (
@@ -218,7 +224,15 @@ export const AssistantMessageView = memo(function AssistantMessageView({
     <View className="flex-col gap-2">
       {visible.map((block) => (
         <View key={block.key} className="flex-col">
-          {renderBlock(block, conversationId, approvals, live.approvals, asks, verbose)}
+          {renderBlock(
+            block,
+            conversationId,
+            approvals,
+            live.approvals,
+            asks,
+            verbose,
+            NEEDS_SELECT_SHEET ? openSelectMarkdown : undefined
+          )}
         </View>
       ))}
       {orphans.map((card) => (
@@ -294,7 +308,9 @@ function renderBlock(
    *  a control rather than a record. */
   liveApprovals: Record<string, ApprovalCardState>,
   asks: Record<string, AskCardState>,
-  verbose: boolean
+  verbose: boolean,
+  /** Present only where the platform needs the sheet — iOS. */
+  onSelectText?: (text: string) => void
 ): React.ReactNode {
   switch (block.type) {
     case 'text':
@@ -309,7 +325,12 @@ function renderBlock(
             markdownHasTable(block.markdown) ? 'w-[85%]' : 'max-w-[85%]'
           )}
         >
-          <MarkdownView>{block.markdown}</MarkdownView>
+          {/* Long press selects THIS block's markdown, not the whole turn: a
+              turn can be several bubbles with tool cards between them, and the
+              one under the finger is the one the reader meant. */}
+          <MarkdownView onLongPress={onSelectText && (() => onSelectText(block.markdown))}>
+            {block.markdown}
+          </MarkdownView>
         </View>
       )
     case 'media':

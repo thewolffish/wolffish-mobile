@@ -63,6 +63,8 @@ export type DemoProject = {
   icon: string
   instructions: string
   files: Array<{ path: string; name: string }>
+  /** Working folders on the desktop; absent in bundles built before the field. */
+  directories?: string[]
   createdAt: number
   updatedAt: number
 }

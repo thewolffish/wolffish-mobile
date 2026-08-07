@@ -97,6 +97,7 @@ function project(over: Partial<SyncProject> = {}): SyncProject {
     icon: '📊',
     instructions: 'Cite the source table.',
     files: [],
+    directories: [],
     createdAt: 1,
     updatedAt: 1,
     ...over

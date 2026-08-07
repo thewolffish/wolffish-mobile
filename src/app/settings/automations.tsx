@@ -20,6 +20,7 @@ import { DialogError, PromptPreview, PromptSheet } from '@/components/workspace/
 import { EmojiPicker } from '@/components/workspace/EmojiPicker'
 import { ModePills } from '@/components/workspace/ModePills'
 import {
+  addBlockPath,
   attachJobs,
   chipSchedule,
   CHIP_KINDS,
@@ -31,13 +32,24 @@ import {
   orderAutomations,
   parseAutomations,
   parseSchedule,
+  removeBlockPath,
   setBlockMode,
   toggleBlock,
   writeDraft,
   type AutomationBlock,
   type BoundBlock
 } from '@/lib/automations/heartbeat'
-import { editAutomations, runAutomation, useAutomations } from '@/lib/sync/automations'
+import { AttachSheet } from '@/components/chat/AttachmentPicker'
+import { AttachmentChips } from '@/components/workspace/AttachmentChips'
+import { pickDocuments, pickMedia, type PickedFile } from '@/lib/files/pickAttachments'
+import { MAX_FILES_PER_MESSAGE, uploadErrorMessage, validateUpload } from '@/lib/files/uploadPolicy'
+import {
+  editAutomations,
+  resolveDirectory,
+  runAutomation,
+  uploadAutomationFile,
+  useAutomations
+} from '@/lib/sync/automations'
 import { useProjects, useProjectsWritable } from '@/lib/sync/projects'
 import { cn } from '@/lib/utils/cn'
 import { formatAbsoluteMoment, formatSignedRelative } from '@/lib/utils/relativeTime'
@@ -411,6 +423,18 @@ export default function AutomationsScreen(): React.JSX.Element {
                 )}
 
                 <PromptPreview value={block.body} empty={t('heartbeat.promptEmpty')} />
+
+                {/* What this automation carries into every run. Shown on the
+                    card rather than tucked in the editor: the paths are the
+                    part of an automation you cannot infer from its prompt, and
+                    the phone's only job here is to let you see them and take
+                    one away. */}
+                {/* An automation stores absolute paths, so the file chips take
+                    the basename — every other surface already holds a name. */}
+                <AttachmentChips
+                  files={block.files.map((file) => baseName(file))}
+                  directories={block.dirs}
+                />
               </View>
             )
           })}
@@ -422,6 +446,7 @@ export default function AutomationsScreen(): React.JSX.Element {
           block={editorFor}
           blocks={blocks}
           projects={projects}
+          readOnly={!writable}
           onOpenGuide={() => setGuideOpen(true)}
           guideOpen={guideOpen}
           onClose={() => {
@@ -458,6 +483,12 @@ export default function AutomationsScreen(): React.JSX.Element {
       />
     </PanelScreen>
   )
+}
+
+/** Last path segment, for either separator — these are absolute desktop paths. */
+function baseName(filePath: string): string {
+  const parts = filePath.split(/[\\/]/).filter(Boolean)
+  return parts[parts.length - 1] ?? filePath
 }
 
 /** On | Off, the desktop's first pill. Either segment switches the automation. */
@@ -507,6 +538,9 @@ function OnOffPills({
 
 const NO_PROJECT = ''
 
+/** One tick of the add-files batch — the desktop's AttachFilesProgress. */
+type CopyProgress = { index: number; total: number; name: string; sent: number; totalBytes: number }
+
 /**
  * The automation editor — schedule, emoji, project and prompt.
  *
@@ -522,6 +556,7 @@ function AutomationEditor({
   blocks,
   projects,
   guideOpen,
+  readOnly,
   onOpenGuide,
   onClose
 }: {
@@ -530,6 +565,8 @@ function AutomationEditor({
   blocks: AutomationBlock[]
   projects: Array<{ id: string; title: string; icon: string }>
   guideOpen: boolean
+  /** No desktop to write to — every control is inert. */
+  readOnly: boolean
   onOpenGuide: () => void
   onClose: () => void
 }): React.JSX.Element {
@@ -544,6 +581,21 @@ function AutomationEditor({
   const [projectId, setProjectId] = useState(block?.project ?? NO_PROJECT)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [promptOpen, setPromptOpen] = useState(false)
+  // Files and folders are NOT part of the debounced draft: each add or remove
+  // is its own splice of heartbeat.md, because an add already moved bytes
+  // across the tunnel and a remove already dropped the desktop's copy.
+  const [files, setFiles] = useState<string[]>(block?.files ?? [])
+  const [dirs, setDirs] = useState<string[]>(block?.dirs ?? [])
+  const [attachOpen, setAttachOpen] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [copy, setCopy] = useState<CopyProgress | null>(null)
+  const [folderDraft, setFolderDraft] = useState('')
+  const [addingFolder, setAddingFolder] = useState(false)
+  const copyPercent = copy
+    ? copy.totalBytes > 0
+      ? Math.min(100, Math.round((copy.sent / copy.totalBytes) * 100))
+      : 100
+    : 0
 
   /**
    * The persisted block's identity. It MOVES as the label is edited across
@@ -659,6 +711,165 @@ function AutomationEditor({
     onClose()
   }, [invalid, trimmed, prompt, icon, projectId, persist, onClose])
 
+  /**
+   * Splice one marker into (or out of) THIS automation's block.
+   *
+   * Every attachment edit goes through here so it re-locates the block in the
+   * file as it stands right now — the indices this editor opened with went
+   * stale the moment the first autosave rewrote the block. `bound` is null
+   * only for an automation that has never been written, which is why the
+   * buttons below are gated on it.
+   */
+  const spliceMarker = useCallback(
+    async (apply: (md: string, fresh: AutomationBlock) => string): Promise<boolean> => {
+      const bound = boundRef.current
+      if (!bound) return false
+      setError(null)
+      try {
+        const result = await editAutomations((md) => {
+          const fresh = findBlock(md, bound)
+          if (!fresh) return null
+          return apply(md, fresh)
+        })
+        return result !== null
+      } catch {
+        setError(t('workspace.saveError'))
+        return false
+      }
+    },
+    [t]
+  )
+
+  /**
+   * Pick, validate, upload — the project dialog's contract exactly. Validation
+   * is per file rather than per batch (a good file in a bad batch still
+   * attaches, and every refusal names the rule it broke) and uploads run
+   * sequentially, since each is a run of ordered chunk RPCs on one socket.
+   *
+   * The desktop answers with the ABSOLUTE path it chose; writing that as a
+   * `file:` marker is this side's half, and it happens per file so a batch that
+   * fails halfway still keeps what already landed.
+   */
+  const addFiles = useCallback(
+    (source: 'media' | 'files'): void => {
+      if (adding || readOnly || !boundLabel) return
+      void (async () => {
+        setAdding(true)
+        setError(null)
+        try {
+          const picked =
+            source === 'media' ? await pickMedia(MAX_FILES_PER_MESSAGE) : await pickDocuments()
+          if (picked.length === 0) return
+
+          const accepted: PickedFile[] = []
+          const rejected: string[] = []
+          let totalBytes = 0
+          for (const file of picked) {
+            const problem = validateUpload(file.name, file.sizeBytes, accepted.length, totalBytes)
+            if (problem) {
+              rejected.push(uploadErrorMessage(problem, t))
+              continue
+            }
+            accepted.push(file)
+            totalBytes += file.sizeBytes
+          }
+          // One line per distinct reason: ten files over one cap is one problem,
+          // not ten notices stacked on top of each other.
+          if (rejected.length > 0) setError([...new Set(rejected)].join('\n'))
+          if (accepted.length === 0) return
+
+          // Batch-wide denominator, so the bar only ever moves forward.
+          let sentBefore = 0
+          let known = files
+          const failed: string[] = []
+          for (const [index, file] of accepted.entries()) {
+            try {
+              const stored = await uploadAutomationFile(
+                known,
+                file.uri,
+                file.name,
+                file.mimeType,
+                (sent) =>
+                  setCopy({
+                    index: index + 1,
+                    total: accepted.length,
+                    name: file.name,
+                    sent: sentBefore + sent,
+                    totalBytes
+                  })
+              )
+              // `known` must grow as we go: it is what tells the desktop which
+              // folder this automation owns, so the second file of a batch has
+              // to see the first one's path or it would mint a second folder.
+              known = [...known, stored.path]
+              setFiles(known)
+              await spliceMarker((md, fresh) => addBlockPath(md, fresh, 'file', stored.path))
+            } catch {
+              failed.push(file.name)
+            }
+            sentBefore += file.sizeBytes
+          }
+          if (failed.length > 0) setError(t('chat.attach.failed', { names: failed.join(', ') }))
+        } catch {
+          // A picker that refused to open — no library access, a provider that
+          // crashed. Nothing was picked; say so and move on.
+          setError(t('chat.attach.error'))
+        } finally {
+          setAdding(false)
+          setCopy(null)
+        }
+      })()
+    },
+    [adding, readOnly, boundLabel, files, spliceMarker, t]
+  )
+
+  const removeFile = useCallback(
+    (value: string): void => {
+      setFiles((current) => current.filter((f) => f !== value))
+      void spliceMarker((md, fresh) => removeBlockPath(md, fresh, 'file', value))
+    },
+    [spliceMarker]
+  )
+
+  /**
+   * Add a working folder by naming it. A phone cannot browse the desktop's
+   * filesystem, so the path is typed — and the DESKTOP is what validates it,
+   * answering with the resolved absolute path or rejecting with the reason. A
+   * working folder the run cannot list would be worse than no folder at all.
+   */
+  const addFolder = useCallback((): void => {
+    const value = folderDraft.trim()
+    if (!value || addingFolder || readOnly || !boundLabel) return
+    setAddingFolder(true)
+    setError(null)
+    void resolveDirectory(value)
+      .then(async (resolved) => {
+        if (dirs.includes(resolved)) {
+          setFolderDraft('')
+          return
+        }
+        const ok = await spliceMarker((md, fresh) => addBlockPath(md, fresh, 'dir', resolved))
+        if (ok) {
+          setDirs((current) => [...current, resolved])
+          setFolderDraft('')
+        }
+      })
+      .catch((err: unknown) =>
+        setError(err instanceof Error ? err.message : t('workspace.saveError'))
+      )
+      .finally(() => setAddingFolder(false))
+  }, [folderDraft, addingFolder, readOnly, boundLabel, dirs, spliceMarker, t])
+
+  const removeFolder = useCallback(
+    (value: string): void => {
+      setDirs((current) => current.filter((d) => d !== value))
+      void spliceMarker((md, fresh) => removeBlockPath(md, fresh, 'dir', value))
+    },
+    [spliceMarker]
+  )
+
+  const attachLocked = readOnly || adding || !boundLabel
+
   const options = useMemo<readonly SelectOption<string>[]>(
     () => [
       { value: NO_PROJECT, label: t('heartbeat.editor.projectNone') },
@@ -676,7 +887,7 @@ function AutomationEditor({
       open
       onClose={close}
       // Escape/backdrop must only close whatever is stacked on top.
-      dismissable={!emojiOpen && !promptOpen && !guideOpen}
+      dismissable={!emojiOpen && !promptOpen && !guideOpen && !attachOpen && !adding}
       title={block ? t('heartbeat.editor.editTitle') : t('heartbeat.editor.createTitle')}
       footer={
         <View className="flex-row justify-end">
@@ -804,6 +1015,159 @@ function AutomationEditor({
         </Button>
       </View>
 
+      {/* Files: uploaded to the DESKTOP, which owns the workspace and the name.
+          Every run is told what it has and where, and reads with its own tools
+          — the bytes are never pasted into the prompt. The whole section waits
+          for the automation to exist: its markers live in a block, and a block
+          that has never been written has nowhere to put them. */}
+      <View className="flex-row items-center justify-between gap-2">
+        <Text className="text-muted font-sans-medium text-left text-sm">
+          {t('heartbeat.files', { count: files.length })}
+        </Text>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={attachLocked}
+          onPress={() => setAttachOpen(true)}
+          className="flex-row items-center gap-1"
+        >
+          <PlusSignIcon size={13} className="text-fg" />
+          {t('heartbeat.addFiles')}
+        </Button>
+      </View>
+
+      {/* Sending a file over the relay is not instant. Real bytes, batch-wide,
+          the same bar the desktop draws for its own copy. */}
+      {copy && (
+        <View className="border-border bg-bg flex-col gap-1.5 rounded-lg border p-2">
+          <View className="flex-row items-center gap-2">
+            <Text
+              numberOfLines={1}
+              style={{ writingDirection: 'ltr' }}
+              className="text-muted min-w-0 flex-1 text-left font-sans text-xs"
+            >
+              {copy.name}
+            </Text>
+            {copy.total > 1 && (
+              <Text className="text-muted shrink-0 font-sans text-xs">
+                {t('projects.copyingCount', { index: copy.index, total: copy.total })}
+              </Text>
+            )}
+            <Text className="text-muted shrink-0 font-sans text-xs">{`${copyPercent}%`}</Text>
+          </View>
+          <View
+            accessibilityRole="progressbar"
+            accessibilityLabel={t('projects.copyingFiles')}
+            accessibilityValue={{ min: 0, max: 100, now: copyPercent }}
+            className="bg-border h-1 w-full overflow-hidden rounded-full"
+          >
+            <View className="bg-primary h-full rounded-full" style={{ width: `${copyPercent}%` }} />
+          </View>
+        </View>
+      )}
+
+      {files.length > 0 && (
+        <View className="border-border bg-bg flex-col gap-0.5 rounded-lg border p-1.5">
+          {files.map((file) => (
+            <View key={file} className="h-9 flex-row items-center gap-2 rounded-md px-1.5">
+              {/* The NAME only — the path is on the desktop and nothing here can
+                  open it. writingDirection ltr pins filename order in RTL. */}
+              <Text
+                numberOfLines={1}
+                style={{ writingDirection: 'ltr' }}
+                className="text-fg min-w-0 flex-1 text-left font-sans text-xs"
+              >
+                {baseName(file)}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('heartbeat.removeFile')}
+                disabled={attachLocked}
+                hitSlop={6}
+                onPress={() => removeFile(file)}
+                className={cn(
+                  'h-7 w-7 shrink-0 items-center justify-center rounded-md',
+                  attachLocked ? 'opacity-40' : 'active:bg-border/40'
+                )}
+              >
+                <Delete02Icon size={13} className="text-muted" />
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Working folders: references on the DESKTOP's disk, never copies. A
+          phone cannot browse that filesystem, so the path is typed and the
+          desktop is what validates it — see addFolder. */}
+      <Text className="text-muted font-sans-medium text-left text-sm">
+        {t('heartbeat.folders', { count: dirs.length })}
+      </Text>
+      {!readOnly && (
+        <View className="flex-row items-end gap-2">
+          <View className="min-w-0 flex-1">
+            <Input
+              value={folderDraft}
+              editable={!addingFolder && !!boundLabel}
+              onChangeText={setFolderDraft}
+              onSubmitEditing={addFolder}
+              placeholder="/Users/you/Documents/reports"
+              autoCapitalize="none"
+              autoCorrect={false}
+              // A filesystem path is LTR technical text in either locale.
+              style={{ writingDirection: 'ltr' }}
+              className="font-mono"
+            />
+          </View>
+          {/* size md, not sm: this one sits BESIDE the field, and the field is
+              h-10 — an h-8 button next to it reads as misaligned. */}
+          <Button
+            variant="outline"
+            size="md"
+            disabled={addingFolder || !boundLabel || folderDraft.trim() === ''}
+            onPress={addFolder}
+            className="shrink-0 flex-row items-center gap-1"
+          >
+            <PlusSignIcon size={13} className="text-fg" />
+            {t('heartbeat.addFolder')}
+          </Button>
+        </View>
+      )}
+      {dirs.length > 0 && (
+        <View className="border-border bg-bg flex-col gap-1.5 rounded-lg border p-1.5">
+          {dirs.map((dir) => (
+            <View key={dir} className="flex-row items-center gap-2 px-1.5">
+              <Text
+                numberOfLines={1}
+                selectable
+                style={{ writingDirection: 'ltr' }}
+                className="text-muted min-w-0 flex-1 text-left font-mono text-[11px]"
+              >
+                {dir}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('heartbeat.removeFolder')}
+                disabled={readOnly}
+                hitSlop={6}
+                onPress={() => removeFolder(dir)}
+                className={cn(
+                  'h-7 w-7 shrink-0 items-center justify-center rounded-md',
+                  readOnly ? 'opacity-40' : 'active:bg-border/40'
+                )}
+              >
+                <Delete02Icon size={13} className="text-muted" />
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
+      {!boundLabel && (
+        <Text className="text-muted text-left font-sans text-xs">
+          {t('heartbeat.attachAfterSave')}
+        </Text>
+      )}
+
       <DialogError message={error} />
       <Text className="text-muted text-left font-sans text-xs">
         {t('heartbeat.editor.autosaveHint')}
@@ -826,6 +1190,12 @@ function AutomationEditor({
           setPrompt(value)
           setPromptOpen(false)
         }}
+      />
+      <AttachSheet
+        open={attachOpen}
+        onClose={() => setAttachOpen(false)}
+        onPickMedia={() => addFiles('media')}
+        onPickFiles={() => addFiles('files')}
       />
     </Modal>
   )

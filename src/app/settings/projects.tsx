@@ -3,6 +3,7 @@ import { Button } from '@/components/core/Button'
 import { ConfirmDialog } from '@/components/core/ConfirmDialog'
 import { Delete02Icon, Edit02Icon, PlusSignIcon } from '@/components/core/icons'
 import { PanelScreen } from '@/components/settings/SettingsUI'
+import { AttachmentChips } from '@/components/workspace/AttachmentChips'
 import { DEFAULT_PROJECT_ICON, ProjectDialog } from '@/components/workspace/ProjectDialog'
 import { PromptPreview } from '@/components/workspace/PromptSheet'
 import { useConversationList } from '@/lib/conversations/hooks'
@@ -240,6 +241,13 @@ export default function ProjectsScreen(): React.JSX.Element {
                   </View>
                 </View>
                 <PromptPreview value={project.instructions} empty={t('projects.noInstructions')} />
+                {/* What this project carries into every conversation inside it.
+                    On the card, not just in the dialog: the paths are the part
+                    of a project you cannot infer from its instructions. */}
+                <AttachmentChips
+                  files={project.files.map((file) => file.name)}
+                  directories={project.directories}
+                />
               </Pressable>
             )
           })}

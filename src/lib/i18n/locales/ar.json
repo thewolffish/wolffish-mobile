@@ -607,6 +607,10 @@
     "copy": "نسخ",
     "copied": "تم النسخ",
     "copyMessage": "نسخ الرسالة",
+    "selectText": {
+      "title": "تحديد النص",
+      "hint": "اسحب لتحديد أي جزء ثم انسخه."
+    },
     "modelLabel": "النموذج: {{model}}",
     "reasoning": "التفكير",
     "fileCard": {
@@ -1266,6 +1270,9 @@
     "addFiles": "إضافة ملفات",
     "copyingFiles": "جارٍ نسخ الملفات إلى وولففيش",
     "copyingCount": "الملف {{index}} من {{total}}",
+    "folders": "مجلدات العمل ({{count}})",
+    "addFolder": "إضافة",
+    "removeFolder": "إزالة المجلد",
     "removeFile": "إزالة الملف",
     "newConversation": "محادثة جديدة",
     "exit": "إغلاق المشروع",
@@ -1304,6 +1311,12 @@
     "projectNone": "بدون مشروع",
     "projectIcon": "تُستخدم أيقونة المشروع",
     "titleRequired": "العنوان مطلوب",
+    "files": "الملفات ({{count}})",
+    "addFiles": "إضافة ملفات",
+    "removeFile": "إزالة الملف",
+    "folders": "مجلدات العمل ({{count}})",
+    "addFolder": "إضافة",
+    "removeFolder": "إزالة المجلد",
     "promptPlaceholder": "اكتب الإجراء التي تريد تشغيله…",
     "autosaveHint": "يتم الحفظ تلقائيًا.",
     "done": "تم",
@@ -1345,6 +1358,12 @@
     "deleteCancel": "إلغاء",
     "deleting": "جارٍ الحذف…",
     "deleteSuccess": "تم حذف الأتمتة",
+    "files": "الملفات ({{count}})",
+    "addFiles": "إضافة ملفات",
+    "folders": "مجلدات العمل ({{count}})",
+    "addFolder": "إضافة",
+    "removeFile": "إزالة الملف",
+    "removeFolder": "إزالة المجلد",
     "type": {
       "startup": "بدء التشغيل",
       "once": "مرّة واحدة",
@@ -1401,7 +1420,8 @@
       "compactionWeekly": "دمج حلقات الأسبوع الماضي في ملخص أسبوعي.",
       "reflection": "مراجعة المحادثات المستقرة — التقييمات وما نجح وما فشل — ودمج الدروس في الدليل العملي.",
       "deepClean": "المراجعة العميقة: اختبار الدليل العملي وملفات المعرفة — دمج المكرر وحذف القديم أو المتناقض."
-    }
+    },
+    "attachAfterSave": "احفظ الجدولة والمطالبة أولاً — تُرفق الملفات والمجلدات بأتمتة محفوظة."
   },
   "overlays": {
     "kind": {

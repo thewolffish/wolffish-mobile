@@ -1,3 +1,5 @@
+import { AttachSheet } from '@/components/chat/AttachmentPicker'
+import { AttachmentChips } from '@/components/workspace/AttachmentChips'
 import { Badge } from '@/components/core/Badge'
 import { Button } from '@/components/core/Button'
 import { ConfirmDialog } from '@/components/core/ConfirmDialog'
@@ -10,14 +12,17 @@ import { DEFAULT_PROJECT_ICON } from '@/components/workspace/ProjectDialog'
 import { DialogError, PromptPreview, PromptSheet } from '@/components/workspace/PromptSheet'
 import { ModePills } from '@/components/workspace/ModePills'
 import { EmojiPicker } from '@/components/workspace/EmojiPicker'
+import { pickDocuments, pickMedia, type PickedFile } from '@/lib/files/pickAttachments'
+import { MAX_FILES_PER_MESSAGE, uploadErrorMessage, validateUpload } from '@/lib/files/uploadPolicy'
 import {
   createProcedure,
   deleteProcedure,
   updateProcedure,
+  uploadProcedureFile,
   useProcedures
 } from '@/lib/sync/procedures'
 import { useProjects, useProjectsWritable } from '@/lib/sync/projects'
-import type { SyncProcedure } from '@/lib/tunnel/protocol'
+import type { SyncProcedure, SyncProjectFile } from '@/lib/tunnel/protocol'
 import { cn } from '@/lib/utils/cn'
 import { formatSignedRelative } from '@/lib/utils/relativeTime'
 import { useToast } from '@/providers/toast/useToast'
@@ -255,6 +260,14 @@ export default function ProceduresScreen(): React.JSX.Element {
                   </View>
                 </View>
                 <PromptPreview value={procedure.prompt} empty={t('procedures.runEmptyHint')} />
+
+                {/* What this procedure carries into every run. On the card,
+                    not just in the editor: the paths are the part of a
+                    procedure you cannot infer from its prompt. */}
+                <AttachmentChips
+                  files={(procedure.files ?? []).map((file) => file.name)}
+                  directories={procedure.directories ?? []}
+                />
               </View>
             )
           })}
@@ -282,6 +295,9 @@ export default function ProceduresScreen(): React.JSX.Element {
     </PanelScreen>
   )
 }
+
+/** One tick of the add-files batch — the desktop's AttachFilesProgress. */
+type CopyProgress = { index: number; total: number; name: string; sent: number; totalBytes: number }
 
 /**
  * The procedure editor — title, emoji, project binding and the prompt, which
@@ -337,6 +353,22 @@ function ProcedureEditorBody({
   const [promptOpen, setPromptOpen] = useState(false)
   const [touched, setTouched] = useState(false)
   const titleInvalid = touched && title.trim() === ''
+
+  // Files and folders are NOT part of the debounced draft: each add or remove
+  // is its own write, because an add already moved bytes across the tunnel and
+  // a remove already deleted the desktop's copy.
+  const [files, setFiles] = useState<SyncProjectFile[]>(procedure.files ?? [])
+  const [directories, setDirectories] = useState<string[]>(procedure.directories ?? [])
+  const [attachOpen, setAttachOpen] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [copy, setCopy] = useState<CopyProgress | null>(null)
+  const [folderDraft, setFolderDraft] = useState('')
+  const [addingFolder, setAddingFolder] = useState(false)
+  const copyPercent = copy
+    ? copy.totalBytes > 0
+      ? Math.min(100, Math.round((copy.sent / copy.totalBytes) * 100))
+      : 100
+    : 0
 
   const savedRef = useRef({
     title: procedure.title,
@@ -399,6 +431,164 @@ function ProcedureEditorBody({
     onClose()
   }, [readOnly, title, prompt, icon, projectId, procedure.id, persist, onClose])
 
+  /**
+   * Adopt lists arriving from OUTSIDE — a file attached on the desktop while
+   * this dialog sits open. Files and folders are not a draft (the title and
+   * prompt deliberately are, which is why nothing re-seeds those), so the
+   * stored lists always win — except mid-upload, where the arriving snapshot
+   * predates the file being sent and would take it back off screen.
+   */
+  const incomingFiles = procedure.files ?? []
+  const incomingDirs = procedure.directories ?? []
+  useEffect(() => {
+    if (adding) return
+    setFiles((current) =>
+      current.length === incomingFiles.length &&
+      current.every((file, index) => file.path === incomingFiles[index]?.path)
+        ? current
+        : incomingFiles
+    )
+    setDirectories((current) =>
+      current.length === incomingDirs.length &&
+      current.every((dir, index) => dir === incomingDirs[index])
+        ? current
+        : incomingDirs
+    )
+  }, [incomingFiles, incomingDirs, adding])
+
+  const persistFiles = useCallback(
+    (next: SyncProjectFile[]): void => {
+      setTouched(true)
+      setError(null)
+      setFiles(next)
+      void updateProcedure({ id: procedure.id, files: next })
+        .then((updated) => {
+          // The desktop's own list wins: it deleted the copies it owns and its
+          // answer is what both screens hold.
+          setFiles(updated.files ?? [])
+        })
+        .catch(() => setError(t('procedures.saveError')))
+    },
+    [procedure.id, t]
+  )
+
+  /**
+   * Pick, validate, upload — the project dialog's contract exactly. Validation
+   * is per file rather than per batch (a good file in a bad batch still
+   * attaches, and every refusal names the rule it broke) and uploads run
+   * sequentially, since each is a run of ordered chunk RPCs on one socket.
+   */
+  const addFiles = useCallback(
+    (source: 'media' | 'files'): void => {
+      if (adding || readOnly) return
+      void (async () => {
+        setAdding(true)
+        setError(null)
+        try {
+          const picked =
+            source === 'media' ? await pickMedia(MAX_FILES_PER_MESSAGE) : await pickDocuments()
+          if (picked.length === 0) return
+
+          const accepted: PickedFile[] = []
+          const rejected: string[] = []
+          let totalBytes = 0
+          for (const file of picked) {
+            const problem = validateUpload(file.name, file.sizeBytes, accepted.length, totalBytes)
+            if (problem) {
+              rejected.push(uploadErrorMessage(problem, t))
+              continue
+            }
+            accepted.push(file)
+            totalBytes += file.sizeBytes
+          }
+          // One line per distinct reason: ten files over one cap is one problem,
+          // not ten notices stacked on top of each other.
+          if (rejected.length > 0) setError([...new Set(rejected)].join('\n'))
+          if (accepted.length === 0) return
+
+          // Batch-wide denominator, so the bar only ever moves forward.
+          let sentBefore = 0
+          const failed: string[] = []
+          for (const [index, file] of accepted.entries()) {
+            try {
+              const updated = await uploadProcedureFile(
+                procedure.id,
+                file.uri,
+                file.name,
+                file.mimeType,
+                (sent) =>
+                  setCopy({
+                    index: index + 1,
+                    total: accepted.length,
+                    name: file.name,
+                    sent: sentBefore + sent,
+                    totalBytes
+                  })
+              )
+              setFiles(updated.files ?? [])
+              setTouched(true)
+            } catch {
+              failed.push(file.name)
+            }
+            sentBefore += file.sizeBytes
+          }
+          if (failed.length > 0) setError(t('chat.attach.failed', { names: failed.join(', ') }))
+        } catch {
+          // A picker that refused to open — no library access, a provider that
+          // crashed. Nothing was picked; say so and move on.
+          setError(t('chat.attach.error'))
+        } finally {
+          setAdding(false)
+          setCopy(null)
+        }
+      })()
+    },
+    [adding, readOnly, procedure.id, t]
+  )
+
+  /**
+   * Add a working folder by naming it. A phone cannot browse the desktop's
+   * filesystem, so the path is typed — and the DESKTOP is what validates it:
+   * the update rejects anything that is not a folder over there, and its
+   * message is what shows here. A working folder the run cannot list would be
+   * worse than no folder at all.
+   */
+  const addFolder = useCallback((): void => {
+    const value = folderDraft.trim()
+    if (!value || addingFolder || readOnly) return
+    if (directories.includes(value)) {
+      setFolderDraft('')
+      return
+    }
+    setAddingFolder(true)
+    setError(null)
+    void updateProcedure({ id: procedure.id, directories: [...directories, value] })
+      .then((updated) => {
+        setTouched(true)
+        setDirectories(updated.directories ?? [])
+        setFolderDraft('')
+      })
+      .catch((err: unknown) =>
+        setError(err instanceof Error ? err.message : t('procedures.saveError'))
+      )
+      .finally(() => setAddingFolder(false))
+  }, [folderDraft, addingFolder, readOnly, directories, procedure.id, t])
+
+  const removeFolder = useCallback(
+    (dir: string): void => {
+      const next = directories.filter((d) => d !== dir)
+      setTouched(true)
+      setError(null)
+      setDirectories(next)
+      void updateProcedure({ id: procedure.id, directories: next })
+        .then((updated) => setDirectories(updated.directories ?? []))
+        .catch(() => setError(t('procedures.saveError')))
+    },
+    [directories, procedure.id, t]
+  )
+
+  const locked = readOnly || adding
+
   const boundProject = projectId ? projects.find((p) => p.id === projectId) : undefined
   const options = useMemo<readonly SelectOption<string>[]>(
     () => [
@@ -417,7 +607,7 @@ function ProcedureEditorBody({
       open
       onClose={close}
       title={t('procedures.editTitle')}
-      dismissable={!emojiOpen && !promptOpen}
+      dismissable={!emojiOpen && !promptOpen && !attachOpen && !adding}
       footer={
         <View className="flex-row justify-end">
           <Button size="sm" onPress={close}>
@@ -494,6 +684,152 @@ function ProcedureEditorBody({
         )}
       </View>
 
+      {/* Files: uploaded to the DESKTOP, which owns the workspace and the
+          name. Every run is told what it has and where, and reads with its own
+          tools — the bytes are never pasted into the prompt. */}
+      <View className="flex-row items-center justify-between gap-2">
+        <Text className="text-muted font-sans-medium text-left text-sm">
+          {t('procedures.files', { count: files.length })}
+        </Text>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={locked}
+          onPress={() => setAttachOpen(true)}
+          className="flex-row items-center gap-1"
+        >
+          <PlusSignIcon size={13} className="text-fg" />
+          {t('procedures.addFiles')}
+        </Button>
+      </View>
+
+      {/* Sending a file over the relay is not instant. Real bytes, batch-wide,
+          the same bar the desktop draws for its own copy. */}
+      {copy && (
+        <View className="border-border bg-bg flex-col gap-1.5 rounded-lg border p-2">
+          <View className="flex-row items-center gap-2">
+            <Text
+              numberOfLines={1}
+              style={{ writingDirection: 'ltr' }}
+              className="text-muted min-w-0 flex-1 text-left font-sans text-xs"
+            >
+              {copy.name}
+            </Text>
+            {copy.total > 1 && (
+              <Text className="text-muted shrink-0 font-sans text-xs">
+                {t('projects.copyingCount', { index: copy.index, total: copy.total })}
+              </Text>
+            )}
+            <Text className="text-muted shrink-0 font-sans text-xs">{`${copyPercent}%`}</Text>
+          </View>
+          <View
+            accessibilityRole="progressbar"
+            accessibilityLabel={t('projects.copyingFiles')}
+            accessibilityValue={{ min: 0, max: 100, now: copyPercent }}
+            className="bg-border h-1 w-full overflow-hidden rounded-full"
+          >
+            <View className="bg-primary h-full rounded-full" style={{ width: `${copyPercent}%` }} />
+          </View>
+        </View>
+      )}
+
+      {files.length > 0 && (
+        <View className="border-border bg-bg flex-col gap-0.5 rounded-lg border p-1.5">
+          {files.map((file) => (
+            <View key={file.path} className="h-9 flex-row items-center gap-2 rounded-md px-1.5">
+              {/* writingDirection ltr pins filename order even in the RTL
+                  locale — paths are LTR text. */}
+              <Text
+                numberOfLines={1}
+                style={{ writingDirection: 'ltr' }}
+                className="text-fg min-w-0 flex-1 text-left font-sans text-xs"
+              >
+                {file.name}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('procedures.removeFile')}
+                disabled={locked}
+                hitSlop={6}
+                onPress={() => persistFiles(files.filter((f) => f.path !== file.path))}
+                className={cn(
+                  'h-7 w-7 shrink-0 items-center justify-center rounded-md',
+                  locked ? 'opacity-40' : 'active:bg-border/40'
+                )}
+              >
+                <Delete02Icon size={13} className="text-muted" />
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Working folders: references on the DESKTOP's disk, never copies. A
+          phone cannot browse that filesystem, so the path is typed and the
+          desktop is what validates it — see addFolder. */}
+      <Text className="text-muted font-sans-medium text-left text-sm">
+        {t('procedures.folders', { count: directories.length })}
+      </Text>
+      {!readOnly && (
+        <View className="flex-row items-end gap-2">
+          <View className="min-w-0 flex-1">
+            <Input
+              value={folderDraft}
+              editable={!addingFolder}
+              onChangeText={setFolderDraft}
+              onSubmitEditing={addFolder}
+              placeholder="/Users/you/Documents/reports"
+              autoCapitalize="none"
+              autoCorrect={false}
+              // A filesystem path is LTR technical text in either locale.
+              style={{ writingDirection: 'ltr' }}
+              className="font-mono"
+            />
+          </View>
+          {/* size md, not sm: this one sits BESIDE the field, and the field
+              is h-10 — an h-8 button next to it reads as misaligned. */}
+          <Button
+            variant="outline"
+            size="md"
+            disabled={addingFolder || folderDraft.trim() === ''}
+            onPress={addFolder}
+            className="shrink-0 flex-row items-center gap-1"
+          >
+            <PlusSignIcon size={13} className="text-fg" />
+            {t('procedures.addFolder')}
+          </Button>
+        </View>
+      )}
+      {directories.length > 0 && (
+        <View className="border-border bg-bg flex-col gap-1.5 rounded-lg border p-1.5">
+          {directories.map((dir) => (
+            <View key={dir} className="flex-row items-center gap-2 px-1.5">
+              <Text
+                numberOfLines={1}
+                selectable
+                style={{ writingDirection: 'ltr' }}
+                className="text-muted min-w-0 flex-1 text-left font-mono text-[11px]"
+              >
+                {dir}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('procedures.removeFolder')}
+                disabled={readOnly}
+                hitSlop={6}
+                onPress={() => removeFolder(dir)}
+                className={cn(
+                  'h-7 w-7 shrink-0 items-center justify-center rounded-md',
+                  readOnly ? 'opacity-40' : 'active:bg-border/40'
+                )}
+              >
+                <Delete02Icon size={13} className="text-muted" />
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
+
       <DialogError message={error} />
       <Text className="text-muted text-left font-sans text-xs">
         {readOnly ? t('projects.readOnly') : t('procedures.autosaveHint')}
@@ -518,6 +854,12 @@ function ProcedureEditorBody({
           setPrompt(value)
           setPromptOpen(false)
         }}
+      />
+      <AttachSheet
+        open={attachOpen}
+        onClose={() => setAttachOpen(false)}
+        onPickMedia={() => addFiles('media')}
+        onPickFiles={() => addFiles('files')}
       />
     </Modal>
   )

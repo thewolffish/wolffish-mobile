@@ -1,6 +1,6 @@
 import { useTokens } from '@/providers/theme/useTheme'
 import { useMemo } from 'react'
-import { I18nManager, Platform, ScrollView, View, useWindowDimensions } from 'react-native'
+import { I18nManager, Platform, ScrollView, Text, View, useWindowDimensions } from 'react-native'
 import Markdown from 'react-native-markdown-display'
 import * as WebBrowser from 'expo-web-browser'
 import type { ThemeTokens } from '@/lib/theme/colors'
@@ -11,6 +11,11 @@ import type { ThemeTokens } from '@/lib/theme/colors'
  * bordered LTR code blocks, horizontally scrollable tables, accent links
  * opened in the in-app browser. Styled from the live theme tokens so it
  * follows light/dark, with a variant for the primary-colored user bubble.
+ *
+ * Every text run is selectable — see the `textgroup` rule below. This is the
+ * one place that has to be got right for the whole feed: react-native-markdown-
+ * display renders its own Text nodes, so no amount of props on the bubble
+ * reaches them.
  */
 
 export type MarkdownVariant = 'assistant' | 'user'
@@ -167,14 +172,63 @@ function buildStyles(
   }
 }
 
+/**
+ * Whether `selectable` is worth setting on this platform.
+ *
+ * Android: yes — it maps to setTextIsSelectable(true), which is real in-place
+ * selection with drag handles, exactly what a reader wants.
+ *
+ * iOS: no. React Native ships no granular text selection for <Text> there —
+ * RCTSelectableText exists only under ReactAndroid, and `selectable` resolves
+ * to RCTParagraphComponentView, whose whole contribution is a long-press menu
+ * that copies the entire node. That duplicates the feed's own copy button
+ * while stealing the long press that could do something better, so iOS routes
+ * the long press to SelectTextSheet instead (see `onLongPress`).
+ */
+const IN_PLACE_SELECTION = Platform.OS === 'android'
+
+/**
+ * Fenced and indented code. `node.type` is the style key too ('fence' or
+ * 'code_block'), which is how one function serves both rules.
+ */
+function codeBlockRule(
+  node: { key: string; type: string; content: string },
+  _children: React.ReactNode,
+  _parents: unknown,
+  merged: Record<string, object>,
+  inherited?: object,
+  onLongPress?: () => void
+): React.ReactNode {
+  // markdown-it hands these blocks one trailing newline too many.
+  const content = node.content.endsWith('\n') ? node.content.slice(0, -1) : node.content
+  return (
+    <Text
+      key={node.key}
+      selectable={IN_PLACE_SELECTION}
+      onLongPress={onLongPress}
+      suppressHighlighting
+      style={[inherited, merged[node.type]]}
+    >
+      {content}
+    </Text>
+  )
+}
+
 export type MarkdownViewProps = {
   children: string
   variant?: MarkdownVariant
+  /**
+   * Long press anywhere in the rendered text. Used on iOS to open the free
+   * selection sheet; harmless to pass on Android, where the platform's own
+   * selection claims the gesture first.
+   */
+  onLongPress?: () => void
 }
 
 export function MarkdownView({
   children,
-  variant = 'assistant'
+  variant = 'assistant',
+  onLongPress
 }: MarkdownViewProps): React.JSX.Element {
   const tokens = useTokens()
   const { width } = useWindowDimensions()
@@ -182,6 +236,53 @@ export function MarkdownView({
   const styles = useMemo(() => buildStyles(tokens, variant, rtl), [tokens, variant, rtl])
   const rules = useMemo(
     () => ({
+      // Selection. The library renders its own Text nodes, so this rule is the
+      // only way to reach them. `textgroup` — not the leaf `text` rule — is the
+      // right seam: the parser wraps every inline run in one (paragraph,
+      // heading, list item, blockquote, table cell), and nested Text is virtual,
+      // so a single native text node carries the run's bold/italic/code/link
+      // children with it.
+      //
+      // onLongPress rides the same node. A link's own <Text onPress> is nested
+      // INSIDE this one and stays the closer handler for its own range, so
+      // tapping a link still opens it.
+      textgroup: (
+        node: { key: string },
+        children: React.ReactNode,
+        _parents: unknown,
+        merged: Record<string, object>
+      ) => (
+        <Text
+          key={node.key}
+          selectable={IN_PLACE_SELECTION}
+          onLongPress={onLongPress}
+          suppressHighlighting
+          style={merged.textgroup}
+        >
+          {children}
+        </Text>
+      ),
+      // Fences and indented code are BLOCK tokens — the parser never wraps them
+      // in a textgroup, so they need the props of their own, or code (the thing
+      // most worth copying) would be the one thing you couldn't. Both rules
+      // otherwise reproduce the library's own: inherited text styles under the
+      // block style, and the parser's surplus trailing newline trimmed off.
+      // Bound here rather than passed as a rule directly because the library
+      // calls rules with a fixed argument list that has no room for a handler.
+      fence: (
+        node: { key: string; type: string; content: string },
+        children: React.ReactNode,
+        parents: unknown,
+        merged: Record<string, object>,
+        inherited?: object
+      ) => codeBlockRule(node, children, parents, merged, inherited, onLongPress),
+      code_block: (
+        node: { key: string; type: string; content: string },
+        children: React.ReactNode,
+        parents: unknown,
+        merged: Record<string, object>,
+        inherited?: object
+      ) => codeBlockRule(node, children, parents, merged, inherited, onLongPress),
       // Tables and fenced code overflow horizontally inside their own
       // scroller — the feed itself must never scroll sideways.
       // NOTE: a bubble containing a table must have a DEFINITE width
@@ -195,7 +296,7 @@ export function MarkdownView({
         </ScrollView>
       )
     }),
-    [styles, width]
+    [styles, width, onLongPress]
   )
 
   return (

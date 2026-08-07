@@ -45,6 +45,7 @@ function project(id: string, over: Partial<SyncProject> = {}): SyncProject {
     icon: '📁',
     instructions: '',
     files: [],
+    directories: [],
     createdAt: 1,
     updatedAt: 1,
     ...over
@@ -59,6 +60,8 @@ function procedure(id: string, over: Partial<SyncProcedure> = {}): SyncProcedure
     mode: null,
     icon: '📋',
     projectId: null,
+    files: [],
+    directories: [],
     createdAt: 1,
     updatedAt: 1,
     ...over

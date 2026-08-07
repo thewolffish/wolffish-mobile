@@ -173,7 +173,13 @@ beforeEach(() => {
 describe('Projects screen', () => {
   it('renders the desktop’s projects with their instructions and counts', async () => {
     draw(<ProjectsScreen />)
-    await waitFor(() => expect(screen.getByText('Quarterly report')).toBeTruthy())
+    // The FIRST paint in this file pays for the whole module graph — all three
+    // screens plus their pickers and dialogs — so the default 1s deadline sits
+    // uncomfortably close to the real ~0.5s on a loaded machine. Only the
+    // patience changes; the assertion is the same.
+    await waitFor(() => expect(screen.getByText('Quarterly report')).toBeTruthy(), {
+      timeout: 5000
+    })
     expect(screen.getByText('📊')).toBeTruthy()
     expect(screen.getByText('Always cite the source table.')).toBeTruthy()
     // The card's meta line: one file, no conversations yet, plus the edit stamp.

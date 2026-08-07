@@ -496,6 +496,7 @@ function SheetGrid({ table, flex }: { table: SheetTable; flex?: boolean }): Reac
               {header.map((cell, index) => (
                 <Text
                   key={index}
+                  selectable
                   numberOfLines={2}
                   className="text-fg font-sans-medium border-border w-32 border-e px-2 py-1.5 text-left text-[11px]"
                 >
@@ -512,6 +513,7 @@ function SheetGrid({ table, flex }: { table: SheetTable; flex?: boolean }): Reac
               {row.map((cell, index) => (
                 <Text
                   key={index}
+                  selectable
                   numberOfLines={2}
                   className="text-fg border-border-soft w-32 border-e px-2 py-1.5 text-left font-sans text-[11px]"
                 >

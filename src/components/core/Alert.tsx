@@ -69,11 +69,17 @@ export function Alert({
       <View className="mt-0.5 shrink-0">
         <ToneIcon tone={tone} className={textClass} />
       </View>
+      {/* Selectable: an alert is most often an error, and an error the user
+          can't copy is one they have to retype into a search box. The dismiss
+          control is its own Pressable outside this column, so nothing here
+          competes with a long press. */}
       <View className="min-w-0 flex-1 flex-col gap-0.5">
         {title && (
-          <Text className={cn('font-sans-semibold text-left text-sm', textClass)}>{title}</Text>
+          <Text selectable className={cn('font-sans-semibold text-left text-sm', textClass)}>
+            {title}
+          </Text>
         )}
-        <Text className={cn('text-left font-sans text-sm leading-relaxed', textClass)}>
+        <Text selectable className={cn('text-left font-sans text-sm leading-relaxed', textClass)}>
           {message}
         </Text>
       </View>

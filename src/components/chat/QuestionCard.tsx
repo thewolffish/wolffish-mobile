@@ -327,11 +327,15 @@ export const QuestionCard = memo(function QuestionCard({
       <View className="mb-3 flex-row items-start gap-2">
         <MessageQuestionIcon size={18} className="text-accent mt-0.5 shrink-0" />
         <View className="min-w-0 flex-1 flex-col">
-          <Text className="text-fg font-sans-semibold text-left text-base leading-snug">
+          {/* The question and its details are prose worth copying, and neither
+              sits inside a Pressable — an option label does, so those stay
+              non-selectable (a selectable Text on Android takes focus and
+              swallows the tap that answers the question). */}
+          <Text selectable className="text-fg font-sans-semibold text-left text-base leading-snug">
             {active.question}
           </Text>
           {active.details ? (
-            <Text className="text-muted mt-1 text-left font-sans text-xs leading-snug">
+            <Text selectable className="text-muted mt-1 text-left font-sans text-xs leading-snug">
               {active.details}
             </Text>
           ) : null}
@@ -418,7 +422,7 @@ export const QuestionCard = memo(function QuestionCard({
             {answered ? (
               answeredByCustom && customAnswer ? (
                 <View className="border-border-soft bg-bg-soft mt-2 rounded-lg border px-3 py-2">
-                  <Text className="text-fg text-left font-sans text-xs leading-snug">
+                  <Text selectable className="text-fg text-left font-sans text-xs leading-snug">
                     {customAnswer}
                   </Text>
                 </View>
@@ -476,7 +480,10 @@ export const QuestionCard = memo(function QuestionCard({
                   <View className="bg-primary-soft mt-px h-4 w-4 shrink-0 items-center justify-center rounded">
                     <Text className="text-primary font-sans-semibold text-[10px]">{i + 1}</Text>
                   </View>
-                  <Text className="text-muted min-w-0 flex-1 text-left font-sans text-xs leading-snug">
+                  <Text
+                    selectable
+                    className="text-muted min-w-0 flex-1 text-left font-sans text-xs leading-snug"
+                  >
                     {q.question}{' '}
                     <Text className="text-fg font-sans-medium">
                       {chosen ? chosen.label : answer?.kind === 'custom' ? (answer.text ?? '') : ''}
@@ -487,12 +494,12 @@ export const QuestionCard = memo(function QuestionCard({
             })}
           </View>
         ) : result?.output ? (
-          <Text className="text-muted mt-3 text-left font-sans text-xs leading-snug">
+          <Text selectable className="text-muted mt-3 text-left font-sans text-xs leading-snug">
             {result.output}
           </Text>
         ) : null
       ) : answered && result?.output ? (
-        <Text className="text-muted mt-3 text-left font-sans text-xs leading-snug">
+        <Text selectable className="text-muted mt-3 text-left font-sans text-xs leading-snug">
           <Text className="font-sans-medium">{t('chat.questionCard.yourAnswer')}: </Text>
           {result.output}
         </Text>

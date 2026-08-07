@@ -1,4 +1,5 @@
 import { AssistantMessageView, UserBubble } from '@/components/chat/MessageBubbles'
+import { SelectTextHost } from '@/components/chat/SelectTextSheet'
 import { ChatFeed, FEED_FADE_MS, type ChatFeedHandle } from '@/components/chat/ChatFeed'
 import { ChatSkeleton } from '@/components/chat/ChatSkeleton'
 import { Composer, type ComposerSubmit } from '@/components/chat/Composer'
@@ -677,6 +678,9 @@ export default function ChatScreen(): React.JSX.Element {
     // over it. What keeps the first message clear of them is padding INSIDE the
     // scroller, which is also what lets the conversation pass beneath them.
     <View className="bg-bg flex-1">
+      {/* One per screen, not one per message: every bubble and tool card can
+          open it, and it holds whichever text was long-pressed last. */}
+      <SelectTextHost />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"

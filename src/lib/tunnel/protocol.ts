@@ -209,6 +209,13 @@ export const Rpc = {
    * Procedures — `brain/procedures.json`, same contract as the projects trio
    * above: `{ procedures }`, then create/update/delete answering the stored
    * row. `projectId: ''` on an update unbinds, matching the desktop's setter.
+   *
+   * `files` and `directories` on an update are WHOLE-LIST replaces, honoured
+   * only as real arrays: dropping a file DELETES the desktop's copy, so an
+   * absent field must leave the list alone. Files can only be removed this way
+   * (adding one uploads its bytes — see uploadBegin's `procedureId`), while a
+   * directory is added by naming it: the desktop refuses a path that is not a
+   * folder on ITS filesystem, with the reason.
    */
   proceduresList: 'desktop.procedures.list',
   procedureCreate: 'desktop.procedures.create',
@@ -229,6 +236,17 @@ export const Rpc = {
    * reloads the scheduler for both screens. `automationRun` takes `{ label }`
    * and answers the brainstem's own `{ ok, started, error? }`.
    */
+  /**
+   * Validate a working-folder path against THIS machine. A phone cannot browse
+   * the desktop's filesystem, so folders are added by naming them — and a path
+   * that is not a folder over here is refused with the reason, which is the
+   * screen's validation. Params `{ path }` → `{ path }` resolved absolute
+   * (`~` expanded); rejects otherwise.
+   *
+   * Projects and procedures validate inside their own update call; automations
+   * have none (heartbeat.md is the store), which is why this stands alone.
+   */
+  resolveDirectory: 'desktop.paths.resolveDirectory',
   automationsRead: 'desktop.automations.read',
   automationsWrite: 'desktop.automations.write',
   automationRun: 'desktop.automations.run',
@@ -259,9 +277,15 @@ export const Rpc = {
    * PROJECT's file list instead of a conversation: nothing is staged
    * differently, but the commit adopts the bytes into `uploads/project-<id>/`
    * and attaches the ref, so the answer additionally carries `{ project }` —
-   * the stored project, which is what the phone renders. One upload path for
-   * both destinations by construction: the chunk ordering, the idle sweep and
-   * the size ceiling are the transfer's business, not the destination's.
+   * the stored project, which is what the phone renders. A `procedureId` does
+   * the same for a PROCEDURE (`uploads/procedure-<id>/`, answer carries
+   * `{ procedure }`). `automationFiles` — the `file:` paths the automation
+   * already holds — targets an AUTOMATION: the desktop derives the folder from
+   * them, adopts the bytes, and answers `{ path, name }` with the ABSOLUTE path
+   * it chose, which the phone writes into heartbeat.md as a `file:` marker.
+   * One upload path for every destination by construction:
+   * the chunk ordering, the idle sweep and the size ceiling are the transfer's
+   * business, not the destination's.
    */
   fileStat: 'desktop.files.stat',
   fileRead: 'desktop.files.read',
@@ -539,6 +563,13 @@ export type SyncProject = {
   icon: string
   instructions: string
   files: SyncProjectFile[]
+  /**
+   * Working folders every turn inside the project gets a fresh listing of.
+   * ABSOLUTE desktop paths, shown verbatim on the phone — a folder named
+   * "reports" means nothing without knowing which "reports" on that machine it
+   * is. An added one is checked against the desktop's own filesystem first.
+   */
+  directories: string[]
   createdAt: number
   updatedAt: number
 }
@@ -554,6 +585,21 @@ export type SyncProcedure = {
   icon: string
   /** Null ⇒ unbound. */
   projectId: string | null
+  /**
+   * Reference files every run of this procedure is told about (name, size,
+   * path) and reads with its own tools — content is never injected. Paths are
+   * WORKSPACE-RELATIVE for the copies the desktop owns, exactly like a
+   * project's, which is what lets a removal round-trip: the phone sends the
+   * list back and the desktop maps each path to the ref it actually holds.
+   */
+  files: SyncProjectFile[]
+  /**
+   * Working folders every run gets a fresh listing of. ABSOLUTE desktop paths,
+   * shown verbatim on the phone — a folder named "reports" means nothing
+   * without knowing which "reports" on that machine it is. An added one is
+   * checked against the desktop's own filesystem before it is stored.
+   */
+  directories: string[]
   createdAt: number
   updatedAt: number
 }

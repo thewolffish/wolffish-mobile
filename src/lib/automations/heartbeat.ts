@@ -52,6 +52,16 @@ export type AutomationBlock = {
   project: string | null
   /** The `icon: <emoji>` marker; null ⇒ the screen's default. */
   icon: string | null
+  /**
+   * The repeatable `file: <path>` markers — files the desktop copied into the
+   * workspace when they were attached there. The run is told their name, size
+   * and path and reads them with its own tools; nothing about them is stored
+   * on this device, which is why the phone can show and detach them but not
+   * add one (the bytes would have to be on the desktop's disk).
+   */
+  files: string[]
+  /** The repeatable `dir: <path>` markers — folders the automation works in. */
+  dirs: string[]
 }
 
 /** The scheduler's live view of one ACTIVE automation, served by the desktop. */
@@ -231,6 +241,9 @@ export function nextCronMs(expr: string, nowMs: number): number | null {
 const MODE_MARKER_RE = /^mode:\s*(single|workflow)\s*$/i
 const PROJECT_MARKER_RE = /^project:\s*(\S+)\s*$/i
 const ICON_MARKER_RE = /^icon:\s*(\S+)\s*$/i
+// Paths, and repeatable — so these take the whole line, spaces included.
+const FILE_MARKER_RE = /^file:\s*(.+?)\s*$/i
+const DIR_MARKER_RE = /^dir:\s*(.+?)\s*$/i
 
 /**
  * Drop leading setting-marker lines (and the blanks between them) from a
@@ -248,7 +261,9 @@ export function stripLeadingSettings(text: string): string {
       line === '' ||
       MODE_MARKER_RE.test(line) ||
       PROJECT_MARKER_RE.test(line) ||
-      ICON_MARKER_RE.test(line)
+      ICON_MARKER_RE.test(line) ||
+      FILE_MARKER_RE.test(line) ||
+      DIR_MARKER_RE.test(line)
     ) {
       i++
       continue
@@ -306,6 +321,8 @@ export function parseAutomations(markdown: string): AutomationBlock[] {
     let modeLineIndex: number | null = null
     let project: string | null = null
     let icon: string | null = null
+    const files: string[] = []
+    const dirs: string[] = []
     let sawContent = false
 
     for (let j = i + 1; j < lines.length; j++) {
@@ -346,6 +363,18 @@ export function parseAutomations(markdown: string): AutomationBlock[] {
           if (!isBlock) endIdx = j
           continue
         }
+        const f = line.match(FILE_MARKER_RE)
+        if (f) {
+          files.push(f[1])
+          if (!isBlock) endIdx = j
+          continue
+        }
+        const d = line.match(DIR_MARKER_RE)
+        if (d) {
+          dirs.push(d[1])
+          if (!isBlock) endIdx = j
+          continue
+        }
         sawContent = true
       }
       bodyLines.push(lines[j])
@@ -367,7 +396,9 @@ export function parseAutomations(markdown: string): AutomationBlock[] {
       mode,
       modeLineIndex,
       project,
-      icon
+      icon,
+      files,
+      dirs
     })
   }
 
@@ -434,14 +465,29 @@ export type AutomationDraft = {
   projectId: string
 }
 
-/** The marker lines the editor owns, in the engine's read order. */
-function settingLines(draft: AutomationDraft, mode: 'single' | 'workflow' | null): string[] {
+/**
+ * The marker lines a written block carries, in the engine's read order.
+ *
+ * `mode`, `files` and `dirs` come from the block being replaced rather than the
+ * draft: this editor does not own any of them (mode is a card switch, and files
+ * and folders are attached on the desktop, which is where their bytes and paths
+ * live), so a rewrite here must carry them through untouched or a save from the
+ * phone would silently strip an automation's attachments.
+ */
+function settingLines(
+  draft: AutomationDraft,
+  mode: 'single' | 'workflow' | null,
+  files: readonly string[] = [],
+  dirs: readonly string[] = []
+): string[] {
   return [
     ...(mode ? [`mode: ${mode}`] : []),
     ...(draft.projectId ? [`project: ${draft.projectId}`] : []),
     // Every automation carries an emoji from birth, so this one is always
     // written; the picker can change it but never remove it.
-    `icon: ${draft.icon || DEFAULT_AUTOMATION_ICON}`
+    `icon: ${draft.icon || DEFAULT_AUTOMATION_ICON}`,
+    ...files.map((file) => `file: ${file}`),
+    ...dirs.map((dir) => `dir: ${dir}`)
   ]
 }
 
@@ -463,7 +509,7 @@ export function writeDraft(
   const target = bound ? findBlock(markdown, bound) : null
 
   if (target) {
-    const markers = [...settingLines(draft, target.mode), '']
+    const markers = [...settingLines(draft, target.mode, target.files, target.dirs), '']
     const block = target.active
       ? [`## ${draft.schedule}`, '', ...markers, ...promptLines]
       : [`<!-- ## ${draft.schedule}`, '', ...markers, ...promptLines, '-->']
@@ -487,6 +533,78 @@ export function writeDraft(
       : `${markdown.replace(/\s+$/, '')}\n\n${block}\n`
   ).replace(/^\n+/, '')
   return { markdown: next, bound: { label: draft.schedule, active: true } }
+}
+
+/**
+ * Drop one `file:` / `dir:` marker line from an automation's block.
+ *
+ * A line splice rather than a block rewrite, deliberately: this is the phone's
+ * only write to an automation's attachments, and touching exactly the one line
+ * that names the path leaves the prompt, the other markers and the on/off
+ * wrapper byte-identical. Works for a switched-off automation too — its markers
+ * are plain lines inside the comment block.
+ *
+ * The desktop deletes the copy the marker pointed at: its scheduler reconciles
+ * the uploads folder against the file on every reload, so the write this
+ * returns is the whole of the phone's half of the job.
+ */
+export function removeBlockPath(
+  markdown: string,
+  block: AutomationBlock,
+  kind: 'file' | 'dir',
+  value: string
+): string {
+  const lines = markdown.split('\n')
+  // Matched through the same regex that PARSED it, not by rebuilding the text —
+  // `file:/a/b` and `file:   /a/b` are the same marker to the engine, and a
+  // string compare against one spelling would silently no-op on the others.
+  const re = kind === 'file' ? FILE_MARKER_RE : DIR_MARKER_RE
+  for (let j = block.lineIndex + 1; j <= block.endLineIndex && j < lines.length; j++) {
+    const match = lines[j].trim().match(re)
+    if (!match || match[1] !== value) continue
+    lines.splice(j, 1)
+    return lines.join('\n')
+  }
+  return markdown
+}
+
+/**
+ * Add a `file:` / `dir:` marker to an automation's block, right after the last
+ * marker it already carries.
+ *
+ * A line splice rather than a block rewrite, for the same reason removeBlockPath
+ * is: it leaves the prompt, the other markers and the on/off wrapper
+ * byte-identical. Placed after the existing markers so the leading-marker scan
+ * still finds it — a line appended below the prompt would read as instruction
+ * text, not a setting.
+ */
+export function addBlockPath(
+  markdown: string,
+  block: AutomationBlock,
+  kind: 'file' | 'dir',
+  value: string
+): string {
+  const lines = markdown.split('\n')
+  // Last marker line in the block, else the heading itself: inserting directly
+  // under either keeps every marker contiguous from the top of the body.
+  let insertAfter = block.lineIndex
+  for (let j = block.lineIndex + 1; j <= block.endLineIndex && j < lines.length; j++) {
+    const line = lines[j].trim()
+    if (line === '') continue
+    if (
+      MODE_MARKER_RE.test(line) ||
+      PROJECT_MARKER_RE.test(line) ||
+      ICON_MARKER_RE.test(line) ||
+      FILE_MARKER_RE.test(line) ||
+      DIR_MARKER_RE.test(line)
+    ) {
+      insertAfter = j
+      continue
+    }
+    break
+  }
+  lines.splice(insertAfter + 1, 0, `${kind}: ${value}`)
+  return lines.join('\n')
 }
 
 /** Switch an automation on or off by commenting its block out (or back in). */

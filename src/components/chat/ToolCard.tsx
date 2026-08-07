@@ -1,6 +1,7 @@
 import { ArrowDown01Icon, ArrowLeft01Icon, ArrowRight01Icon } from '@/components/core/icons'
 import type { ToolCallInfo, ToolResultInfo } from '@/lib/conversations/segments'
 import type { ToolTiming } from '@/lib/conversations/types'
+import { NEEDS_SELECT_SHEET, openSelectText } from '@/components/chat/SelectTextSheet'
 import { cn } from '@/lib/utils/cn'
 import { memo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -43,7 +44,13 @@ function statusTone(status: ToolResultInfo['status'] | 'running'): {
 }
 
 /** The monospace payload block. Shared with the approval card, which shows the
- *  exact command and args a flagged tool call would run. */
+ *  exact command and args a flagged tool call would run.
+ *
+ *  A command, a path, an error string — this is the text most likely to be
+ *  wanted in pieces, so it gets the same treatment as a message bubble: real
+ *  in-place selection on Android, the free-selection sheet on iOS. The sheet
+ *  shows the UNCLAMPED text, since a long output is exactly the case where the
+ *  clamp would otherwise hide the line you were reaching for. */
 export function CodeBlockText({
   text,
   error
@@ -59,7 +66,11 @@ export function CodeBlockText({
       nestedScrollEnabled
     >
       <Text
-        selectable
+        selectable={!NEEDS_SELECT_SHEET}
+        // The sheet gets the UNCLAMPED text: a long output is exactly the case
+        // where the line you were reaching for is past the clamp.
+        onLongPress={NEEDS_SELECT_SHEET ? () => openSelectText(text) : undefined}
+        suppressHighlighting
         style={{ writingDirection: 'ltr' }}
         className={cn(
           'p-2.5 text-left font-mono text-xs leading-4',

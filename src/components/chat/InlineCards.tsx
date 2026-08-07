@@ -21,7 +21,7 @@ export const ModelChip = memo(function ModelChip({
   return (
     <View className="border-border bg-surface flex-row items-center gap-1.5 self-start rounded-full border px-2.5 py-1">
       <View className="bg-primary h-1.5 w-1.5 rounded-full" />
-      <Text className="text-muted font-sans-medium text-left text-[10px]">
+      <Text selectable className="text-muted font-sans-medium text-left text-[10px]">
         {provider}/{model}
       </Text>
     </View>
@@ -74,7 +74,9 @@ export const TurnEndCard = memo(function TurnEndCard({
             <Chevron size={14} className="text-muted" />
           </Pressable>
           {showReasoning && (
-            <Text className="text-muted text-left font-sans text-xs leading-5">{reasoning}</Text>
+            <Text selectable className="text-muted text-left font-sans text-xs leading-5">
+              {reasoning}
+            </Text>
           )}
         </View>
       ) : null}
@@ -138,10 +140,16 @@ export const WorkflowCard = memo(function WorkflowCard({
                       : 'bg-primary'
                 )}
               />
-              <Text numberOfLines={1} className="text-fg flex-1 text-left font-sans text-[11px]">
+              <Text
+                selectable
+                numberOfLines={1}
+                className="text-fg flex-1 text-left font-sans text-[11px]"
+              >
                 {agent.name}
               </Text>
-              <Text className="text-muted font-sans text-[10px]">{agent.model}</Text>
+              <Text selectable className="text-muted font-sans text-[10px]">
+                {agent.model}
+              </Text>
             </View>
           ))}
         </View>

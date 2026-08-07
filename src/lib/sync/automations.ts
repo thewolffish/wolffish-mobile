@@ -1,6 +1,8 @@
 import { queryClient } from '@/lib/query/queryClient'
+import { toBase64Url } from '@/lib/tunnel/pairing'
 import { tunnelClient } from '@/lib/tunnel/client'
-import { Rpc, type AutomationJob, type AutomationRuns } from '@/lib/tunnel/protocol'
+import { CHUNK_SIZE, Rpc, type AutomationJob, type AutomationRuns } from '@/lib/tunnel/protocol'
+import { File, FileMode } from 'expo-file-system'
 import { useDemoConfig } from '@/state/demoConfig'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 
@@ -172,4 +174,61 @@ export type RunResult = { ok: boolean; started: boolean; error?: string }
  */
 export async function runAutomation(label: string): Promise<RunResult> {
   return call<RunResult>(Rpc.automationRun, { label })
+}
+
+/**
+ * Upload one file into an automation, chunk by chunk — the phone's Add-files.
+ *
+ * An automation has no id (heartbeat.md is the store), so `existing` — the
+ * `file:` paths it already holds — is what tells the desktop which folder it
+ * owns. The answer is the ABSOLUTE path the desktop chose, because that is what
+ * a `file:` marker holds; writing that marker is the caller's job, through
+ * editAutomations like every other block edit.
+ */
+export async function uploadAutomationFile(
+  existing: readonly string[],
+  localUri: string,
+  name: string,
+  mimeType: string | null,
+  onProgress?: (sentBytes: number, totalBytes: number) => void
+): Promise<{ path: string; name: string }> {
+  const source = new File(localUri)
+  if (!source.exists) throw new Error(`no file at ${localUri}`)
+  const sizeBytes = source.size ?? 0
+  if (sizeBytes <= 0) throw new Error(`empty file at ${localUri}`)
+
+  const begin = await call<{ uploadId: string }>(Rpc.uploadBegin, {
+    name,
+    mimeType,
+    sizeBytes,
+    automationFiles: existing
+  })
+  // Published before the first chunk so the bar is sized from its first frame.
+  onProgress?.(0, sizeBytes)
+
+  const handle = source.open(FileMode.ReadOnly)
+  try {
+    let offset = 0
+    while (offset < sizeBytes) {
+      const bytes = handle.readBytes(Math.min(CHUNK_SIZE, sizeBytes - offset))
+      if (bytes.length === 0) throw new Error('local file truncated mid-upload')
+      await call(Rpc.uploadChunk, { uploadId: begin.uploadId, offset, data: toBase64Url(bytes) })
+      offset += bytes.length
+      onProgress?.(offset, sizeBytes)
+    }
+  } finally {
+    handle.close()
+  }
+
+  return call<{ path: string; name: string }>(Rpc.uploadCommit, { uploadId: begin.uploadId })
+}
+
+/**
+ * Resolve a typed folder path against the DESKTOP's filesystem. Rejects with
+ * that side's own message when the path names nothing or is not a folder —
+ * which is the screen's validation, since a phone cannot check.
+ */
+export async function resolveDirectory(input: string): Promise<string> {
+  const answer = await call<{ path: string }>(Rpc.resolveDirectory, { path: input })
+  return answer.path
 }

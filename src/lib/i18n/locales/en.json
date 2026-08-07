@@ -607,6 +607,10 @@
     "copy": "Copy",
     "copied": "Copied",
     "copyMessage": "Copy message",
+    "selectText": {
+      "title": "Select text",
+      "hint": "Drag to select any part, then Copy."
+    },
     "modelLabel": "Model: {{model}}",
     "reasoning": "Reasoning",
     "fileCard": {
@@ -1009,6 +1013,9 @@
     "addFiles": "Add files",
     "copyingFiles": "Copying files into Wolffish",
     "copyingCount": "File {{index}} of {{total}}",
+    "folders": "Working folders ({{count}})",
+    "addFolder": "Add",
+    "removeFolder": "Remove folder",
     "removeFile": "Remove file",
     "newConversation": "New conversation",
     "exit": "Close project",
@@ -1047,6 +1054,12 @@
     "projectNone": "No project",
     "projectIcon": "Uses the project’s icon",
     "titleRequired": "A title is required",
+    "files": "Files ({{count}})",
+    "addFiles": "Add files",
+    "removeFile": "Remove file",
+    "folders": "Working folders ({{count}})",
+    "addFolder": "Add",
+    "removeFolder": "Remove folder",
     "promptPlaceholder": "Write the prompt to run…",
     "autosaveHint": "Changes save automatically.",
     "done": "Done",
@@ -1088,6 +1101,12 @@
     "deleteCancel": "Cancel",
     "deleting": "Deleting…",
     "deleteSuccess": "Automation deleted",
+    "files": "Files ({{count}})",
+    "addFiles": "Add files",
+    "folders": "Working folders ({{count}})",
+    "addFolder": "Add",
+    "removeFile": "Remove file",
+    "removeFolder": "Remove folder",
     "type": {
       "startup": "Startup",
       "once": "One-time",
@@ -1144,7 +1163,8 @@
       "compactionWeekly": "Consolidate the past week's episodes into a digest.",
       "reflection": "Review settled conversations — scores, wins, failures — and fold the lessons into the playbook.",
       "deepClean": "Deep reflection: challenge the playbook and knowledge files — merge duplicates, prune stale or contradicted entries."
-    }
+    },
+    "attachAfterSave": "Save the schedule and prompt first — files and folders attach to a saved automation."
   },
   "overlays": {
     "kind": {

@@ -82,6 +82,7 @@ export function TaskCard({
           </Text>
         </View>
         <Text
+          selectable
           numberOfLines={1}
           className="text-fg font-sans-medium min-w-0 flex-1 text-left text-sm"
         >
@@ -107,6 +108,7 @@ export function TaskCard({
           </Text>
         )}
         <Text
+          selectable
           numberOfLines={1}
           className="text-muted font-sans text-[10px] opacity-70"
           style={{ writingDirection: 'ltr' }}
@@ -116,12 +118,17 @@ export function TaskCard({
       </View>
 
       {snapshot.detail && snapshot.status !== 'failed' && (
-        <Text className="text-muted text-left font-sans text-[11px]">{snapshot.detail}</Text>
+        <Text selectable className="text-muted text-left font-sans text-[11px]">
+          {snapshot.detail}
+        </Text>
       )}
 
       {snapshot.status === 'failed' && (
         <View className="rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-2">
-          <Text className="text-left font-sans text-[11px] text-red-600 dark:text-red-400">
+          <Text
+            selectable
+            className="text-left font-sans text-[11px] text-red-600 dark:text-red-400"
+          >
             {snapshot.error ?? t('chat.task.status.failed')}
           </Text>
         </View>

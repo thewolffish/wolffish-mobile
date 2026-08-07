@@ -97,13 +97,16 @@ export const ApprovalCard = memo(function ApprovalCard({
           accessibilityLabel={riskLabel}
           className={cn('h-2 w-2 shrink-0 rounded-full', RISK_DOT[risk])}
         />
-        <Text className="text-fg font-sans-semibold flex-1 text-left text-base leading-tight">
+        <Text
+          selectable
+          className="text-fg font-sans-semibold flex-1 text-left text-base leading-tight"
+        >
           {title}
         </Text>
       </View>
 
       {description ? (
-        <Text className="text-muted mb-3 text-left font-sans text-xs leading-snug">
+        <Text selectable className="text-muted mb-3 text-left font-sans text-xs leading-snug">
           {description}
         </Text>
       ) : null}
@@ -121,7 +124,10 @@ export const ApprovalCard = memo(function ApprovalCard({
       ) : null}
 
       {impact ? (
-        <Text className="text-muted mb-3 text-left font-sans text-xs italic leading-snug">
+        <Text
+          selectable
+          className="text-muted mb-3 text-left font-sans text-xs italic leading-snug"
+        >
           {impact}
         </Text>
       ) : null}

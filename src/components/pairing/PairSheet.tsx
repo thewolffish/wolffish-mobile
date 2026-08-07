@@ -415,7 +415,7 @@ export function PairSheet({
             <Text className="text-fg text-left font-sans text-sm leading-relaxed">
               {t('pair.relayCard.confirmBody')}
             </Text>
-            <Text className="text-fg text-left font-mono text-xs" style={LTR}>
+            <Text selectable className="text-fg text-left font-mono text-xs" style={LTR}>
               {pendingRelay ?? ''}
             </Text>
             <Text className="text-muted text-left font-sans text-sm leading-relaxed">
