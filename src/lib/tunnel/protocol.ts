@@ -147,6 +147,22 @@ export const Rpc = {
   /** Stop the running turn. */
   abortTurn: 'desktop.chat.abort',
   /**
+   * Which conversations have a turn in flight right now, as
+   * `{ conversationIds: string[] }` — the desktop's own chat:activeRuns, which
+   * it hands its renderer windows for exactly this reason.
+   *
+   * Turn lifecycle reaches this phone as pushes and nothing else, so a tunnel
+   * that comes up mid-run has already missed the `turn.status: started` for
+   * every turn already going. Read once per connection (see
+   * sync/prompt.ts seedActiveRuns), and the phone opens a live overlay per id
+   * — which is what every piece of chat chrome derives "running" from, down to
+   * whether the rating bar may offer to score the last turn.
+   *
+   * An older desktop answers nothing and the phone stays as it was: it learns
+   * about the run when the desktop next mirrors it.
+   */
+  activeRuns: 'desktop.chat.activeRuns',
+  /**
    * The user answered an ask-the-user card. Params: `{ id, response }` where
    * `response` is the desktop's AskUserResponse — `{ kind: 'answered',
    * answers }` (one answer per question, in order) or `{ kind: 'canceled' }`.

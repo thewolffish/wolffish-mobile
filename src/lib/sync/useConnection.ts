@@ -1,7 +1,7 @@
 import { refreshPushRegistration } from '@/lib/notifications/push'
 import { clearOverlays, seedOverlays } from '@/lib/sync/overlays'
 import { attachLiveUpdates, reconcile } from '@/lib/sync/sync'
-import { attachTurnStream } from '@/lib/sync/prompt'
+import { attachTurnStream, seedActiveRuns } from '@/lib/sync/prompt'
 import { tunnelClient } from '@/lib/tunnel/client'
 import { useAppStore } from '@/state/appStore'
 import { useEffect } from 'react'
@@ -75,6 +75,11 @@ export function useConnection(): void {
         // stacking — safe on a reconnect that reuses the same tunnel.
         attachLiveUpdates()
         attachTurnStream()
+        // After attachTurnStream, never before: that call force-settles the
+        // turns this phone may have missed the end of while it was away, and
+        // this one re-opens the ones the desktop says are still going. The
+        // other order would clear what this just seeded.
+        void seedActiveRuns()
         void reconcile().catch(() => undefined)
         // What the desktop is busy with only ever arrives as a push, so a
         // connection formed mid-run has already missed it. Seeded on every

@@ -205,17 +205,55 @@ describe('the rating bar', () => {
     // Nothing stored yet — this is the window between the desktop marking the
     // turn done and the phone's refetch replacing the live row with its
     // persisted twin. The desktop's bar is up in exactly this window too.
+    // `ended: 'desktop'` is what a terminal turn.status stamps, and it is the
+    // difference between this and the assumed-complete case below.
     mockConversation.data = { ...stored(), messages: [] }
     await act(async () => {
       useChatRuntime.getState().putStream(CONVERSATION, {
         message: { id: ANSWER, role: 'assistant', content: 'done', timestamp: 3 },
-        status: 'complete'
+        status: 'complete',
+        ended: 'desktop'
       })
     })
     await mount()
     expect(bar()).toBeTruthy()
     await fireEvent.press(screen.getByLabelText('Rate 10 out of 10'))
     expect(mockRateTurn).toHaveBeenCalledWith(CONVERSATION, ANSWER, 10)
+  })
+
+  it('stays away from a turn only ASSUMED complete by a reconnect', async () => {
+    // The reported bug. A phone that reconnects mid-turn — backgrounded and
+    // brought back, the common case — force-settles every stream it may have
+    // missed the end of (attachTurnStream). The turn is very much still being
+    // written on the desktop; nothing said otherwise. Reading "not streaming"
+    // as "finished" put a rating bar over it until the next frame arrived and
+    // took it away again.
+    mockConversation.data = { ...stored(), messages: [] }
+    await act(async () => {
+      useChatRuntime.getState().putStream(CONVERSATION, {
+        message: { id: ANSWER, role: 'assistant', content: 'half a rep', timestamp: 3 },
+        status: 'complete',
+        ended: 'assumed'
+      })
+    })
+    await mount()
+    expect(bar()).toBeNull()
+  })
+
+  it('stays away while a turn runs over a conversation whose last word is stored', async () => {
+    // The other half: the tunnel comes up while the desktop is mid-run, so the
+    // live row carries nothing yet but the stored transcript still ends on the
+    // PREVIOUS turn's answer — an already-rateable-looking message under a
+    // conversation that is busy. seedActiveRuns opens the overlay that makes
+    // this readable; the bar has to respect it.
+    await act(async () => {
+      useChatRuntime.getState().putStream(CONVERSATION, {
+        message: { role: 'assistant', content: '', timestamp: 4 },
+        status: 'streaming'
+      })
+    })
+    await mount()
+    expect(bar()).toBeNull()
   })
 
   it('is absent when turn scoring is switched off in Knowledge', async () => {

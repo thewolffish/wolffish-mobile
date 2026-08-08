@@ -197,6 +197,32 @@ export default function ChatScreen(): React.JSX.Element {
   )
 
   /**
+   * Is this conversation between turns? Not "is nothing streaming right now" —
+   * that is the question this used to ask, and the two differ exactly where it
+   * matters.
+   *
+   * A turn is over when someone SAID so. Two things can say it:
+   *
+   *   no overlay at all   nothing is in flight and nothing recently was. An
+   *                       overlay exists for every turn this phone believes is
+   *                       running — opened at the tap, on `turn.status:
+   *                       started`, on the desktop's first mirror, and seeded
+   *                       from the desktop's active runs when the tunnel comes
+   *                       up (seedActiveRuns) — so its absence is real.
+   *   ended: 'desktop'    a terminal `turn.status` for this turn. The overlay
+   *                       is still up because the saved copy has not arrived,
+   *                       but the turn itself is finished.
+   *
+   * What is deliberately NOT idle is an overlay that merely stopped streaming.
+   * The reconnect re-settle clears the streaming flag on every turn it might
+   * have missed the end of (attachTurnStream), which is a guess — and while
+   * that guess stood, a "rate this turn" appeared over a turn the desktop was
+   * still writing and vanished again on its next frame. That is the flash this
+   * closes, and a backgrounded phone coming back mid-turn hits it every time.
+   */
+  const idle = !live || (live.status !== 'streaming' && live.ended === 'desktop')
+
+  /**
    * The turn the rating bar scores: the last row of an idle feed, when it is a
    * finished assistant message with an id to file the score under. Read from
    * the FEED, not from the stored transcript — the desktop's bar appears the
@@ -208,6 +234,7 @@ export default function ChatScreen(): React.JSX.Element {
     scoringEnabled &&
     writable &&
     !streaming &&
+    idle &&
     conversationId !== null &&
     lastItem &&
     !lastItem.streaming &&

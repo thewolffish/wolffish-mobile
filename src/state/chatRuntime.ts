@@ -52,6 +52,27 @@ export type LiveStream = {
   base?: ConversationMessage
   /** Paired mode only — text deltas received after `base`. */
   tail?: string
+  /**
+   * WHY this turn stopped being 'streaming' — which is not the same question as
+   * whether it is over, and the difference is the whole reason this field
+   * exists.
+   *
+   *   'desktop'  a terminal `turn.status` for this very turn. The turn IS over.
+   *   'assumed'  nobody said so. Set by the reconnect re-settle, which clears
+   *              the streaming flag on every turn it may have missed the end of
+   *              while the phone was away — a guess that is right often enough
+   *              to be worth making and wrong often enough to be worth marking.
+   *
+   * Anything that reads a non-streaming turn as FINISHED has to check this. The
+   * rating bar is the one that taught us: it took 'not streaming' for 'done',
+   * so every reconnect during a live turn — a backgrounded phone coming back is
+   * the common one — flashed a "rate this turn" over a turn still being
+   * written, until the next frame arrived and put it away again.
+   *
+   * Undefined while streaming, and dropped by every putLive: a turn that is
+   * being written again is not a turn that ended.
+   */
+  ended?: 'desktop' | 'assumed'
 }
 
 /**

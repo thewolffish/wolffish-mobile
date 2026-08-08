@@ -13,7 +13,7 @@ import { fetchConversationBody } from '@/lib/sync/sync'
 import { tunnelClient } from '@/lib/tunnel/client'
 import { Event, Rpc } from '@/lib/tunnel/protocol'
 import { useChatRuntime, type LiveStream } from '@/state/chatRuntime'
-import { markRun } from '@/state/runStatus'
+import { markRun, useRunStatus } from '@/state/runStatus'
 import type {
   ConversationMessage,
   ConversationRating,
@@ -212,6 +212,76 @@ export function beginTurn(conversationId: string, user?: ConversationMessage): v
   putLive(conversationId, { base: blankAssistant(), tail: '', user, status: 'streaming' })
 }
 
+/**
+ * The turns already in flight when this phone connected — the desktop's
+ * chat:activeRuns, asked for once per connection.
+ *
+ * Turn lifecycle reaches the phone as pushes and nothing else, so a tunnel that
+ * comes up mid-run has missed the only `started` that turn will ever send. Until
+ * the desktop next mirrors it — which across a long tool call is minutes away —
+ * the conversation renders as idle: a live composer, no stop, and a rating bar
+ * offering to score a turn still being written. An overlay per running
+ * conversation makes all of those read correctly from the first frame, because
+ * every one of them derives "running" from the live streams (see
+ * conversations/rows.ts).
+ *
+ * ORDER: called from the same connected edge that runs attachTurnStream, and
+ * AFTER it. That function force-settles every turn this phone believed was
+ * running, on the assumption it may have missed the end of one while away;
+ * seeding first would hand it the very overlays this closes the window for.
+ *
+ * This RE-OPENS turns, which is not the same act as beginning one, and the
+ * difference is why it does not call beginTurn:
+ *
+ *  - an existing overlay keeps everything it had — its base, its streamed
+ *    tail, its prompt — because this turn is the one that was already being
+ *    written, not a new one on top of it;
+ *  - and its PARKED CARDS survive. beginTurn clears them (a fresh turn settles
+ *    the last one's questions), and a phone reconnecting to a turn parked on an
+ *    approval is the opposite case: that card is exactly what the user came
+ *    back to answer, and it is not re-pushed.
+ *
+ * Never throws — a desktop too old to answer leaves the phone exactly where it
+ * was, learning about the run when the desktop next mirrors it.
+ */
+export async function seedActiveRuns(): Promise<void> {
+  const tunnel = tunnelClient.active
+  if (!tunnel || !tunnelClient.connected) return
+  // Anything the push stream reports as FINISHED from here on is newer than
+  // this answer, which is a snapshot taken before the round trip. Without the
+  // stamp, a run ending inside that window gets re-opened by its own stale
+  // seed and thinks forever — the failure seedOverlays guards with `revision`.
+  const issuedAt = Date.now()
+  try {
+    const seed = (await tunnel.rpc(Rpc.activeRuns)) as { conversationIds?: unknown } | null
+    const ids = seed?.conversationIds
+    if (!Array.isArray(ids)) return
+    for (const id of ids) {
+      if (typeof id !== 'string' || !id) continue
+      const current = liveFor(id)
+      // Ended while the answer was in flight — by a terminal push that found a
+      // live overlay to mark, or one that found none and only left its mark on
+      // the run store. Either way the turn is over and the seed is stale.
+      if (current && current.status !== 'streaming' && current.ended === 'desktop') continue
+      const ended = useRunStatus.getState().runs[id]
+      if (ended && ended.at >= issuedAt) continue
+      if (current) {
+        // Take back the assumption that it ended; keep everything else — the
+        // base, the streamed tail, the prompt, and the cards.
+        const { ended: _assumed, ...rest } = current
+        useChatRuntime.getState().putStream(id, { ...rest, status: 'streaming' })
+      } else {
+        // Nothing here: a thinking row, exactly as `turn.status: started`
+        // would have opened one had this phone been connected to hear it.
+        putLive(id, { base: blankAssistant(), tail: '', status: 'streaming' })
+      }
+    }
+  } catch {
+    // Silent, and deliberately not reportRpcFailure: a desktop that predates
+    // this method is not a sick tunnel, and nothing the user asked for failed.
+  }
+}
+
 // ------------------------------------------------------------- settling
 
 /**
@@ -303,7 +373,13 @@ export function attachTurnStream(): void {
   // nothing, where the alternative is thinking words that never stop.
   for (const [conversationId, live] of Object.entries(useChatRuntime.getState().streams)) {
     if (live.status !== 'streaming') continue
-    useChatRuntime.getState().putStream(conversationId, { ...live, status: 'complete' })
+    // Marked as the guess it is. The turn may well still be running on the
+    // desktop — seedActiveRuns, a beat later, re-opens the ones that are —
+    // and until something says otherwise nothing may read this as a finished
+    // turn. See LiveStream.ended.
+    useChatRuntime
+      .getState()
+      .putStream(conversationId, { ...live, status: 'complete', ended: 'assumed' })
     void settleTurn(conversationId)
   }
 
@@ -405,9 +481,15 @@ export function attachTurnStream(): void {
       // Marked finished, NOT removed. The composer's Stop goes back to Send
       // here, while the reply stays on screen until its saved copy arrives to
       // take over — the two are separate events and only one of them is now.
+      //
+      // `ended: 'desktop'` is the desktop SAYING so, as opposed to the
+      // reconnect re-settle assuming it. It is what lets the rating bar offer
+      // this turn while it is still the live row, without offering every turn
+      // that merely stopped streaming for a moment.
       useChatRuntime.getState().putStream(conversationId, {
         ...live,
-        status: state === 'error' ? 'error' : 'complete'
+        status: state === 'error' ? 'error' : 'complete',
+        ended: 'desktop'
       })
     }
     invalidateConversationList()
