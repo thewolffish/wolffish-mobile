@@ -110,6 +110,21 @@ function buildStyles(
     bullet_list: { marginBottom: 8 },
     ordered_list: { marginBottom: 8 },
     list_item: { marginBottom: 2 },
+    // A list item is a row — the marker, then the item's own content — and the
+    // library sizes that content with `flex: 1`, i.e. a flex-basis of ZERO. A
+    // zero basis contributes nothing to the max-content width, so a bubble that
+    // hugs its content (max-w with no definite width) picks its width from the
+    // paragraphs alone. Yoga measures the list's height at the wider max-width
+    // it was still free to use, then lays the list out at the narrower width the
+    // bubble settled on: the item wraps to more lines than the measured height
+    // has room for, and the overflow pushes whatever follows the list — usually
+    // the closing paragraph — straight through the bubble's bottom padding.
+    // Basing the content on its intrinsic width makes the list count toward the
+    // width it is then given, so measure and layout agree. `flex: 0` is
+    // load-bearing: Yoga only honours an `auto` basis when the shorthand is not
+    // also asking for zero, and the library's own `flex: 1` survives the merge.
+    bullet_list_content: { flex: 0, flexGrow: 1, flexShrink: 1, flexBasis: 'auto' },
+    ordered_list_content: { flex: 0, flexGrow: 1, flexShrink: 1, flexBasis: 'auto' },
     code_inline: {
       backgroundColor: codeBg,
       color: fg,
