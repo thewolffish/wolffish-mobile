@@ -11,7 +11,7 @@ import { buildFeed, LIVE_KEY } from '@/lib/conversations/feed'
 import { useConversation } from '@/lib/conversations/hooks'
 import { mintMessageId, type ConversationMessage } from '@/lib/conversations/types'
 import { deriveTitle, ensureDemoConversation, sendDemoPrompt, stopDemoTurn } from '@/lib/demo/agent'
-import { importLocalFile } from '@/lib/files/fileCache'
+import { discardStagedFile, importLocalFile, stageOutgoingFile } from '@/lib/files/fileCache'
 import type { PickedFile } from '@/lib/files/pickAttachments'
 import { DEFAULT_PROJECT_ICON } from '@/components/workspace/ProjectDialog'
 import { PromptPreview } from '@/components/workspace/PromptSheet'
@@ -481,27 +481,68 @@ export default function ChatScreen(): React.JSX.Element {
         // creates the conversation — keep a local copy under that same path
         // so playback never re-downloads, then send the message referencing
         // it. The desktop transcribes and runs the turn from there.
+        //
+        // The bubble does not wait for any of that. The recording is staged
+        // into the workspace — a local move — and published exactly as a file
+        // send publishes its pictures, so the transport is on screen from the
+        // tap and the upload runs behind a message already rendering. The
+        // re-publish under the desktop's own path is a cache hit.
         const timestamp = Date.now()
         const name = `voice-${timestamp}.m4a`
+        const staged = await stageOutgoingFile(payload.uri, `voice_${timestamp}`, name)
+        if (!staged) {
+          // The recorder's file cannot be read — there is nothing to send.
+          toast.show({ tone: 'error', message: t('chat.voice.error') })
+          abandon(settle)
+          return
+        }
+        const optimistic: ConversationMessage = {
+          id: mintMessageId(timestamp),
+          role: 'user',
+          content: '',
+          timestamp,
+          voicePrompt: true,
+          attachments: [
+            {
+              type: 'audio',
+              filePath: staged.relPath,
+              originalName: name,
+              mimeType: 'audio/mp4',
+              sizeBytes: staged.sizeBytes,
+              durationSeconds: payload.durationSeconds
+            }
+          ]
+        }
+        // Same handover sendWithFiles makes: an existing conversation carries
+        // the row on its live turn, a chat with no id yet has no stream to
+        // file one under and the screen holds it for the round trip.
+        if (conversationId) beginTurn(conversationId, optimistic)
+        else setPendingUser(optimistic)
         try {
           if (paired) {
             let uploaded: Awaited<ReturnType<typeof uploadFileToDesktop>> = null
             try {
-              uploaded = await uploadFileToDesktop(payload.uri, name, 'audio/mp4', conversationId)
+              uploaded = await uploadFileToDesktop(staged.uri, name, 'audio/mp4', conversationId)
             } catch {
               uploaded = null // a broken transfer keeps the recording local, like offline
             }
             if (uploaded) {
               await importLocalFile(
-                payload.uri,
+                staged.uri,
                 uploaded.attachment.filePath,
                 uploaded.conversationId
               )
+              discardStagedFile(staged.relPath)
+              // The optimistic id rides along, so the desktop-path copy
+              // REPLACES the bubble already on screen instead of remounting
+              // it — and the stored transcript later supersedes both by the
+              // same id.
               const result = await sendPrompt({
                 conversationId: uploaded.conversationId,
                 text: '',
                 attachments: [{ ...uploaded.attachment, durationSeconds: payload.durationSeconds }],
-                voicePrompt: true
+                voicePrompt: true,
+                messageId: optimistic.id
               })
               settle(result.conversationId)
               return
@@ -515,14 +556,15 @@ export default function ChatScreen(): React.JSX.Element {
           let id = conversationId
           if (!id) id = await ensureDemoConversation(t('chat.voice.record'))
           const relPath = `uploads/conv-${id}/${name}`
-          await importLocalFile(payload.uri, relPath, id)
+          await importLocalFile(staged.uri, relPath, id)
+          discardStagedFile(staged.relPath)
           const attachments = [
             {
               type: 'audio' as const,
               filePath: relPath,
               originalName: name,
               mimeType: 'audio/mp4',
-              sizeBytes: 0,
+              sizeBytes: staged.sizeBytes,
               durationSeconds: payload.durationSeconds
             }
           ]
@@ -531,19 +573,29 @@ export default function ChatScreen(): React.JSX.Element {
               conversationId: id,
               text: '',
               attachments,
-              voicePrompt: true
+              voicePrompt: true,
+              messageId: optimistic.id
             })
             settle(result.conversationId)
             return
           }
-          await sendDemoPrompt({ conversationId: id, text: '', attachments, voicePrompt: true })
+          await sendDemoPrompt({
+            conversationId: id,
+            text: '',
+            attachments,
+            voicePrompt: true,
+            messageId: optimistic.id
+          })
           settle(id)
         } catch {
-          settle()
+          // The send never happened; the bubble published above comes down
+          // with it, like a file send's does.
+          discardStagedFile(staged.relPath)
+          abandon(settle)
         }
       })()
     },
-    [conversationId, paired, t, sendWithFiles]
+    [conversationId, paired, t, toast, abandon, sendWithFiles]
   )
 
   /**

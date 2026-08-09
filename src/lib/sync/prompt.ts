@@ -69,6 +69,10 @@ export type SendPromptInput = {
   /** True for a voice note: the audio is the prompt, and the desktop
    * transcribes it before running the turn. */
   voicePrompt?: boolean
+  /** The id the caller's optimistic bubble already renders under. Reusing it
+   * keeps the prompt row's identity across the handover — the live row and
+   * the stored copy replace the bubble instead of remounting or joining it. */
+  messageId?: string
 }
 
 /**
@@ -551,7 +555,7 @@ export async function sendPrompt(input: SendPromptInput): Promise<SendPromptResu
   const tunnel = tunnelClient.active
   const timestamp = Date.now()
   const user: ConversationMessage = {
-    id: mintMessageId(timestamp),
+    id: input.messageId ?? mintMessageId(timestamp),
     role: 'user',
     content: input.text,
     timestamp,
@@ -669,8 +673,14 @@ async function offlineReply(
     content: i18n.t('chat.offlineReply'),
     timestamp: Date.now()
   })
-  invalidateConversation(conversationId)
-  invalidateConversationList()
+  // Stored copy first, live row second — settleTurn's contract, kept here for
+  // the send paths that publish their bubble on a live turn before finding the
+  // desktop out of reach (files, voice notes). The refetch puts both stored
+  // rows in the caller's hands, and only then does the overlay come down —
+  // dropping it earlier blanks the prompt for a frame, never dropping it
+  // leaves thinking words running against a desktop that was never asked.
+  await refetchConversation(conversationId)
+  useChatRuntime.getState().endStream(conversationId)
   return { conversationId }
 }
 

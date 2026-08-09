@@ -1,4 +1,4 @@
-import { invalidateConversation, refetchConversation } from '@/lib/conversations/cache'
+import { refetchConversation } from '@/lib/conversations/cache'
 import {
   appendMessage,
   createConversation,
@@ -99,6 +99,10 @@ export type SendDemoPromptInput = {
   attachments?: MessageAttachment[]
   voicePrompt?: boolean
   voiceLang?: string
+  /** The id the caller's optimistic bubble already renders under. Storing the
+   * message under the same id is what lets the feed swap the bubble for the
+   * stored copy instead of drawing both — see buildFeed's dedupe. */
+  messageId?: string
 }
 
 /**
@@ -124,7 +128,7 @@ export async function sendDemoPrompt(input: SendDemoPromptInput): Promise<string
   }
 
   const userMessage: ConversationMessage = {
-    id: mintMessageId(now),
+    id: input.messageId ?? mintMessageId(now),
     role: 'user',
     content: input.text,
     timestamp: now,
@@ -135,7 +139,12 @@ export async function sendDemoPrompt(input: SendDemoPromptInput): Promise<string
     ...(input.voiceLang ? { voiceLang: input.voiceLang } : {})
   }
   await appendMessage(conversationId, userMessage)
-  invalidateConversation(conversationId)
+  // Stored copy first, live row second — the same contract `finish` keeps for
+  // the reply. A send with files or a voice note publishes its bubble on the
+  // live turn before calling here, and startAssistantTurn's stream replaces
+  // that overlay; the query must already hold the stored copy, or the bubble
+  // is in neither place for the frames between.
+  await refetchConversation(conversationId)
 
   startAssistantTurn(conversationId, {
     text: input.text,
