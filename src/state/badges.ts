@@ -54,6 +54,12 @@ export type BadgeState = {
   /** The user opened (or deleted) the conversation — its badge is done. */
   clearConversation: (conversationId: string) => void
   /**
+   * Unpairing: every bucket at once. `counted` deliberately survives — it is
+   * what stops a straggler push arriving after the wipe from re-minting a
+   * bucket for a conversation that no longer exists.
+   */
+  clearAll: () => void
+  /**
    * Drop buckets for conversations the desktop no longer has. `liveIds` is
    * the full id list from a completed index sync and `before` is when that
    * sync STARTED — a bucket that grew after the list was taken is spared,
@@ -104,6 +110,10 @@ export const useBadges = create<BadgeState>()(
         if (!(conversationId in counts)) return
         const { [conversationId]: _cleared, ...rest } = counts
         set({ counts: rest })
+      },
+      clearAll: () => {
+        if (Object.keys(get().counts).length === 0) return
+        set({ counts: {} })
       },
       prune: (liveIds, before) => {
         const { counts } = get()

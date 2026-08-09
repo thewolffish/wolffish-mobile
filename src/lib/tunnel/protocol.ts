@@ -902,6 +902,17 @@ export type NotificationAckFrame = { v: 1; type: 'notification_ack'; notificatio
  */
 export type SetBadgeFrame = { v: 1; type: 'set_badge'; phoneId: string; count: number }
 
+/**
+ * Phone → relay, on unpairing: forget this device entirely — token, platform,
+ * badge count. Sent while the socket is still up (after it there is no path
+ * to this pairing's relay state, ever); the relay then answers every later
+ * notify for this phoneId with `dropped` instead of pushing at a phone that
+ * wiped its copy of everything the notification would describe. An old relay
+ * ignores the unknown type — delivery there degrades to the pre-frame status
+ * quo, never to a broken tunnel.
+ */
+export type UnregisterPushFrame = { v: 1; type: 'unregister_push'; phoneId: string }
+
 /** Relay → desktop: how the notify was routed, answered immediately. */
 export type NotifyResultFrame = {
   v: 1

@@ -26,9 +26,13 @@ export function UnreadBadge({
       style={{ minWidth: 15, height: 15, paddingHorizontal: 4 }}
     >
       <Text
-        className="text-primary-fg font-sans-semibold text-[9px] leading-none"
+        className="text-primary-fg font-sans-semibold text-[9px]"
+        // No leading-none: Plex Arabic reserves deep below-baseline space, so a
+        // collapsed line box floats ascender-only digits above center. The
+        // natural box centers true; includeFontPadding drops Android's extra
+        // win-metric padding so both platforms use the same box.
         // A count is a number in every locale, exactly like the rank chips.
-        style={{ writingDirection: 'ltr' }}
+        style={{ writingDirection: 'ltr', includeFontPadding: false }}
       >
         {count > 99 ? '99+' : String(count)}
       </Text>

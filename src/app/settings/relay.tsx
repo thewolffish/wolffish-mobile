@@ -17,6 +17,7 @@ import { formatRelativeTime } from '@/lib/utils/relativeTime'
 
 const RELAY_REPO_URL = 'https://github.com/thewolffish/wolffish-relay'
 import { factoryResetDevice } from '@/lib/demo/factoryReset'
+import { clearAllBadges, unregisterPush } from '@/lib/notifications/push'
 import { beginSync } from '@/lib/sync/activity'
 import { getLastSyncedAt, refreshConfig, refreshSync } from '@/lib/sync/sync'
 import { tunnelClient } from '@/lib/tunnel/client'
@@ -129,6 +130,14 @@ export default function RelayScreen(): React.JSX.Element {
     setBusy(true)
     setConfirming(false)
     try {
+      // Badges first, while the socket is still up: zeroing the relay's
+      // per-device count is a control frame, and the wipe below deletes the
+      // conversations the buckets describe. Then the relay forgets the device
+      // entirely — token, badge, registration — so a severed phone stops
+      // being pushable instead of collecting notifications for a workspace
+      // it no longer holds. Both must precede the socket drop.
+      await clearAllBadges()
+      await unregisterPush()
       await tunnelClient.disconnect()
       await factoryResetDevice()
       setPaired(false)

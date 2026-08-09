@@ -1,4 +1,18 @@
-## v1.0.23 — 2026-08-09 `Latest`
+## v1.0.25 — 2026-08-09 `Latest`
+
+### Unread, Counted
+
+A notification you have not answered now leaves a mark: a small **count on the conversation it belongs to**, in the conversations sheet and the history list, with the total carried on the floating menu's disc and on the **app icon** itself. The counting is deliberate about what it means. A notification for the conversation you are looking at never counts, opening a conversation retires its count and sweeps its notifications out of the tray, and the number keeps up **while the app is closed** — each arriving notification carries the running total with it, so the icon is right before the app has even woken. Delete a conversation and its count goes with it; nothing keeps score for a chat that no longer exists.
+
+### Disconnecting Leaves Nothing Behind
+
+Disconnect used to wipe the conversations and keep the residue: a number on the app icon with nothing behind it, notifications in the tray pointing at chats that were gone — and out on the relay, a registration that kept **routing notifications at a phone that had left**. The whole trail goes now. Disconnecting clears every count, empties the tray, zeroes the icon, and has the relay **forget this device entirely** while the link is still up — so a severed phone stops receiving a workspace's notifications the moment it walks away, and pairing again starts the count from nothing.
+
+### Smaller Things
+
+The number inside an unread badge now sits **dead centre in its pill** rather than riding slightly high — the font behind it reserves room below the line for marks Arabic letters need and digits never use, and the badge no longer pays for that space.
+
+## v1.0.23 — 2026-08-09
 
 ### Every Run Starts With Its Own Files
 

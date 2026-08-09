@@ -12,7 +12,8 @@ import {
   parseNotification,
   type DeeplinkTarget,
   type RegisterPushFrame,
-  type SetBadgeFrame
+  type SetBadgeFrame,
+  type UnregisterPushFrame
 } from '@/lib/tunnel/protocol'
 import { toHex } from '@/lib/tunnel/pairing'
 import type { Tunnel } from '@/lib/tunnel/tunnel'
@@ -203,6 +204,51 @@ export async function reconcilePresentedNotifications(): Promise<void> {
 export function clearConversationBadges(conversationId: string): void {
   useBadges.getState().clearConversation(conversationId)
   void dismissConversationNotifications(conversationId)
+}
+
+/**
+ * Unpairing: every badge goes at once — the buckets, the tray, the icon, and
+ * the relay's per-device count. Must run BEFORE the tunnel drops and before
+ * the wipe: the relay's counter is reachable only over the live socket, and
+ * once it closes a stale count would ride every push until the next pairing.
+ * The tray is emptied wholesale — general notifications included — because
+ * everything in it deep-links into the pairing being severed. Awaited so the
+ * caller holds the socket open until the zero has been sent.
+ */
+export async function clearAllBadges(): Promise<void> {
+  useBadges.getState().clearAll()
+  try {
+    await Notifications.dismissAllNotificationsAsync()
+  } catch {
+    // Nothing to dismiss on this runtime.
+  }
+  await syncBadge(true)
+}
+
+/**
+ * Unpairing: tell the relay to forget this device — token, platform, badge.
+ * A registration left behind keeps routing pushes (badge counts stamped on)
+ * at a phone that no longer holds the conversations they describe; deleted,
+ * every later notify answers `dropped` — the honest result — and re-pairing
+ * registers afresh. Must run while the socket is still up: once it drops,
+ * this pairing's relay state is unreachable forever (re-pairing derives a
+ * new rendezvous). Never throws — an offline unpair cannot reach the relay
+ * and must still complete locally.
+ */
+export async function unregisterPush(): Promise<void> {
+  const tunnel = activeTunnel
+  if (!tunnel) return
+  try {
+    const frame: UnregisterPushFrame = {
+      v: PUSH_WIRE_VERSION,
+      type: 'unregister_push',
+      phoneId: await getPhoneId()
+    }
+    ;(activeTunnel ?? tunnel).sendControl(frame)
+  } catch {
+    // Socket already dead — the registration outlives the pairing until the
+    // token itself dies; nothing more can be done from this side.
+  }
 }
 
 async function dismissConversationNotifications(conversationId: string): Promise<void> {
