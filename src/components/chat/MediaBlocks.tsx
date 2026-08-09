@@ -11,7 +11,7 @@ import { Image } from 'expo-image'
 import { useVideoPlayer, VideoView } from 'expo-video'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Pressable, Text, useWindowDimensions, View } from 'react-native'
+import { Pressable, Text, View } from 'react-native'
 import { DownloadGlyph, DownloadStatus } from '@/components/chat/DownloadStatus'
 import { IconAction, MissingCard, shareFile, type Align } from '@/components/chat/FileChrome'
 
@@ -27,13 +27,13 @@ import { IconAction, MissingCard, shareFile, type Align } from '@/components/cha
  * ZoomableImage.
  */
 
+/** Fixed width of the inline thumbnail; height follows the image's own ratio. */
 const THUMB_WIDTH = 260
+/** Placeholder height until the image's natural size reports in. */
 const THUMB_HEIGHT = 200
 
 /** Shape of the video card until the track's natural size lands — desktop's loading aspect. */
 const DEFAULT_VIDEO_ASPECT = 16 / 9
-/** The mobile reading of the desktop player's `max-height: 60vh`. */
-const VIDEO_MAX_HEIGHT_FRACTION = 0.6
 
 export function ImageBlock({
   relPath,
@@ -50,12 +50,15 @@ export function ImageBlock({
 }): React.JSX.Element {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  // Natural ratio, known only once the decoder reports it — same deal as the
+  // video track below, so the thumb holds its placeholder shape until then.
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null)
   const { uri, loading, missing } = useWorkspaceFile(relPath, conversationId)
   const name = displayName ?? fileName(relPath)
 
   if (loading) {
-    // The thumbnail's exact footprint, not an arbitrary box: the bytes landing
-    // must swap the image in without resizing anything around it.
+    // The thumbnail's starting footprint: the bytes landing swap the image in
+    // at this width, and only the height settles once the real ratio lands.
     return (
       <View
         className={cn('bg-border overflow-hidden', align === 'end' ? 'self-end' : 'self-start')}
@@ -75,11 +78,22 @@ export function ImageBlock({
         onPress={() => setOpen(true)}
         onLongPress={() => shareFile(uri)}
       >
-        {/* The pressable carries the label — a nested one would double it. */}
+        {/* The pressable carries the label — a nested one would double it.
+            Width is the constraint; the image's own ratio sets the height, so
+            a tall screenshot renders whole instead of cropping to the box. */}
         <Image
           source={{ uri }}
           contentFit="cover"
-          style={{ width: THUMB_WIDTH, height: THUMB_HEIGHT, borderRadius: 16 }}
+          onLoad={({ source }) => {
+            if (source.width > 0 && source.height > 0) {
+              setAspectRatio(source.width / source.height)
+            }
+          }}
+          style={
+            aspectRatio === null
+              ? { width: THUMB_WIDTH, height: THUMB_HEIGHT, borderRadius: 16 }
+              : { width: THUMB_WIDTH, aspectRatio, borderRadius: 16 }
+          }
         />
       </Pressable>
       <ExpandedSheet
@@ -138,7 +152,6 @@ export function VideoBlock({
   const { videoTrack } = useEvent(player, 'videoTrackChange', { videoTrack: player.videoTrack })
   const size = videoTrack?.size
   const aspectRatio = size?.width && size?.height ? size.width / size.height : DEFAULT_VIDEO_ASPECT
-  const { height: windowHeight } = useWindowDimensions()
   const name = displayName ?? fileName(relPath)
 
   if (loading) {
@@ -181,17 +194,12 @@ export function VideoBlock({
       {/* Native controls carry play/scrub/fullscreen — the platform's own
           video affordances, and the mobile answer to the desktop <video>.
           The card's width is the constraint; the video's own ratio sets the
-          height, so a landscape clip carries no letterbox bars. */}
+          height, so any clip renders whole — no crop, no letterbox bars. */}
       <VideoView
         player={player}
         style={{
           width: '100%',
           aspectRatio,
-          maxHeight: windowHeight * VIDEO_MAX_HEIGHT_FRACTION,
-          // A portrait clip hits the height cap, and Yoga then narrows the view
-          // to keep the ratio — centred, so the leftover sits evenly either side
-          // instead of pushing the video against the card's leading edge.
-          alignSelf: 'center',
           backgroundColor: 'black'
         }}
         contentFit="contain"

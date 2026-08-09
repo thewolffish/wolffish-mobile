@@ -11,11 +11,14 @@ import { cn } from '@/lib/utils/cn'
 import { useToast } from '@/providers/toast/useToast'
 import { useTokens } from '@/providers/theme/useTheme'
 import {
+  saveDesktopSetting,
   setConfigValue,
   useConfigValue,
   useDemoConfig,
+  useSettingsReadOnly,
   type DemoProvider
 } from '@/state/demoConfig'
+import { useAppStore } from '@/state/appStore'
 import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ActivityIndicator, Text, View } from 'react-native'
@@ -24,8 +27,9 @@ import { ActivityIndicator, Text, View } from 'react-native'
  * Model, desktop UX: behavior controls up top — the two knobs touched every
  * session — then the Model card (Local/Cloud ModelSwitch and the active
  * side's picker), Local, then a card per cloud provider (logo, key state,
- * masked key, test). In live mode key changes and tests are commands the
- * desktop executes; demo mode mocks the happy path.
+ * masked key preview, new-key entry). Every control writes through to the
+ * paired desktop over configSet; the connection test is the one demo-only
+ * affordance, because the desktop has no test RPC to run it against.
  */
 
 const ProviderCard = memo(function ProviderCard({
@@ -36,8 +40,42 @@ const ProviderCard = memo(function ProviderCard({
   const { t } = useTranslation()
   const toast = useToast()
   const tokens = useTokens()
+  const paired = useAppStore((state) => state.paired)
+  const readOnly = useSettingsReadOnly()
   const [testing, setTesting] = useState(false)
+  const [busy, setBusy] = useState(false)
+  /**
+   * Typing composes a NEW key, always — the stored one appears only as the
+   * placeholder preview. Paired, the snapshot carries a 12-char mask rather
+   * than the credential (it never leaves that machine), so prefilling it as
+   * editable text would invite a stray edit that saves mask-junk over the
+   * real key. The draft lives locally until saved, so a snapshot refresh
+   * mid-typing cannot yank the text out from under the user.
+   */
+  const [draft, setDraft] = useState('')
+  const stored = provider.apiKey ?? ''
+  const savable = draft.trim().length > 0
   const Logo = PROVIDER_LOGOS[provider.id]
+
+  const saveKey = async (): Promise<void> => {
+    if (!savable || busy) return
+    setBusy(true)
+    // The whole array travels; the desktop honors the one field that changed
+    // and ignores its own masked previews on every other row.
+    const key = draft.trim()
+    const next = useDemoConfig
+      .getState()
+      .providers.map((entry) =>
+        entry.id === provider.id ? { ...entry, apiKey: key, hasKey: true } : entry
+      )
+    const saved = await saveDesktopSetting('providers', next)
+    setBusy(false)
+    toast.show({
+      tone: saved ? 'success' : 'error',
+      message: saved ? t('settings.services.keySaved') : t('settings.services.keySaveFailed')
+    })
+    if (saved) setDraft('')
+  }
 
   const test = (): void => {
     setTesting(true)
@@ -80,25 +118,41 @@ const ProviderCard = memo(function ProviderCard({
           </Text>
         </Text>
       ) : null}
-      {/* A normal secure field, like every other text row: masked by default
-          with Input's reveal toggle. What changed is the value behind it —
-          a real per-provider key from the bundle, not a bullet placeholder.
-          `key` remounts the uncontrolled field when the config snapshot
-          replaces the fallback providers it first mounted with. */}
+      {/* The placeholder previews what is installed — never more than the
+          mask already shows (first 12 characters), whichever mode minted the
+          value — and the secure field masks what is being typed. */}
       <Input
-        key={provider.apiKey ?? 'none'}
         label={t('settings.model.apiKey')}
-        defaultValue={provider.apiKey ?? ''}
+        value={draft}
+        onChangeText={setDraft}
+        placeholder={stored ? `${stored.slice(0, 12)}…` : t('settings.services.secretPlaceholder')}
+        editable={!readOnly && !busy}
         secureTextEntry
         autoCapitalize="none"
         autoCorrect={false}
       />
-      {/* The label never swaps for a loading string — the spinner carries the
+      {savable ? (
+        <Button
+          size="sm"
+          onPress={() => void saveKey()}
+          disabled={busy}
+          className="self-start"
+          accessibilityLabel={t('settings.services.saveKey')}
+        >
+          {busy ? t('settings.services.saving') : t('settings.services.saveKey')}
+        </Button>
+      ) : null}
+      {/* Demo only: the desktop is the side that can actually reach the
+          provider, and it has no test RPC — a button that toasted success
+          without testing would be the one lying control on the card. The
+          label never swaps for a loading string — the spinner carries the
           busy state so the button keeps its identity mid-action. */}
-      <Button variant="outline" size="sm" disabled={testing} onPress={test}>
-        {testing && <ActivityIndicator size="small" color={tokens.fg} />}
-        {t('settings.model.testConnection')}
-      </Button>
+      {!paired ? (
+        <Button variant="outline" size="sm" disabled={testing} onPress={test}>
+          {testing && <ActivityIndicator size="small" color={tokens.fg} />}
+          {t('settings.model.testConnection')}
+        </Button>
+      ) : null}
     </Section>
   )
 })

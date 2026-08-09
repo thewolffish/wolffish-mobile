@@ -1459,7 +1459,48 @@ const DESKTOP_EDITABLE: ReadonlySet<keyof DemoConfigValues> = new Set<keyof Demo
   // through the exact call its own Soul/User/Agents pages' Save button makes.
   'soulMarkdown',
   'userMarkdown',
-  'agentsMarkdown'
+  'agentsMarkdown',
+  // The Model screen and the composer's control cluster. Each maps onto the
+  // exact handler its desktop control calls (provider:setMode,
+  // runtime:setThinkingMode, runtime:setLocalOnly, model:select,
+  // provider:setBrain), so a pick on either screen is the same act.
+  // `localModel` only ever names a model the desktop has already pulled —
+  // the picker lists its /api/tags — and the desktop refuses anything else
+  // rather than starting a download.
+  'chatMode',
+  'thinkingMode',
+  'localOnly',
+  'localModel',
+  'brainProvider',
+  'brainModel',
+  // The provider cards, as one array. The desktop applies per-entry diffs
+  // and ignores its own masked key previews, so only a newly typed key (or
+  // a model choice) actually lands — pushing the array is safe even though
+  // most of it is mirror.
+  'providers',
+  // Channels — every editable row. The Telegram/WhatsApp power switches are
+  // deliberately absent on both sides: starting a bridge process is the
+  // desktop's own act, and those rows render as status here.
+  'inappVerbose',
+  'telegramAllowedUserIds',
+  'telegramAutoRefresh',
+  'telegramStaleHours',
+  'telegramVerbose',
+  'telegramHideAutomations',
+  'whatsappAllowedNumbers',
+  'whatsappAutoRefresh',
+  'whatsappStaleHours',
+  'whatsappVerbose',
+  'whatsappHideAutomations',
+  // The MCP switches, as one name→enabled map — the desktop diffs it against
+  // its server list and toggles through the same path its own panel uses.
+  // Adding servers, headers and OAuth remain desktop tasks.
+  'mcpServers',
+  // The compaction schedule. Reflection's settings ride their own RPC
+  // (lib/sync/reflection); these three are Knowledge's generic-path keys.
+  'compactionDailyHour',
+  'compactionWeeklyDay',
+  'compactionWeeklyHour'
 ])
 
 /**

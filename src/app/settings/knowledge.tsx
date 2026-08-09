@@ -26,10 +26,11 @@ import { ScrollView, Text, View } from 'react-native'
  * (the desktop CompactionPanel): when the daily compaction and weekly
  * consolidation run. Reflection (the desktop ReflectionPanel): the nightly
  * self-review's hour and quiet gate, the per-surface 0-10 turn scoring, and
- * the monthly deep reflection. Schedule and scoring controls write through to
- * the paired desktop (lib/sync/reflection) and stay local in demo mode; the
- * last-run cards are read-only records the desktop's brainstem wrote, carried
- * in the config snapshot.
+ * the monthly deep reflection. Every schedule and scoring control writes
+ * through to the paired desktop — compaction over the generic configSet path
+ * (setConfigValue), reflection over its own RPC (lib/sync/reflection) — and
+ * stays local in demo mode; the last-run cards are read-only records the
+ * desktop's brainstem wrote, carried in the config snapshot.
  */
 export default function KnowledgeScreen(): React.JSX.Element {
   // Desktop-owned values: pull the current ones when this screen opens.
@@ -122,11 +123,15 @@ export default function KnowledgeScreen(): React.JSX.Element {
         </Section>
       ) : null}
 
+      {/* Disabled while paired-but-offline like the reflection rows below:
+          these write through configSet now, and a picker whose choice cannot
+          land anywhere would swallow the tap. */}
       <Section title={t('settings.knowledge.dailyTitle')}>
         <Select<string>
           label={t('settings.knowledge.dailyHour')}
           value={`${dailyHour}`}
           options={hourOptions}
+          disabled={readOnly}
           onChange={(value) => setConfigValue('compactionDailyHour', Number(value))}
         />
       </Section>
@@ -135,12 +140,14 @@ export default function KnowledgeScreen(): React.JSX.Element {
           label={t('settings.knowledge.weeklyDay')}
           value={`${weeklyDay}`}
           options={dayOptions}
+          disabled={readOnly}
           onChange={(value) => setConfigValue('compactionWeeklyDay', Number(value))}
         />
         <Select<string>
           label={t('settings.knowledge.weeklyHour')}
           value={`${weeklyHour}`}
           options={hourOptions}
+          disabled={readOnly}
           onChange={(value) => setConfigValue('compactionWeeklyHour', Number(value))}
         />
       </Section>

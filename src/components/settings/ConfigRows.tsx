@@ -183,7 +183,8 @@ export const ConfigTextRow = memo(function ConfigTextRow({
   icon,
   requires,
   placeholder,
-  keyboardType
+  keyboardType,
+  commitOnEndEditing
 }: {
   field: StringKeys
   label: string
@@ -191,6 +192,15 @@ export const ConfigTextRow = memo(function ConfigTextRow({
   requires?: BooleanKeys
   placeholder?: string
   keyboardType?: KeyboardTypeOptions
+  /**
+   * Commit once, when editing ends, instead of per keystroke. For fields
+   * whose write is heavyweight on the desktop — a Telegram allow-list change
+   * restarts the bridge — so a nine-digit ID arrives as one write, not nine
+   * restarts. The field is uncontrolled either way, so a snapshot landing
+   * mid-edit never yanks text out from under the keyboard; the store simply
+   * learns the value at the same moment the desktop does.
+   */
+  commitOnEndEditing?: boolean
 }): React.JSX.Element {
   const gate = useDemoConfig((state) => (requires ? state[requires] : true))
   return (
@@ -201,7 +211,10 @@ export const ConfigTextRow = memo(function ConfigTextRow({
       </View>
       <Input
         defaultValue={useDemoConfig.getState()[field]}
-        onChangeText={(text) => setConfigValue(field, text)}
+        onChangeText={commitOnEndEditing ? undefined : (text) => setConfigValue(field, text)}
+        onEndEditing={
+          commitOnEndEditing ? (event) => setConfigValue(field, event.nativeEvent.text) : undefined
+        }
         editable={gate}
         placeholder={placeholder}
         autoCapitalize="none"
@@ -236,19 +249,27 @@ export const ConfigSelectRow = memo(function ConfigSelectRow({
   )
 })
 
-/** Switch for one entry of a Record<string, boolean> collection. */
+/**
+ * Switch for one entry of a Record<string, boolean> collection. The write
+ * goes through setConfigValue with the WHOLE map — that is what buys the
+ * entry the ordinary write path (the outbox dirty window, the configSet
+ * push, the read-only refusal while paired-but-offline); the desktop diffs
+ * the map against its own list and toggles just the row that moved. The map
+ * is read fresh at press time so the row's subscription stays single-entry.
+ */
 export const MapSwitchRow = memo(function MapSwitchRow({
   mapKey,
   name,
   ...chrome
 }: RowChrome & { mapKey: 'capabilities' | 'mcpServers'; name: string }): React.JSX.Element {
   const value = useDemoConfig((state) => state[mapKey][name] ?? false)
-  const setMapEntry = useDemoConfig((state) => state.setMapEntry)
   return (
     <RowShell {...chrome}>
       <Toggle
         value={value}
-        onValueChange={(next) => setMapEntry(mapKey, name, next)}
+        onValueChange={(next) =>
+          setConfigValue(mapKey, { ...useDemoConfig.getState()[mapKey], [name]: next })
+        }
         accessibilityLabel={chrome.label}
       />
     </RowShell>

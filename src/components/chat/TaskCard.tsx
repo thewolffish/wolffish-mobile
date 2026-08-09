@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Text, useWindowDimensions, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useEvent } from 'expo'
 import { useVideoPlayer, VideoView } from 'expo-video'
@@ -163,7 +163,6 @@ function TaskVideoPreview({
   const { videoTrack } = useEvent(player, 'videoTrackChange', { videoTrack: player.videoTrack })
   const size = videoTrack?.size
   const aspectRatio = size?.width && size?.height ? size.width / size.height : 16 / 9
-  const { height: windowHeight } = useWindowDimensions()
 
   if (loading) {
     return (
@@ -187,8 +186,6 @@ function TaskVideoPreview({
         style={{
           width: '100%',
           aspectRatio,
-          maxHeight: windowHeight * 0.5,
-          alignSelf: 'center',
           backgroundColor: 'black'
         }}
         contentFit="contain"

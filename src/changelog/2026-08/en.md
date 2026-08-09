@@ -1,4 +1,22 @@
-## v1.0.25 — 2026-08-09 `Latest`
+## v1.0.26 — 2026-08-09 `Latest`
+
+### Every Setting, Settable
+
+The settings screens used to be mostly a window: the phone showed what the desktop had and changed little of it. Now **every live control writes through**. Chat mode and thinking, the Local/Cloud switch and both model pickers, Telegram's and WhatsApp's preferences and allow-lists, the in-app feed's verbosity, every MCP server switch, the compaction schedule — each lands on the paired desktop **through the same code its own panels call**, so a change made from the phone and a change made at the machine are the same act, and both screens show it at once. The two bridge power switches stay readouts by design — starting a bridge is the desktop's own act — and while the desktop is unreachable the controls **decline the tap rather than pretend**, because an edit with nowhere to land is not an edit.
+
+### Keys Typed Here, Kept There
+
+Each provider card now takes a **fresh API key typed on the phone** and saves it to the desktop, which keeps the credential and never hands it back: the card shows only a **masked preview** of what is installed, and typing always composes a new key rather than editing a secret this device does not hold. Allow-lists commit **once, when you finish editing** — a Telegram allow-list change restarts the bridge, and nine keystrokes must not be nine restarts. The connection test keeps to demo mode, where pretending is the point; paired, the desktop is the side that can actually reach a provider, and a button that toasted success without testing would be the one lying control on the card.
+
+### Pictures and Clips, Whole
+
+A tall screenshot used to be cropped to the thumbnail's fixed box. The thumbnail now takes **the image's own shape** — width fixed, height following the picture — so what you see in the feed is the picture, not a crop of it. Videos got the same treatment from the other side: the cap that squeezed a portrait clip to six-tenths of the screen is gone, and **every clip renders whole**, no crop, no letterbox bars.
+
+### Smaller Things
+
+The two floating discs over the chat — conversations and new chat — wore a ring that read **black against a dark screen**; they now draw the same **subtle hairline** every other edge in the app uses.
+
+## v1.0.25 — 2026-08-09
 
 ### Unread, Counted
 

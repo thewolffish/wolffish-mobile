@@ -47,8 +47,10 @@ function GlassButton({
       style={{ width: FLOATING_SIZE, height: FLOATING_SIZE }}
       // See-through rather than solid: the transcript passing underneath is
       // what tells the user these float over it rather than sitting in a bar.
-      // The hairline keeps them legible against a white message bubble.
-      className="border-border-soft items-center justify-center overflow-hidden rounded-full border active:opacity-60"
+      // The hairline keeps them legible against a white message bubble —
+      // border, not border-soft: soft sits darker than the dark bg and reads
+      // as a black ring on the glass.
+      className="border-border items-center justify-center overflow-hidden rounded-full border active:opacity-60"
     >
       <BlurView
         pointerEvents="none"

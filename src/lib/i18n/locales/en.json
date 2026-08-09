@@ -93,7 +93,7 @@
       "noKey": "No key",
       "testConnection": "Test connection",
       "testSuccess": "Connection verified",
-      "desktopNote": "Keys and tests run on the desktop.",
+      "desktopNote": "Keys save to the desktop. Connection tests run there.",
       "modelsCount": "{{count}} models",
       "ollamaRunning": "Running",
       "ollamaNotRunning": "Not running",

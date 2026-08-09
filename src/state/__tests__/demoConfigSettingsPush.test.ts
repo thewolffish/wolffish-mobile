@@ -179,16 +179,109 @@ describe('preference toggles write-through', () => {
 })
 
 /**
+ * The rest of the editable surface — model routing, the channel rows, the
+ * MCP map, the compaction schedule and the provider cards, whitelisted in
+ * the any-setting pass. Same contract as the preference toggles above (a
+ * local move plus exactly one configSet patch), pinned once per SHAPE — a
+ * switch, a select string, a number, a whole map, a whole array — because
+ * every key of a shape shares one code path, and pinned by the exact
+ * payload because the desktop's whitelist names these keys byte for byte.
+ */
+describe('the wider editable surface', () => {
+  beforeEach(() => {
+    jest.useFakeTimers()
+    resetOutboxForTests()
+    mockRpc.mockReset()
+    mockRpc.mockResolvedValue({ ok: true })
+    mockConnection.connected = true
+    useAppStore.setState({ paired: true })
+    useDemoConfig.setState({
+      chatMode: 'single',
+      thinkingMode: 'high',
+      localOnly: false,
+      brainModel: 'claude-opus-4-8',
+      telegramAutoRefresh: true,
+      inappVerbose: false,
+      compactionDailyHour: 23,
+      mcpServers: { 'github-mcp': true, 'notion-mcp': false }
+    })
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
+    useAppStore.setState({ paired: false })
+  })
+
+  it('the composer’s model controls leave as configSet patches', async () => {
+    setConfigValue('chatMode', 'workflow')
+    setConfigValue('thinkingMode', 'max')
+    setConfigValue('localOnly', true)
+    setConfigValue('brainModel', 'claude-sonnet-4-5')
+    await jest.advanceTimersByTimeAsync(0)
+    expect(configSetCalls()).toEqual([
+      [Rpc.configSet, { settings: { chatMode: 'workflow' } }],
+      [Rpc.configSet, { settings: { thinkingMode: 'max' } }],
+      [Rpc.configSet, { settings: { localOnly: true } }],
+      [Rpc.configSet, { settings: { brainModel: 'claude-sonnet-4-5' } }]
+    ])
+  })
+
+  it('a channel row and the compaction schedule write through', async () => {
+    setConfigValue('telegramAutoRefresh', false)
+    setConfigValue('inappVerbose', true)
+    setConfigValue('compactionDailyHour', 5)
+    await jest.advanceTimersByTimeAsync(0)
+    expect(configSetCalls()).toEqual([
+      [Rpc.configSet, { settings: { telegramAutoRefresh: false } }],
+      [Rpc.configSet, { settings: { inappVerbose: true } }],
+      [Rpc.configSet, { settings: { compactionDailyHour: 5 } }]
+    ])
+  })
+
+  it('an MCP toggle sends the whole map, edited entry included', async () => {
+    setConfigValue('mcpServers', {
+      ...useDemoConfig.getState().mcpServers,
+      'notion-mcp': true
+    })
+    await jest.advanceTimersByTimeAsync(0)
+    expect(configSetCalls()).toEqual([
+      [Rpc.configSet, { settings: { mcpServers: { 'github-mcp': true, 'notion-mcp': true } } }]
+    ])
+    expect(useDemoConfig.getState().mcpServers['notion-mcp']).toBe(true)
+  })
+
+  it('a typed provider key rides the providers array', async () => {
+    useDemoConfig.setState({
+      providers: [
+        {
+          id: 'anthropic',
+          model: 'claude-opus-4-8',
+          hasKey: true,
+          apiKey: 'sk-ant-api03-…',
+          models: ['claude-opus-4-8']
+        }
+      ]
+    })
+    const next = useDemoConfig
+      .getState()
+      .providers.map((provider) => ({ ...provider, apiKey: 'sk-ant-api03-full-new-key' }))
+    await expect(saveDesktopSetting('providers', next)).resolves.toBe(true)
+    expect(configSetCalls()).toEqual([[Rpc.configSet, { settings: { providers: next } }]])
+    expect(useDemoConfig.getState().providers[0].apiKey).toBe('sk-ant-api03-full-new-key')
+  })
+})
+
+/**
  * This phone's own two channel settings — the pair the Channels screen's
  * "This phone" card carries, and the desktop's Mobile panel carries too.
  *
- * They are the first settings on this screen the phone may actually WRITE
- * (Telegram's and WhatsApp's are desktop-owned mirrors, pinned above), so the
- * thing worth holding is that they leave as configSet patches rather than
- * sitting locally looking applied until the next refresh quietly undoes them.
- * The absent-section case is the older desktop: notifications default ON, and
- * a phone that read that as off would show a switch saying the agent cannot
- * reach it while the agent happily keeps notifying.
+ * They were the first settings on this screen the phone could actually WRITE
+ * (Telegram's and WhatsApp's rows joined them in the any-setting pass, pinned
+ * above), so the thing worth holding is that they leave as configSet patches
+ * rather than sitting locally looking applied until the next refresh quietly
+ * undoes them. The absent-section case is the older desktop: notifications
+ * default ON, and a phone that read that as off would show a switch saying
+ * the agent cannot reach it while the agent happily keeps notifying.
  */
 describe('this phone as a channel', () => {
   beforeEach(() => {

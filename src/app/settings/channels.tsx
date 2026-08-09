@@ -63,10 +63,14 @@ export default function ChannelsScreen(): React.JSX.Element {
           label={t('settings.channels.enabled')}
           description={t('settings.channels.telegramDescription')}
         />
+        {/* One write on blur, not one per keystroke: an allow-list change
+            restarts the desktop's bridge, so it must arrive as a single
+            deliberate act — the same reason its panel saves on a button. */}
         <ConfigTextRow
           field="telegramAllowedUserIds"
           label={t('settings.channels.allowedUserIds')}
           requires="telegramEnabled"
+          commitOnEndEditing
         />
         <ConfigSwitchRow
           field="telegramAutoRefresh"
@@ -99,11 +103,13 @@ export default function ChannelsScreen(): React.JSX.Element {
           label={t('settings.channels.enabled')}
           description={t('settings.channels.whatsappDescription')}
         />
+        {/* Same one-write-on-blur contract as Telegram's allow-list above. */}
         <ConfigTextRow
           field="whatsappAllowedNumbers"
           label={t('settings.channels.allowedNumbers')}
           requires="whatsappEnabled"
           keyboardType="phone-pad"
+          commitOnEndEditing
         />
         <ConfigSwitchRow
           field="whatsappAutoRefresh"

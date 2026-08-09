@@ -93,7 +93,7 @@
       "noKey": "لا يوجد مفتاح",
       "testConnection": "اختبار الاتصال",
       "testSuccess": "تم التحقق من الاتصال",
-      "desktopNote": "المفاتيح والاختبارات على الحاسوب.",
+      "desktopNote": "تُحفَظ المفاتيح إلى الحاسوب، وتجري اختبارات الاتصال هناك.",
       "modelsCount": "{{count}} نموذجاً",
       "ollamaRunning": "يعمل",
       "ollamaNotRunning": "غير مُشغَّل",

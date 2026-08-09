@@ -202,6 +202,20 @@ describe('FileBlock — one delivered file per supported type', () => {
     expect(screen.getByText('shot.png')).toBeTruthy()
   })
 
+  it('sizes the image by its own ratio once it reports in — nothing cropped', async () => {
+    await renderBlock(<FileBlock relPath="files/shot.png" declared="image" />)
+    const thumb = await waitFor(() => screen.getByTestId('image'))
+    // Placeholder footprint until the decoder reports the natural size.
+    expect(thumb.props.style).toMatchObject({ width: 260, height: 200 })
+
+    // A tall screenshot: 750x1800. The old fixed box would crop it.
+    await fireEvent(thumb, 'load', { source: { width: 750, height: 1800 } })
+    const style = screen.getByTestId('image').props.style
+    expect(style).toMatchObject({ width: 260, aspectRatio: 750 / 1800 })
+    expect(style.height).toBeUndefined()
+    expect(style.maxHeight).toBeUndefined()
+  })
+
   it('renders a video in the native player', async () => {
     await renderBlock(<FileBlock relPath="files/clip.mp4" declared="video" />)
     await waitFor(() => expect(screen.getByTestId('video')).toBeTruthy())
@@ -214,6 +228,8 @@ describe('FileBlock — one delivered file per supported type', () => {
     // 640x480 track -> 4/3, width-constrained, height left to the ratio.
     expect(style).toMatchObject({ width: '100%', aspectRatio: 4 / 3 })
     expect(style.height).toBeUndefined()
+    // No viewport cap either: a portrait clip renders whole, like images.
+    expect(style.maxHeight).toBeUndefined()
   })
 
   it('renders audio as a transport with a play control', async () => {

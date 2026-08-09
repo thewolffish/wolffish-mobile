@@ -3,18 +3,20 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 )
 
 /**
- * The Channels screen's two WRITING cards — "This phone" and the terminal's
- * feed — and the glyphs the settings list shows for them.
+ * The Channels screen's writing rows and the glyphs the settings list shows
+ * for them.
  *
  * The store contract is pinned in state/__tests__/demoConfigSettingsPush.test.ts;
  * this is the half that only exists on screen, and it is the half that breaks
- * silently. These rows sit among cards of desktop-owned mirrors that
- * deliberately do NOT write — Telegram's and WhatsApp's switches move under
- * your finger and are undone by the next refresh, and the CLI card's own
- * status rows never write at all — so a mistyped field name here would render
- * exactly like its neighbours while going nowhere. The assertions are
- * therefore about the wire: tapping a segment has to leave as a configSet
- * naming the key the desktop accepts.
+ * silently. Since the any-setting pass every row on this screen writes except
+ * the two power switches and the CLI card's status rows — a mistyped field
+ * name here would render exactly like its neighbours while going nowhere, and
+ * a status row that quietly became a switch would look identical while lying.
+ * The assertions are therefore about the wire: tapping a segment has to leave
+ * as a configSet naming the key the desktop accepts, and the allow-list
+ * fields have to leave ONCE, on end-editing — a Telegram allow-list write
+ * restarts the desktop's bridge, so nine keystrokes must not be nine
+ * restarts.
  *
  * The summary is the other half: each icon is bound to whether the agent can
  * actually be reached that way, so it must follow the store rather than a
@@ -137,6 +139,74 @@ describe('Channels — this phone', () => {
     })
     // Rendering is not writing: nothing left the phone.
     expect(configSetCalls()).toEqual([])
+  })
+})
+
+/**
+ * The desktop-owned channel cards — in-app, Telegram, WhatsApp. Editable
+ * since the any-setting pass, except the power switches: starting a bridge
+ * is the desktop's own act, so those stay status rows, and that split is
+ * exactly what these tests hold in place.
+ */
+describe('Channels — the desktop-owned rows', () => {
+  beforeEach(() => {
+    resetOutboxForTests()
+    mockRpc.mockReset()
+    mockRpc.mockResolvedValue({ ok: true })
+    useDemoConfig.setState({
+      inappVerbose: false,
+      telegramEnabled: true,
+      telegramAllowedUserIds: '429753549',
+      telegramAutoRefresh: true,
+      whatsappEnabled: true,
+      whatsappAutoRefresh: true
+    })
+  })
+
+  it('the in-app feed switch writes inappVerbose to the desktop', async () => {
+    await draw(<ChannelsScreen />)
+    // The first "Verbose task results" on the screen is the in-app card's.
+    pressSegment('Verbose task results', 'On', 0)
+    await waitFor(() => {
+      expect(configSetCalls()).toEqual([[Rpc.configSet, { settings: { inappVerbose: true } }]])
+    })
+    expect(useDemoConfig.getState().inappVerbose).toBe(true)
+  })
+
+  it('a Telegram preference writes through like any other setting', async () => {
+    await draw(<ChannelsScreen />)
+    // Telegram's card renders the screen's first "Auto refresh" row.
+    pressSegment('Auto refresh', 'Off', 0)
+    await waitFor(() => {
+      expect(configSetCalls()).toEqual([
+        [Rpc.configSet, { settings: { telegramAutoRefresh: false } }]
+      ])
+    })
+    expect(useDemoConfig.getState().telegramAutoRefresh).toBe(false)
+  })
+
+  it('the allow-list commits once, when editing ends', async () => {
+    await draw(<ChannelsScreen />)
+    const input = screen.getByDisplayValue('429753549')
+    // Typing alone must put NOTHING on the wire — an allow-list write
+    // restarts the desktop's bridge, so the write is one act, on blur.
+    fireEvent.changeText(input, '429753549, 1001')
+    expect(configSetCalls()).toEqual([])
+    fireEvent(input, 'endEditing', { nativeEvent: { text: '429753549, 1001' } })
+    await waitFor(() => {
+      expect(configSetCalls()).toEqual([
+        [Rpc.configSet, { settings: { telegramAllowedUserIds: '429753549, 1001' } }]
+      ])
+    })
+    expect(useDemoConfig.getState().telegramAllowedUserIds).toBe('429753549, 1001')
+  })
+
+  it('the power switches stay status rows and never write', async () => {
+    await draw(<ChannelsScreen />)
+    // Two "Enabled" rows (Telegram, WhatsApp), neither of them a switch: a
+    // status row exposes no accessible switch control to press.
+    expect(screen.getAllByText('Enabled')).toHaveLength(2)
+    expect(screen.queryByLabelText('Enabled')).toBeNull()
   })
 })
 
