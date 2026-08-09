@@ -93,10 +93,7 @@ export function FloatingChrome({
         <GlassButton label={t('chat.conversations')} onPress={onOpenSheet}>
           <Menu01Icon size={18} className="text-fg" />
         </GlassButton>
-        <View
-          pointerEvents="none"
-          style={{ position: 'absolute', top: -4, insetInlineEnd: -4 }}
-        >
+        <View pointerEvents="none" style={{ position: 'absolute', top: -4, insetInlineEnd: -4 }}>
           <UnreadBadge count={unreadTotal} />
         </View>
       </View>
