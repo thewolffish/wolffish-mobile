@@ -4,17 +4,19 @@ import Constants from 'expo-constants'
 import * as Notifications from 'expo-notifications'
 import * as SecureStore from 'expo-secure-store'
 import { router, type Href } from 'expo-router'
-import { Platform } from 'react-native'
+import { AppState, Platform } from 'react-native'
 import {
   ANDROID_CHANNEL_ID,
   PUSH_WIRE_VERSION,
   parseDeeplink,
   parseNotification,
   type DeeplinkTarget,
-  type RegisterPushFrame
+  type RegisterPushFrame,
+  type SetBadgeFrame
 } from '@/lib/tunnel/protocol'
 import { toHex } from '@/lib/tunnel/pairing'
 import type { Tunnel } from '@/lib/tunnel/tunnel'
+import { badgeTotal, useBadges, whenBadgesHydrated } from '@/state/badges'
 
 /**
  * Model-initiated notifications, phone side.
@@ -116,6 +118,108 @@ async function markSeen(notificationId: string): Promise<void> {
   AsyncStorage.setItem(KEY_SEEN, JSON.stringify(seenOrder)).catch(() => undefined)
 }
 
+// ----------------------------------------------------------- unread badges
+
+/**
+ * The conversation the chat screen is showing while the app is frontmost —
+ * reported by the screen itself (focus effect), null whenever it is not
+ * focused. A notification for the conversation the user is LOOKING AT never
+ * becomes a badge; everything else does, per conversation, in the badges
+ * store. General notifications (settings pages, plain opens) are handled
+ * without counting — see the store's own doc for why that is the whole
+ * "cleared when the app opens" rule.
+ */
+let activeConversationId: string | null = null
+
+export function setActiveConversation(conversationId: string | null): void {
+  activeConversationId = conversationId
+}
+
+/** The conversation a notification's deeplink names, if any. `current` is the
+ *  desktop-side placeholder and must never key a bucket here. */
+function conversationTarget(url: unknown): string | null {
+  const target = parseDeeplink(url)
+  if (!target || target.route !== 'chat') return null
+  if (!target.conversationId || target.conversationId === 'current') return null
+  return target.conversationId
+}
+
+/**
+ * Count one notification into the badges store — every arrival path funnels
+ * here (in-band frame, foreground push, tray reconciliation) and the store's
+ * counted-LRU is what makes the paths safe to overlap: an id counts once no
+ * matter how many of them see it.
+ */
+function recordNotification(notificationId: string, url: unknown): void {
+  const conversationId = conversationTarget(url)
+  const store = useBadges.getState()
+  if (!conversationId) {
+    store.markHandled(notificationId)
+    return
+  }
+  const viewing = conversationId === activeConversationId && AppState.currentState === 'active'
+  if (viewing) store.markHandled(notificationId)
+  else store.count(notificationId, conversationId)
+}
+
+/**
+ * Fold the notification center into the badge counts. This is how pushes that
+ * arrived while the app was DEAD are counted: nothing of ours ran when the OS
+ * displayed them, but they are still sitting in the tray with their payloads.
+ * Runs at launch (after the store rehydrates) and on every foreground; ends by
+ * pushing the resulting absolute count to the OS icon and the relay, which is
+ * also what wipes general notifications off the icon the moment the app opens.
+ */
+export async function reconcilePresentedNotifications(): Promise<void> {
+  try {
+    const presented = await Notifications.getPresentedNotificationsAsync()
+    const ids: string[] = []
+    for (const notification of presented) {
+      const data = notification.request.content.data as Record<string, unknown> | undefined
+      const id = typeof data?.notificationId === 'string' ? data.notificationId : null
+      if (id) ids.push(id)
+    }
+    // Ids still in the tray must stay in the dedupe: refreshed first, so a
+    // notification that lingers there for weeks cannot age out of the LRU and
+    // be counted a second time by the very loop below.
+    useBadges.getState().refresh(ids)
+    for (const notification of presented) {
+      const data = notification.request.content.data as Record<string, unknown> | undefined
+      const id = typeof data?.notificationId === 'string' ? data.notificationId : null
+      if (id) recordNotification(id, data?.url)
+    }
+  } catch {
+    // Unsupported runtime (web, an old dev client) — the counts still sync.
+  }
+  await syncBadge()
+}
+
+/**
+ * The user opened a conversation: its badge is done. Clears the bucket (the
+ * store change propagates to the icon and the relay via the subscription in
+ * initNotifications) and dismisses the conversation's own notifications from
+ * the tray, so what the badge said is gone stops being said anywhere.
+ */
+export function clearConversationBadges(conversationId: string): void {
+  useBadges.getState().clearConversation(conversationId)
+  void dismissConversationNotifications(conversationId)
+}
+
+async function dismissConversationNotifications(conversationId: string): Promise<void> {
+  try {
+    const presented = await Notifications.getPresentedNotificationsAsync()
+    for (const notification of presented) {
+      const data = notification.request.content.data as Record<string, unknown> | undefined
+      if (conversationTarget(data?.url) !== conversationId) continue
+      await Notifications.dismissNotificationAsync(notification.request.identifier).catch(
+        () => undefined
+      )
+    }
+  } catch {
+    // Nothing to dismiss on this runtime.
+  }
+}
+
 // ------------------------------------------------------- foreground display
 
 let handlerInstalled = false
@@ -136,10 +240,19 @@ function installForegroundHandler(): void {
       const id = typeof data?.notificationId === 'string' ? data.notificationId : null
       const duplicate = data?.inband !== true && id !== null && (await hasSeen(id))
       if (id && !duplicate) void markSeen(id)
+      // Count it — this is where a remote push landing on a FOREGROUND app
+      // enters the badge store (a rare path: it means the tunnel was down
+      // while the app was up). In-band renders pass through here too and the
+      // store's id dedupe folds them into their earlier count.
+      if (id) recordNotification(id, data?.url)
       return {
         shouldShowBanner: !duplicate,
         shouldShowList: !duplicate,
         shouldPlaySound: !duplicate,
+        // False, deliberately: the badges store is the single writer of the
+        // icon count (via syncBadge), so a push's own badge number — computed
+        // by the relay for the app-is-dead case — never fights it while the
+        // app is up.
         shouldSetBadge: false
       }
     }
@@ -186,6 +299,10 @@ function takeResponseHref(response: Notifications.NotificationResponse | null): 
   if (routedResponses.has(requestId)) return null
   routedResponses.add(requestId)
   const data = response.notification.request.content.data as Record<string, unknown> | undefined
+  // A tapped notification never becomes a badge: the tap IS the answer to it.
+  // If it was already counted, the screen the tap lands on clears its bucket.
+  const id = data?.notificationId
+  if (typeof id === 'string') useBadges.getState().markHandled(id)
   const target = parseDeeplink(data?.url)
   return target ? hrefFor(target) : null
 }
@@ -271,6 +388,14 @@ export function initNotifications(): void {
   Notifications.addPushTokenListener(() => {
     void refreshPushRegistration()
   })
+  // Every badge change reaches the OS icon and the relay from ONE place —
+  // whoever moved the store (a count, a clear, a prune) never syncs it too.
+  useBadges.subscribe((state, previous) => {
+    if (state.counts !== previous.counts) void syncBadge()
+  })
+  // Launch-time catch-up: count what the OS displayed while the app was dead.
+  // After rehydration, or the persisted counts would overwrite these.
+  void whenBadgesHydrated().then(() => reconcilePresentedNotifications())
 }
 
 /**
@@ -317,6 +442,9 @@ export function attachNotificationHandlers(tunnel: Tunnel): void {
         // Socket died between delivery and ack — the relay's fallback push
         // fires and the seen-set above is what keeps it invisible.
       }
+      // Count it — the main badge path while the app is alive. After the ack
+      // on purpose: the relay's fallback clock must not wait on store writes.
+      recordNotification(frame.notificationId, frame.deeplink)
     })()
   })
 }
@@ -379,6 +507,9 @@ export function refreshPushRegistration(): Promise<void> {
       // Re-read: the tunnel may have been replaced while we awaited the
       // token; register on whichever connection is current now.
       ;(activeTunnel ?? tunnel).sendControl(frame)
+      // A fresh registration is also the moment to re-assert the badge
+      // count: this relay (or a redeployed one) may hold a stale number.
+      await syncBadge(true)
     } catch {
       // No socket right now — the next foreground/connect registers again.
     } finally {
@@ -386,4 +517,41 @@ export function refreshPushRegistration(): Promise<void> {
     }
   })()
   return registering
+}
+
+// ------------------------------------------------------------- badge sync
+
+/** The last count the relay was told, to keep quiet syncs from re-sending
+ *  the same number on every foreground. Reset by force (re-registration). */
+let lastSentBadge: number | null = null
+
+/**
+ * Push the store's absolute total to both counters the app cannot render:
+ * the OS icon and the relay's per-device integer (which stamps `badge` onto
+ * Expo pushes while the app is dead). Store subscriptions call it on every
+ * badge change; reconciliation and registration call it directly — with
+ * force after (re)registration, because that relay may hold a stale count.
+ */
+async function syncBadge(force = false): Promise<void> {
+  const total = badgeTotal(useBadges.getState())
+  try {
+    await Notifications.setBadgeCountAsync(total)
+  } catch {
+    // No icon badge on this runtime — the relay count still matters.
+  }
+  const tunnel = activeTunnel
+  if (!tunnel) return
+  if (!force && lastSentBadge === total) return
+  try {
+    const frame: SetBadgeFrame = {
+      v: PUSH_WIRE_VERSION,
+      type: 'set_badge',
+      phoneId: await getPhoneId(),
+      count: total
+    }
+    ;(activeTunnel ?? tunnel).sendControl(frame)
+    lastSentBadge = total
+  } catch {
+    // Socket died — the next connect's registration re-asserts the count.
+  }
 }

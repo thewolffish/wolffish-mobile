@@ -1,5 +1,7 @@
 import { ArrowLeft01Icon, ArrowRight01Icon, Bug01Icon, Delete01Icon } from '@/components/core/icons'
 import { ChannelBadge } from '@/components/conversations/ChannelBadge'
+import { UnreadBadge } from '@/components/core/UnreadBadge'
+import { useBadges } from '@/state/badges'
 import { DiagnosticExportOverlay } from '@/components/conversations/DiagnosticExportOverlay'
 import { ConfirmDialog } from '@/components/core/ConfirmDialog'
 import { HistorySkeleton } from '@/components/history/HistorySkeleton'
@@ -50,6 +52,8 @@ const Row = memo(function Row({
   onDelete: (meta: ConversationMeta) => void
 }): React.JSX.Element {
   const title = meta.title === 'Untitled' ? untitledLabel : meta.title
+  // Per-row subscription: a badge changing re-renders only the row it marks.
+  const unread = useBadges((state) => state.counts[meta.id]?.n ?? 0)
   return (
     <Pressable
       accessibilityRole="button"
@@ -77,6 +81,7 @@ const Row = memo(function Row({
         </View>
         <Text className="text-muted text-left font-sans text-xs">{time}</Text>
       </View>
+      <UnreadBadge count={unread} />
       {/* The desktop's per-row Debug button, in the same place: beside delete,
           on the trailing edge. Absent rather than disabled without a desktop —
           the bundle is collected THERE, and a control that can only fail is

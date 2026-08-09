@@ -1,4 +1,6 @@
 import { Menu01Icon, PlusSignIcon } from '@/components/core/icons'
+import { UnreadBadge } from '@/components/core/UnreadBadge'
+import { badgeTotal, useBadges } from '@/state/badges'
 import { useTheme } from '@/providers/theme/useTheme'
 import { BlurView } from 'expo-blur'
 import type { ReactNode } from 'react'
@@ -71,6 +73,10 @@ export function FloatingChrome({
   onNewChat: () => void
 }): React.JSX.Element {
   const { t } = useTranslation()
+  // Unread across every conversation — the disc that opens the navigator
+  // wears the same count the rows inside it add up to. The one being read
+  // clears on focus, so what remains really is "waiting elsewhere".
+  const unreadTotal = useBadges(badgeTotal)
   return (
     <View
       // box-none, so only the two discs take touches and every tap between
@@ -79,9 +85,21 @@ export function FloatingChrome({
       style={{ position: 'absolute', top, left: 0, right: 0 }}
       className="flex-row items-center justify-between px-3"
     >
-      <GlassButton label={t('chat.conversations')} onPress={onOpenSheet}>
-        <Menu01Icon size={18} className="text-fg" />
-      </GlassButton>
+      {/* The disc clips to its circle (overflow-hidden for the blur), so the
+          badge hangs off a wrapper around it — top-trailing, half out of the
+          disc, the same corner idiom the rank chips use for their origin
+          badge. insetInlineEnd keeps it direction-aware with no RTL branch. */}
+      <View className="relative">
+        <GlassButton label={t('chat.conversations')} onPress={onOpenSheet}>
+          <Menu01Icon size={18} className="text-fg" />
+        </GlassButton>
+        <View
+          pointerEvents="none"
+          style={{ position: 'absolute', top: -4, insetInlineEnd: -4 }}
+        >
+          <UnreadBadge count={unreadTotal} />
+        </View>
+      </View>
       <GlassButton label={t('chat.newChat')} onPress={onNewChat}>
         <PlusSignIcon size={18} className="text-fg" />
       </GlassButton>

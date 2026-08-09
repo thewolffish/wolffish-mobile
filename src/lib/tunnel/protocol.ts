@@ -893,6 +893,15 @@ export type NotificationFrame = Omit<NotifyFrame, 'type'> & { type: 'notificatio
 /** Phone → relay: the in-band delivery arrived and was rendered. */
 export type NotificationAckFrame = { v: 1; type: 'notification_ack'; notificationId: string }
 
+/**
+ * Phone → relay: the phone's current unread notification count, absolute.
+ * The relay keeps one integer per device, incremented per delivered notify
+ * and stamped as `badge` onto Expo pushes so the app icon counts while the
+ * app is dead; this frame overwrites it whenever the phone's own state
+ * changes. Absolute rather than a delta so a lost frame can never drift it.
+ */
+export type SetBadgeFrame = { v: 1; type: 'set_badge'; phoneId: string; count: number }
+
 /** Relay → desktop: how the notify was routed, answered immediately. */
 export type NotifyResultFrame = {
   v: 1

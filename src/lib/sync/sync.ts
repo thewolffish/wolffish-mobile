@@ -17,6 +17,8 @@ import { applyOverlayReindex, applyOverlayRuns, readReindex, readRuns } from '@/
 import { invalidateProcedures } from '@/lib/sync/procedures'
 import { invalidateProjects } from '@/lib/sync/projects'
 import { useAppStore } from '@/state/appStore'
+import { useBadges } from '@/state/badges'
+import { clearConversationBadges } from '@/lib/notifications/push'
 import { invalidateConversation, invalidateConversationList } from '@/lib/conversations/cache'
 import { beginSync } from '@/lib/sync/activity'
 
@@ -148,6 +150,7 @@ export async function refreshSync(withIds = false): Promise<{ changed: number; r
   if (!tunnel) return { changed: 0, removed: 0 }
   const since = await getSyncCursor()
 
+  const startedAt = Date.now()
   const index = (await tunnel.rpc(Rpc.conversationIndex, { since, withIds })) as {
     rows: ConversationMeta[]
     at: number
@@ -156,7 +159,13 @@ export async function refreshSync(withIds = false): Promise<{ changed: number; r
   const rows = index.rows ?? []
   let removed = 0
   if (rows.length) await upsertConversations(rows)
-  if (Array.isArray(index.ids)) removed = await pruneMissing(index.ids)
+  if (Array.isArray(index.ids)) {
+    removed = await pruneMissing(index.ids)
+    // Badges follow the same rule as rows: a conversation the desktop no
+    // longer has cannot keep one. Buckets younger than this fetch are spared
+    // — their conversation may simply be newer than the id list.
+    useBadges.getState().prune(index.ids, startedAt)
+  }
   if (rows.length || removed) invalidateConversationList()
   await setSyncCursor(index.at ?? Date.now())
   noteSynced()
@@ -337,7 +346,14 @@ export function attachLiveUpdates(): () => void {
 
   tunnel.onEvent(Event.conversationDeleted, (payload) => {
     const id = (payload as { id?: string })?.id
-    if (id) void deleteConversation(id).then(invalidateConversationList)
+    if (id) {
+      // A deleted conversation cannot keep a badge — the row it would mark is
+      // gone, and an unclearable count on the icon is worse than a missed one.
+      // The full clear (not just the bucket): its notifications leave the tray
+      // too, or the next reconciliation would find them with no row to charge.
+      clearConversationBadges(id)
+      void deleteConversation(id).then(invalidateConversationList)
+    }
   })
 
   tunnel.onEvent(Event.configChanged, () => {

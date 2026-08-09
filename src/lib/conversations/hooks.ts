@@ -3,6 +3,7 @@ import { queryClient } from '@/lib/query/queryClient'
 import { fetchConversationBody, isBodyStale, refreshSync } from '@/lib/sync/sync'
 import { tunnelClient } from '@/lib/tunnel/client'
 import { useAppStore } from '@/state/appStore'
+import { clearConversationBadges } from '@/lib/notifications/push'
 import { useRunStatus } from '@/state/runStatus'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { useEffect } from 'react'
@@ -143,4 +144,8 @@ export async function removeConversation(id: string): Promise<void> {
   // outliving its conversation is the kind of thing that only stays harmless
   // until something else starts reading the map.
   useRunStatus.getState().dropRun(id)
+  // Same rule for its badge: an unread count with no row to mark would sit in
+  // the totals forever. The full clear — bucket AND tray — or the next
+  // reconciliation would find its notifications with no row to charge.
+  clearConversationBadges(id)
 }

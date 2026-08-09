@@ -18,7 +18,8 @@ import { PromptPreview } from '@/components/workspace/PromptSheet'
 import { useChatRuntime } from '@/state/chatRuntime'
 import { useConfigValue, useSettingsReadOnly } from '@/state/demoConfig'
 import { Image } from 'expo-image'
-import { useLocalSearchParams } from 'expo-router'
+import { useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { clearConversationBadges, setActiveConversation } from '@/lib/notifications/push'
 import { useActiveProject } from '@/lib/sync/projects'
 import { abortTurn, beginTurn, sendPrompt } from '@/lib/sync/prompt'
 import { rateTurn } from '@/lib/sync/rating'
@@ -35,7 +36,7 @@ import { useToast } from '@/providers/toast/useToast'
 import { useAppStore } from '@/state/appStore'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native'
+import { AppState, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeOut } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -138,6 +139,37 @@ export default function ChatScreen(): React.JSX.Element {
     setSending(false)
     setQueued([])
   }, [opened])
+  /**
+   * Unread badges end where reading begins. While this screen is FOCUSED on a
+   * conversation and the app is frontmost, that conversation is the active one
+   * (new notifications for it never become badges) and whatever badge it had
+   * is cleared — including on the return path: back from a pushed settings
+   * screen, and back from the background, where the foreground reconciliation
+   * may have just counted notifications for the very conversation on screen.
+   * Blur or unmount reports no conversation active; a chat left under a pushed
+   * screen accrues badges like any other.
+   *
+   * Keyed on `conversationId`, NOT `opened`: a chat minted by first send gets
+   * an id without ever being "opened" (see the doc on `opened` above), and the
+   * model's notify for that run deep-links to that id. `conversationId` is the
+   * conversation actually on screen in every case — route, sheet, and mint.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      const seeing = (): void => {
+        setActiveConversation(conversationId)
+        if (conversationId) clearConversationBadges(conversationId)
+      }
+      seeing()
+      const subscription = AppState.addEventListener('change', (next) => {
+        if (next === 'active') seeing()
+      })
+      return () => {
+        subscription.remove()
+        setActiveConversation(null)
+      }
+    }, [conversationId])
+  )
   const paired = useAppStore((state) => state.paired)
   const { data: conversation, isFetching: conversationFetching } = useConversation(conversationId)
   // The turn being written into this conversation right now, from whichever

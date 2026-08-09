@@ -1,4 +1,4 @@
-import { refreshPushRegistration } from '@/lib/notifications/push'
+import { reconcilePresentedNotifications, refreshPushRegistration } from '@/lib/notifications/push'
 import { clearOverlays, seedOverlays } from '@/lib/sync/overlays'
 import { attachLiveUpdates, reconcile } from '@/lib/sync/sync'
 import { attachTurnStream, seedActiveRuns } from '@/lib/sync/prompt'
@@ -62,6 +62,11 @@ export function useConnection(): void {
       // the client's own connect-time registration; a still-open socket is
       // exactly the case only this call reaches.
       void refreshPushRegistration()
+      // Count what the OS displayed while the app was away, then push the
+      // absolute total to the icon and the relay — which is also the moment
+      // general (non-conversation) notifications stop counting against the
+      // icon: opening the app is what clears those.
+      void reconcilePresentedNotifications()
     }
     const subscription = AppState.addEventListener('change', onChange)
 

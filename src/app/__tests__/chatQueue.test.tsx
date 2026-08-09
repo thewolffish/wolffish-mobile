@@ -20,6 +20,9 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 )
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() },
+  // The focus-scoped badge clearing belongs to react-navigation; a no-op
+  // keeps this suite free of notification side effects.
+  useFocusEffect: () => undefined,
   useLocalSearchParams: () => ({})
 }))
 jest.mock('expo-image', () => {
