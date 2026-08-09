@@ -67,11 +67,11 @@ npx jest --silent
 
 The phone is a mirror of a desktop it reaches over an end-to-end encrypted tunnel, and **the connection is the product**. If the diff touches `src/lib/tunnel/`, `src/lib/sync/`, or `src/state/demoConfig.ts`, these checks run before anything else happens. A deploy that splits the protocol from the desktop is the one failure this app cannot recover from on its own: paired phones stop syncing, and the fix has to travel through the same broken channel.
 
-1. **Wire files are shared with `wolffish-app`.** `protocol.ts` and `noise.ts` are **byte-identical** with `wolffish-app/src/main/tunnel/`; `pairing.ts` and `tunnel.ts` are identical **except for import specifiers** (`@/lib/tunnel/…` here, `./` there) plus two handler generics in `tunnel.ts`. Verify with:
+1. **Wire files are shared with `wolffish-app`.** `noise.ts` is **byte-identical** with `wolffish-app/src/main/tunnel/`; `protocol.ts` is **code-identical** — its doc comments are allowed to differ, because each repo's copy narrates the contract from its own seat (a mobile-only relay frame reads "the desktop never sends or receives it" over there); `pairing.ts` and `tunnel.ts` are identical **except for import specifiers** (`@/lib/tunnel/…` here, `./` there) plus two handler generics in `tunnel.ts`. Verify with:
    ```bash
    diff -r src/lib/tunnel ../wolffish-app/src/main/tunnel
    ```
-   Anything beyond those known lines is a protocol split. **Stop and report it.**
+   Beyond those known deltas, any diff line outside a `/** … */` comment is a protocol split. **Stop and report it.**
 2. **A new `Rpc` method or `Event` topic is a two-repo change.** The mobile half alone compiles fine and does nothing — the desktop must serve the method or emit the topic, and a `configSet` key must be on the desktop's whitelist. If the desktop half isn't in place, the batch is half-finished: stop.
 3. **Both directions still work.** Confirm against a real paired desktop, not by typecheck: pair, background and foreground the app (the socket dies on suspend by design and must re-handshake), and check that an edit made on the phone lands on the desktop and an edit made on the desktop lands on the phone.
 4. **Reconnect is idempotent.** `attachLiveUpdates` / `attachTurnStream` re-run on every connection and must replace handlers, not stack them. New push-only state also needs a seed on connect — see `seedOverlays`.
