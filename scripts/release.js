@@ -49,7 +49,15 @@ if (out('git', ['tag', '--list', tag])) {
 // provision.js and ota.js, deliberately after the cheap validations above.
 // Each check prints its own diagnosis, so swallow the exec stack trace.
 try {
-  run('npx', ['prettier', '--check', '**/*.{js,jsx,ts,tsx}', '--ignore-path', '.gitignore'])
+  run('npx', [
+    'prettier',
+    '--check',
+    '**/*.{js,jsx,ts,tsx}',
+    '--ignore-path',
+    '.gitignore',
+    '--ignore-path',
+    '.prettierignore'
+  ])
   run('npx', ['tsc', '--noEmit'])
   run('npx', ['jest', '--silent'])
 } catch {

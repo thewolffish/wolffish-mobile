@@ -18,7 +18,8 @@ import type {
   ConversationMessage,
   ConversationRating,
   MessageAttachment,
-  Segment
+  Segment,
+  ConversationChannel
 } from '@/lib/conversations/types'
 
 /**
@@ -134,6 +135,7 @@ function putLive(
     tail?: string
     user?: ConversationMessage
     status?: LiveStream['status']
+    channel?: ConversationChannel | null
   }
 ): void {
   const current = liveFor(conversationId)
@@ -145,6 +147,7 @@ function putLive(
     tail,
     user,
     status: next.status ?? current?.status ?? 'streaming',
+    channel: next.channel ?? current?.channel ?? null,
     message: compose(base, tail)
   })
 }
@@ -194,12 +197,16 @@ function mirroredPrompt(value: unknown): ConversationMessage | null {
  * token — and by the mirror, which is the only one of the three that can carry
  * the prompt of a turn this phone did not send.
  */
-export function beginTurn(conversationId: string, user?: ConversationMessage): void {
+export function beginTurn(
+  conversationId: string,
+  user?: ConversationMessage,
+  channel?: ConversationChannel | null
+): void {
   const current = liveFor(conversationId)
   // A turn already streaming keeps its accumulated output: `started` can land
   // after the first snapshot, and re-basing on a blank would erase it.
   if (current?.status === 'streaming') {
-    if (user) putLive(conversationId, { base: current.base, tail: current.tail, user })
+    if (user) putLive(conversationId, { base: current.base, tail: current.tail, user, channel })
     return
   }
   // A fresh turn: whatever cards the previous one parked on are settled facts
@@ -209,7 +216,7 @@ export function beginTurn(conversationId: string, user?: ConversationMessage): v
   // turn reports done — BEFORE its settle fetch returns — and a card left in
   // the store would ride the new live row's tail, below the new prompt.
   useChatRuntime.getState().clearCards(conversationId)
-  putLive(conversationId, { base: blankAssistant(), tail: '', user, status: 'streaming' })
+  putLive(conversationId, { base: blankAssistant(), tail: '', user, status: 'streaming', channel })
 }
 
 /**
@@ -455,15 +462,21 @@ export function attachTurnStream(): void {
   })
 
   tunnel.onEvent(Event.turnStatus, (payload) => {
-    const { conversationId, state } = (payload ?? {}) as {
+    const { conversationId, state, detail } = (payload ?? {}) as {
       conversationId?: string
       state?: string
+      /** The desktop sends the originating channel here on `started`. */
+      detail?: unknown
     }
     if (!conversationId) return
     // Started anywhere — this app, the desktop, a channel. An open conversation
     // shows the turn from its first instant rather than its first token.
     if (state === 'started') {
-      beginTurn(conversationId)
+      beginTurn(
+        conversationId,
+        undefined,
+        typeof detail === 'string' ? (detail as ConversationChannel) : null
+      )
       return
     }
     if (state !== 'done' && state !== 'error' && state !== 'canceled') return

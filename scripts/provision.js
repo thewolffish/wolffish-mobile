@@ -54,7 +54,15 @@ if (out('git', ['status', '--porcelain'])) {
 }
 
 // Gate: the exact source being provisioned must be healthy.
-run('npx', ['prettier', '--check', '**/*.{js,jsx,ts,tsx}', '--ignore-path', '.gitignore'])
+run('npx', [
+  'prettier',
+  '--check',
+  '**/*.{js,jsx,ts,tsx}',
+  '--ignore-path',
+  '.gitignore',
+  '--ignore-path',
+  '.prettierignore'
+])
 run('npx', ['tsc', '--noEmit'])
 run('npx', ['jest', '--silent'])
 

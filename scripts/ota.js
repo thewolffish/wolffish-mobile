@@ -82,7 +82,15 @@ if (out('git', ['tag', '--list', tag])) {
 }
 
 // Gate: the exact source being published must be healthy.
-run('npx', ['prettier', '--check', '**/*.{js,jsx,ts,tsx}', '--ignore-path', '.gitignore'])
+run('npx', [
+  'prettier',
+  '--check',
+  '**/*.{js,jsx,ts,tsx}',
+  '--ignore-path',
+  '.gitignore',
+  '--ignore-path',
+  '.prettierignore'
+])
 run('npx', ['tsc', '--noEmit'])
 run('npx', ['jest', '--silent'])
 

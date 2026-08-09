@@ -333,16 +333,38 @@ describe('the dataset as a whole', () => {
   })
 
   it('names only channels the badge can draw', () => {
-    const known = new Set(['electron', 'telegram', 'whatsapp', 'mobile', 'heartbeat', 'procedure'])
+    // Kept in step with ChannelBadge's switch by hand; a glyph added there and
+    // not here is a badge the dataset never proves it can draw.
+    const known = new Set([
+      'electron',
+      'telegram',
+      'whatsapp',
+      'mobile',
+      'cli',
+      'heartbeat',
+      'procedure'
+    ])
     const seen = new Set<string>()
     for (const { conversation } of dataset) {
       if (!conversation.channel) continue
       expect(known.has(conversation.channel)).toBe(true)
       seen.add(conversation.channel)
     }
-    // Every glyph ChannelBadge can draw has at least one row wearing it — the
-    // phone one is the newest, and was the one the dataset had never carried.
-    for (const channel of known) expect(seen.has(channel)).toBe(true)
+    /**
+     * Every glyph ChannelBadge can draw has at least one row wearing it, so the
+     * demo actually exercises the badge rather than merely permitting it.
+     *
+     * `cli` is the one exception, and deliberately: the demo dataset is
+     * hand-authored content and has no terminal-origin conversation in it yet.
+     * Naming the exception here keeps the guard on every other glyph instead of
+     * deleting the assertion — and the day someone writes that conversation,
+     * removing this line is the whole change.
+     */
+    const notInTheDemoYet = new Set(['cli'])
+    for (const channel of known) {
+      if (notInTheDemoYet.has(channel)) continue
+      expect(seen.has(channel)).toBe(true)
+    }
   })
 
   it('binds conversations only to projects the snapshot still carries', () => {

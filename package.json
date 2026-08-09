@@ -27,7 +27,7 @@
     "rollback": "node scripts/rollback.js",
     "ts:check": "tsc --noEmit",
     "fix:fingerprint": "node scripts/fix-fingerprint-drift.js",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,json}\" --ignore-path .gitignore",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,json}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "test": "jest"
   },
   "dependencies": {

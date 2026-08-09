@@ -569,6 +569,13 @@
   },
   "channels": {
     "inapp": { "verbose": false },
+    "cli": {
+      "verbose": false,
+      "runMode": "gui",
+      "pathInstalled": true,
+      "serviceActive": true,
+      "mechanism": "launchd"
+    },
     "mobile": { "notifications": true, "verbose": false },
     "telegram": {
       "enabled": true,

@@ -207,6 +207,61 @@ export function StatusDot({
 }
 
 /**
+ * SwitchRow's shape with a dot and a word where the toggle would be — for
+ * state this device reports but must not drive.
+ *
+ * The sibling of ConfigRows' `ConfigStatusRow`, and separate from it on
+ * purpose: that one binds to a boolean config key and can only ever say On or
+ * Off. This one takes the reading straight, so it can carry a THIRD state —
+ * unknown — and name each in the words that fit ("Ready" / "Not on your PATH"
+ * rather than On / Off). A machine fact the desktop failed to probe has to
+ * read as unanswered, not as a failure.
+ */
+export function StatusRow({
+  label,
+  description,
+  icon,
+  tone,
+  value
+}: {
+  label: string
+  description?: string
+  icon?: React.ReactNode
+  tone: StatusTone
+  value: string
+}): React.JSX.Element {
+  return (
+    <View className="flex-row items-center gap-3">
+      {icon}
+      <View className="flex-1 flex-col gap-0.5">
+        <Text className="text-fg font-sans-medium text-left text-sm">{label}</Text>
+        {description ? (
+          <Text className="text-muted text-left font-sans text-xs leading-5">{description}</Text>
+        ) : null}
+      </View>
+      <View
+        className="shrink-0 flex-row items-center gap-1.5"
+        accessibilityLabel={`${label} ${value}`}
+      >
+        <StatusDot tone={tone} />
+        <Text
+          className={cn(
+            'font-sans text-xs',
+            tone === 'ok'
+              ? 'text-emerald-600 dark:text-emerald-400'
+              : tone === 'error'
+                ? 'text-rose-600 dark:text-rose-400'
+                : 'text-muted'
+          )}
+        >
+          {value}
+        </Text>
+      </View>
+    </View>
+  )
+}
+
+/**
  * `status` puts live state at the far end of the row, opposite the label: a
  * dot and a word, so a tab worth opening can be told from one that is merely
  * there without opening it. `trailing` is the same position for anything a

@@ -69,6 +69,8 @@ export type LiveTurnView = {
   status: string
   message: { timestamp: number }
   user?: { content: string; timestamp: number }
+  /** Where the turn was started, when the row has no indexed meta to read it from. */
+  channel?: ConversationChannel | null
 }
 
 /** The shape this module needs from a project — its icon, by id. */
@@ -151,7 +153,10 @@ export function buildConversationRows({
       id,
       title: titleFromPrompt(turn) ?? untitled,
       phase: 'processing',
-      channel: null,
+      // From the live turn, because there is no indexed row to read it from
+      // yet — this is exactly the window in which a conversation started in a
+      // terminal would otherwise show no origin at all.
+      channel: turn.channel ?? null,
       icon: null,
       projectId: null,
       at: turn.user?.timestamp ?? turn.message.timestamp,

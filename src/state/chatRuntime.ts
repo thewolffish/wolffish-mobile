@@ -4,7 +4,8 @@ import type {
   AskUserAnswer,
   AskUserQuestion,
   ConversationMessage,
-  DangerLevel
+  DangerLevel,
+  ConversationChannel
 } from '@/lib/conversations/types'
 import type { SyncProject } from '@/lib/tunnel/protocol'
 import { create } from 'zustand'
@@ -52,6 +53,14 @@ export type LiveStream = {
   base?: ConversationMessage
   /** Paired mode only — text deltas received after `base`. */
   tail?: string
+  /**
+   * Where the turn was started — 'cli', 'telegram', 'heartbeat', … Carried so
+   * a conversation known ONLY from a running turn can still wear its origin
+   * badge. Without it a chat started in a terminal appeared in the list with
+   * no glyph at all until the desktop pushed its metadata, which on a slow
+   * link is the whole time anyone is watching it happen.
+   */
+  channel?: ConversationChannel | null
   /**
    * WHY this turn stopped being 'streaming' — which is not the same question as
    * whether it is over, and the difference is the whole reason this field

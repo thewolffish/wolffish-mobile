@@ -12,7 +12,7 @@
  */
 
 export type ConversationChannel =
-  'electron' | 'telegram' | 'whatsapp' | 'mobile' | 'heartbeat' | 'procedure'
+  'electron' | 'telegram' | 'whatsapp' | 'mobile' | 'cli' | 'heartbeat' | 'procedure'
 
 export type SegmentTurnEndReason =
   'end_turn' | 'tool_use' | 'max_tokens' | 'error' | 'no_provider_available'

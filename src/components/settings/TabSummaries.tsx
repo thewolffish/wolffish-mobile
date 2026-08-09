@@ -1,4 +1,9 @@
-import { SmartPhone01Icon, TelegramLogo, WhatsAppLogo } from '@/components/core/icons'
+import {
+  ComputerTerminal01Icon,
+  SmartPhone01Icon,
+  TelegramLogo,
+  WhatsAppLogo
+} from '@/components/core/icons'
 import { CodeChip } from '@/components/settings/SettingsUI'
 import { useConversationList } from '@/lib/conversations/hooks'
 import { formatBytes } from '@/lib/files/fileKinds'
@@ -90,24 +95,32 @@ export function ModelSummary(): React.JSX.Element {
  * to wonder whether it exists.
  *
  * The phone leads, in the desktop's own channel order, and reads its
- * notifications switch: reachable is the question all three answer, and for
+ * notifications switch: reachable is the question all four answer, and for
  * this device the answer is whether notify_phone is allowed to ring it. Being
  * paired is not the signal — you are looking at the app, so you know.
+ *
+ * The terminal's mark answers that same question its own way: green when a
+ * shell on the desktop can resolve `wolffish`, because a command the shell
+ * cannot find is a channel you cannot reach the agent on, whatever config
+ * says. Unknown (the desktop never answered) reads muted with the rest —
+ * the row is a glance, and a third colour here would be a puzzle, not a fact.
  */
 export function ChannelsSummary(): React.JSX.Element {
   const { t } = useTranslation()
   const phone = useConfigValue('mobileNotifications')
+  const cli = useDemoConfig((state) => state.cli.pathInstalled === true)
   const telegram = useConfigValue('telegramEnabled')
   const whatsapp = useConfigValue('whatsappEnabled')
   const state = (on: boolean): string => (on ? t('settings.toggle.on') : t('settings.toggle.off'))
   return (
     <View
       className="shrink-0 flex-row items-center gap-2"
-      accessibilityLabel={`${t('settings.channels.notifications')} ${state(phone)}, Telegram ${state(
-        telegram
-      )}, WhatsApp ${state(whatsapp)}`}
+      accessibilityLabel={`${t('settings.channels.notifications')} ${state(phone)}, ${t(
+        'settings.channels.cli.title'
+      )} ${state(cli)}, Telegram ${state(telegram)}, WhatsApp ${state(whatsapp)}`}
     >
       <SmartPhone01Icon size={15} className={phone ? TONES.ok : TONES.muted} />
+      <ComputerTerminal01Icon size={15} className={cli ? TONES.ok : TONES.muted} />
       <TelegramLogo size={15} className={telegram ? TONES.ok : TONES.muted} />
       <WhatsAppLogo size={15} className={whatsapp ? TONES.ok : TONES.muted} />
     </View>
@@ -240,17 +253,30 @@ export function UpdatesSummary(): React.JSX.Element {
 }
 
 /**
- * Preferences — whether the agent still stops to ask. Coloured rather than
- * merely stated: this is the one preference whose off state changes what
- * every run does, and a word in amber says so from the list.
+ * Preferences — whether the desktop comes up on its own, and whether the agent
+ * still stops to ask, in the panel's own order.
+ *
+ * Both halves are stated in colour rather than merely printed: these are the
+ * two preferences whose off state changes what the machine does on its own —
+ * one run stops to ask, the other never starts — and a word in amber says so
+ * from the list, without opening the tab.
+ *
+ * Two Texts and a separator node rather than one string, so each half carries
+ * its own tone and RTL mirrors the pair by flex order instead of by where the
+ * "·" landed inside a bidi run.
  */
 export function PreferencesSummary(): React.JSX.Element {
   const { t } = useTranslation()
+  const startup = useConfigValue('launchAtStartup')
   const bypass = useConfigValue('bypassPermissions')
+  const state = (on: boolean): string => (on ? t('settings.toggle.on') : t('settings.toggle.off'))
+  const tone = (on: boolean): 'ok' | 'warn' => (on ? 'ok' : 'warn')
   return (
-    <Note tone={bypass ? 'ok' : 'warn'}>
-      {`${t('settings.summary.bypass')} ${bypass ? t('settings.toggle.on') : t('settings.toggle.off')}`}
-    </Note>
+    <View className="max-w-[60%] shrink flex-row items-center gap-1">
+      <Note tone={tone(startup)}>{`${t('settings.summary.startup')} ${state(startup)}`}</Note>
+      <Text className="text-muted shrink-0 font-sans text-xs">·</Text>
+      <Note tone={tone(bypass)}>{`${t('settings.summary.bypass')} ${state(bypass)}`}</Note>
+    </View>
   )
 }
 
