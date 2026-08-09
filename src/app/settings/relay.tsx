@@ -126,7 +126,7 @@ export default function RelayScreen(): React.JSX.Element {
    * behind would be the surprise; wiping is the point. The desktop keeps the
    * originals, so pairing again restores all of it.
    */
-  const disconnect = async (): Promise<void> => {
+  const unpair = async (): Promise<void> => {
     setBusy(true)
     setConfirming(false)
     try {
@@ -143,7 +143,7 @@ export default function RelayScreen(): React.JSX.Element {
       setPaired(false)
     } catch {
       setBusy(false)
-      toast.show({ tone: 'error', message: t('relay.disconnectFailed') })
+      toast.show({ tone: 'error', message: t('relay.unpairFailed') })
       return
     }
     setBusy(false)
@@ -247,11 +247,11 @@ export default function RelayScreen(): React.JSX.Element {
         />
         <ActionRow
           icon={<CancelCircleIcon size={18} className="text-rose-500" />}
-          title={t('relay.disconnect')}
-          description={t('relay.disconnectHint')}
+          title={t('relay.unpair')}
+          description={t('relay.unpairHint')}
           action={
             <Button size="sm" variant="danger" onPress={() => setConfirming(true)} disabled={busy}>
-              {t('relay.disconnectAction')}
+              {t('relay.unpairAction')}
             </Button>
           }
         />
@@ -307,11 +307,11 @@ export default function RelayScreen(): React.JSX.Element {
       <ConfirmDialog
         open={confirming}
         busy={busy}
-        title={t('relay.disconnectConfirmTitle')}
-        message={t('relay.disconnectConfirmBody')}
-        confirmLabel={t('relay.disconnectAction')}
+        title={t('relay.unpairConfirmTitle')}
+        message={t('relay.unpairConfirmBody')}
+        confirmLabel={t('relay.unpairAction')}
         cancelLabel={t('common.cancel')}
-        onConfirm={() => void disconnect()}
+        onConfirm={() => void unpair()}
         onCancel={() => setConfirming(false)}
       />
     </PanelScreen>
