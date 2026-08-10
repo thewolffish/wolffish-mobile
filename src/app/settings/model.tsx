@@ -9,7 +9,6 @@ import { ModelSelector, ModelSwitch } from '@/components/chat/ModelSwitch'
 import { PanelScreen, Section, StatusDot } from '@/components/settings/SettingsUI'
 import { cn } from '@/lib/utils/cn'
 import { useToast } from '@/providers/toast/useToast'
-import { useTokens } from '@/providers/theme/useTheme'
 import {
   saveDesktopSetting,
   setConfigValue,
@@ -21,7 +20,7 @@ import {
 import { useAppStore } from '@/state/appStore'
 import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ActivityIndicator, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 
 /**
  * Model, desktop UX: behavior controls up top — the two knobs touched every
@@ -39,7 +38,6 @@ const ProviderCard = memo(function ProviderCard({
 }): React.JSX.Element {
   const { t } = useTranslation()
   const toast = useToast()
-  const tokens = useTokens()
   const paired = useAppStore((state) => state.paired)
   const readOnly = useSettingsReadOnly()
   const [testing, setTesting] = useState(false)
@@ -139,17 +137,17 @@ const ProviderCard = memo(function ProviderCard({
           className="self-start"
           accessibilityLabel={t('settings.services.saveKey')}
         >
-          {busy ? t('settings.services.saving') : t('settings.services.saveKey')}
+          {t('settings.services.saveKey')}
         </Button>
       ) : null}
       {/* Demo only: the desktop is the side that can actually reach the
           provider, and it has no test RPC — a button that toasted success
           without testing would be the one lying control on the card. The
-          label never swaps for a loading string — the spinner carries the
-          busy state so the button keeps its identity mid-action. */}
+          label never swaps for a loading string, and nothing is inserted
+          beside it — the disabled dim carries the busy state so the button
+          keeps its size and its word mid-action. */}
       {!paired ? (
         <Button variant="outline" size="sm" disabled={testing} onPress={test}>
-          {testing && <ActivityIndicator size="small" color={tokens.fg} />}
           {t('settings.model.testConnection')}
         </Button>
       ) : null}

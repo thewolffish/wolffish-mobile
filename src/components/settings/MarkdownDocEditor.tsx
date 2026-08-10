@@ -136,6 +136,8 @@ export function MarkdownDocEditor({
           >
             {readOnly ? t('common.close') : t('common.cancel')}
           </Button>
+          {/* The label never swaps while saving — the disabled dim carries
+              the busy state, and the button keeps its size and its word. */}
           {readOnly ? null : (
             <Button
               size="sm"
@@ -143,7 +145,7 @@ export function MarkdownDocEditor({
               accessibilityLabel={t('settings.customization.save')}
               onPress={() => void save()}
             >
-              {saving ? '…' : t('settings.customization.save')}
+              {t('settings.customization.save')}
             </Button>
           )}
         </View>

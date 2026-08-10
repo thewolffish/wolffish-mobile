@@ -94,7 +94,8 @@ const PROCEDURE = {
 const HEARTBEAT = [
   '## Daily (09:00)',
   '',
-  'icon: 📊',
+  'project: proj-1',
+  'icon: 🫀',
   '',
   'Summarize yesterday.',
   '',
@@ -213,6 +214,17 @@ describe('Procedures screen', () => {
     expect(screen.getByText('Workflow').props.className).toContain('text-primary-fg')
     expect(screen.getByLabelText('Run')).toBeTruthy()
   })
+
+  it('offers the project as a chip row, with the binding lit', async () => {
+    draw(<ProceduresScreen />)
+    await waitFor(() => expect(screen.getByText('Weekly digest')).toBeTruthy())
+    fireEvent.press(screen.getByLabelText('Edit'))
+    // The chat controls' picker, not a Select: every project on one x-scrolling
+    // row, the bound one lit.
+    await waitFor(() => expect(screen.getByText('No project')).toBeTruthy())
+    expect(screen.getByText('Quarterly report').props.className).toContain('text-primary-fg')
+    expect(screen.getByText('No project').props.className).not.toContain('text-primary-fg')
+  })
 })
 
 describe('Automations screen', () => {
@@ -231,6 +243,25 @@ describe('Automations screen', () => {
     expect(screen.getByText(/Inactive/)).toBeTruthy()
     // The run pool gates the play button and says why.
     expect(screen.getByText(/running right now/)).toBeTruthy()
+  })
+
+  it('keeps the meta line to next run and edit stamp — the project shows as the emoji', async () => {
+    draw(<AutomationsScreen />)
+    await waitFor(() => expect(screen.getByText('Daily (09:00)')).toBeTruthy())
+    // The binding is worn, not written: the card takes the project's emoji …
+    expect(screen.getByText('📊')).toBeTruthy()
+    // … and the meta line never names it, so it cannot wrap onto a second row.
+    expect(screen.getByText(/Next run in 3h/).props.children).not.toMatch(/Quarterly report/)
+    expect(screen.getByText(/Next run in 3h/).props.children).toMatch(/Edited/)
+  })
+
+  it('offers the project as a chip row in the editor', async () => {
+    draw(<AutomationsScreen />)
+    await waitFor(() => expect(screen.getByText('Daily (09:00)')).toBeTruthy())
+    fireEvent.press(screen.getAllByLabelText('Edit automation')[0])
+    await waitFor(() => expect(screen.getByText('No project')).toBeTruthy())
+    // The bound chip is lit, exactly as the chat controls light theirs.
+    expect(screen.getByText('Quarterly report').props.className).toContain('text-primary-fg')
   })
 
   it('offers the markdown view of the file the store actually is', async () => {

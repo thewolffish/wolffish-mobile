@@ -274,7 +274,7 @@ function SecretRow({
           className="self-start"
           accessibilityLabel={t('settings.services.saveKey')}
         >
-          {busy ? t('settings.services.saving') : t('settings.services.saveKey')}
+          {t('settings.services.saveKey')}
         </Button>
       ) : null}
     </View>

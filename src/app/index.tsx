@@ -13,14 +13,14 @@ import { attachTurnStream } from '@/lib/sync/prompt'
 import { tunnelClient } from '@/lib/tunnel/client'
 import { useAppStore } from '@/state/appStore'
 import { useToast } from '@/providers/toast/useToast'
-import { useTokens } from '@/providers/theme/useTheme'
 import { invalidateConversationList } from '@/lib/conversations/cache'
+import { cn } from '@/lib/utils/cn'
 import { forgetLaunchDeeplink, launchDeeplink } from '@/lib/notifications/push'
 import { Image } from 'expo-image'
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ActivityIndicator, Pressable, Text, View } from 'react-native'
+import { Pressable, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 /**
  * Loaded on demand. The sheet pulls in expo-camera, and a static import would
@@ -45,7 +45,6 @@ const PairSheet = lazy(async () => ({
 export default function Home(): React.JSX.Element {
   const { t } = useTranslation()
   const toast = useToast()
-  const tokens = useTokens()
   const insets = useSafeAreaInsets()
   const demoVersion = useAppStore((state) => state.demoVersion)
   const setDemoVersion = useAppStore((state) => state.setDemoVersion)
@@ -107,10 +106,11 @@ export default function Home(): React.JSX.Element {
       // next tap can drop a live connection by accident.
       router.replace('/chat')
       // Progress stays up on the way out, deliberately. Clearing it here — as
-      // the import's own `finally` used to — puts the demo-mode button back for
-      // the frames between the last byte and chat taking the screen, which
-      // reads as "done, nothing happened" right before the app moves anyway.
-      // The screen is replaced, so the held state goes with it.
+      // the import's own `finally` used to — drops the progress bar and
+      // re-enables both doors for the frames between the last byte and chat
+      // taking the screen, which reads as "done, nothing happened" right
+      // before the app moves anyway. The screen is replaced, so the held
+      // state goes with it.
     } catch {
       // Offline, or the bundle is mid-publish. Nothing is marked imported, so
       // the next tap starts over; already-inserted conversations upsert. This
@@ -208,14 +208,16 @@ export default function Home(): React.JSX.Element {
         {/* Already paired: the primary action is to carry on into the app.
             Re-pairing is still reachable, but demoted — reaching for it by
             reflex is how a working connection gets replaced by accident. */}
+        {/* The label holds still while a sync runs — the disabled dim marks
+            the button busy, and the status line below narrates the progress,
+            so nothing here changes size or wording mid-connect. */}
         <Button
           size="lg"
           disabled={busy}
           onPress={() => (paired ? router.replace('/chat') : setPairing(true))}
           className="mt-4 self-center"
         >
-          {sync !== null && <ActivityIndicator size="small" color={tokens.primaryFg} />}
-          {sync !== null ? t('pair.connecting') : paired ? t('home.continue') : t('pair.connect')}
+          {paired ? t('home.continue') : t('pair.connect')}
         </Button>
 
         {/* The secondary door. Unpaired that is demo mode — the only way in
@@ -224,14 +226,13 @@ export default function Home(): React.JSX.Element {
         <Pressable
           disabled={busy}
           onPress={() => (paired ? setPairing(true) : void enterDemo())}
-          className="py-1"
+          // Dimmed rather than relabelled while an import runs: the link
+          // keeps its wording (the status line carries the progress), and the
+          // opacity is what says it is off — same treatment as a Button.
+          className={cn('py-1', busy && 'opacity-50')}
         >
           <Text className="text-muted font-sans text-sm underline">
-            {paired
-              ? t('home.connectOther')
-              : progress !== null
-                ? t('demo.importing')
-                : t('home.demoMode')}
+            {paired ? t('home.connectOther') : t('home.demoMode')}
           </Text>
         </Pressable>
 

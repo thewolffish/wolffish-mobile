@@ -5,13 +5,13 @@ import { Button } from '@/components/core/Button'
 import { ConfirmDialog } from '@/components/core/ConfirmDialog'
 import { Input } from '@/components/core/Input'
 import { Modal } from '@/components/core/Modal'
-import { Select, type SelectOption } from '@/components/core/Select'
 import { Delete02Icon, Edit02Icon, PlayIcon, PlusSignIcon } from '@/components/core/icons'
 import { PanelScreen } from '@/components/settings/SettingsUI'
 import { DEFAULT_PROJECT_ICON } from '@/components/workspace/ProjectDialog'
 import { DialogError, PromptPreview, PromptSheet } from '@/components/workspace/PromptSheet'
 import { ModePills } from '@/components/workspace/ModePills'
 import { EmojiPicker } from '@/components/workspace/EmojiPicker'
+import { ProjectChipRow } from '@/components/workspace/ProjectChipRow'
 import { pickDocuments, pickMedia, type PickedFile } from '@/lib/files/pickAttachments'
 import { MAX_FILES_PER_MESSAGE, uploadErrorMessage, validateUpload } from '@/lib/files/uploadPolicy'
 import {
@@ -47,7 +47,7 @@ import { Pressable, Text, View } from 'react-native'
 /** Card emoji for a procedure that never picked one — the desktop's default. */
 const DEFAULT_PROCEDURE_ICON = '📋'
 
-/** The unbound option's value; Select keys on strings, so null needs one. */
+/** The unbound chip's value; the row keys on strings, so null needs one. */
 const NO_PROJECT = ''
 
 export default function ProceduresScreen(): React.JSX.Element {
@@ -590,17 +590,6 @@ function ProcedureEditorBody({
   const locked = readOnly || adding
 
   const boundProject = projectId ? projects.find((p) => p.id === projectId) : undefined
-  const options = useMemo<readonly SelectOption<string>[]>(
-    () => [
-      { value: NO_PROJECT, label: t('procedures.projectNone') },
-      ...projects.map((project) => ({
-        value: project.id,
-        label: project.title.trim() || t('projects.untitled'),
-        icon: <Text>{project.icon || DEFAULT_PROJECT_ICON}</Text>
-      }))
-    ],
-    [projects, t]
-  )
 
   return (
     <Modal
@@ -656,10 +645,11 @@ function ProcedureEditorBody({
 
       {/* Bind a project: the run gets its context and the conversation
           registers under it. */}
-      <Select<string>
+      <ProjectChipRow
         label={t('procedures.project')}
+        noneLabel={t('procedures.projectNone')}
+        projects={projects}
         value={projectId}
-        options={options}
         disabled={readOnly}
         onChange={(value) => {
           setTouched(true)

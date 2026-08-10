@@ -207,7 +207,6 @@
       "keySaved": "Saved to your desktop",
       "keySaveFailed": "Couldn’t save — check the connection",
       "saveKey": "Save",
-      "saving": "Saving…",
       "video": {
         "description": "Generate video with MiniMax H3 — your chat model directs it; results show as task cards in the chat.",
         "apiKey": "MiniMax API key (video)",
@@ -564,7 +563,6 @@
     "connectOther": "Connect to another desktop"
   },
   "demo": {
-    "importing": "Preparing demo data",
     "downloading": "Downloading demo data…",
     "resetting": "Clearing the previous demo data…",
     "progress": "{{done}} of {{total}} conversations",
@@ -877,7 +875,6 @@
   },
   "pair": {
     "connect": "Connect to Desktop",
-    "connecting": "Connecting",
     "title": "Connect to your desktop",
     "instructions": "On your computer, open Wolffish → Settings → Channels → Mobile and start a pairing.",
     "submit": "Connect",
@@ -1127,7 +1124,6 @@
     "deleteWarning": "“{{name}}” will be permanently removed from heartbeat.md and unscheduled. This cannot be undone.",
     "deleteConfirm": "Delete",
     "deleteCancel": "Cancel",
-    "deleting": "Deleting…",
     "deleteSuccess": "Automation deleted",
     "files": "Files ({{count}})",
     "addFiles": "Add files",

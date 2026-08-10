@@ -3,7 +3,6 @@ import { Button } from '@/components/core/Button'
 import { ConfirmDialog } from '@/components/core/ConfirmDialog'
 import { Input } from '@/components/core/Input'
 import { Modal } from '@/components/core/Modal'
-import { Select, type SelectOption } from '@/components/core/Select'
 import {
   Delete02Icon,
   Edit02Icon,
@@ -19,6 +18,7 @@ import { DEFAULT_PROJECT_ICON } from '@/components/workspace/ProjectDialog'
 import { DialogError, PromptPreview, PromptSheet } from '@/components/workspace/PromptSheet'
 import { EmojiPicker } from '@/components/workspace/EmojiPicker'
 import { ModePills } from '@/components/workspace/ModePills'
+import { ProjectChipRow } from '@/components/workspace/ProjectChipRow'
 import {
   addBlockPath,
   attachJobs,
@@ -208,9 +208,12 @@ export default function AutomationsScreen(): React.JSX.Element {
   )
 
   /**
-   * The meta line, in the desktop's order: schedule (or its next run), the bound
-   * project, the last edit. A switched-off automation says only that — it never
-   * fires, so a next run would be a lie.
+   * The meta line: the next run, then the last edit — and nothing else. The
+   * desktop's card also names the bound project here, but on a phone's width
+   * that third segment is what pushed the line onto two rows, and it says
+   * nothing the card is not already saying: a bound automation wears its
+   * project's emoji (see cardIcon). A switched-off automation says only that —
+   * it never fires, so a next run would be a lie.
    */
   const metaLine = useCallback(
     (block: AutomationBlock): string => {
@@ -229,15 +232,13 @@ export default function AutomationsScreen(): React.JSX.Element {
             ? `${t('heartbeat.nextRun', { time: formatSignedRelative(nextRunMs, now, t) })} · ${formatAbsoluteMoment(nextRunMs, locale)}`
             : t('heartbeat.active')
       const parts = [schedule]
-      const project = block.project ? projectsById.get(block.project) : undefined
-      if (project) parts.push(project.title.trim() || t('projects.untitled'))
       const edited = data?.stamps[block.label]
       if (edited != null) {
         parts.push(t('heartbeat.editedAt', { time: formatSignedRelative(edited, now, t) }))
       }
       return parts.join(' · ')
     },
-    [data?.stamps, locale, now, projectsById, t]
+    [data?.stamps, locale, now, t]
   )
 
   return (
@@ -475,7 +476,7 @@ export default function AutomationsScreen(): React.JSX.Element {
         open={deleteTarget !== null}
         title={t('heartbeat.deleteTitle')}
         message={t('heartbeat.deleteWarning', { name: deleteTarget?.label ?? '' })}
-        confirmLabel={deleting ? t('heartbeat.deleting') : t('heartbeat.deleteConfirm')}
+        confirmLabel={t('heartbeat.deleteConfirm')}
         cancelLabel={t('heartbeat.deleteCancel')}
         busy={deleting}
         onConfirm={handleDelete}
@@ -870,18 +871,6 @@ function AutomationEditor({
 
   const attachLocked = readOnly || adding || !boundLabel
 
-  const options = useMemo<readonly SelectOption<string>[]>(
-    () => [
-      { value: NO_PROJECT, label: t('heartbeat.editor.projectNone') },
-      ...projects.map((project) => ({
-        value: project.id,
-        label: project.title.trim() || t('projects.untitled'),
-        icon: <Text>{project.icon || DEFAULT_PROJECT_ICON}</Text>
-      }))
-    ],
-    [projects, t]
-  )
-
   return (
     <Modal
       open
@@ -990,10 +979,12 @@ function AutomationEditor({
         </Text>
       )}
 
-      <Select<string>
+      <ProjectChipRow
         label={t('heartbeat.editor.project')}
+        noneLabel={t('heartbeat.editor.projectNone')}
+        projects={projects}
         value={projectId}
-        options={options}
+        disabled={readOnly}
         onChange={(value) => {
           setProjectId(value)
           setEmojiOpen(false)

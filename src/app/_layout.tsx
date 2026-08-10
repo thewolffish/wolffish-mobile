@@ -1,6 +1,15 @@
 if (__DEV__) {
   // Initialize Reactotron before anything else in development.
   require('@/ReactotronConfig')
+  // RN's Animated emits this once at launch from library internals (navigation
+  // timing — not our code; the only app Animated lives in ConversationsSheet,
+  // which hasn't mounted yet). Left alone it pops a LogBox notification that
+  // renders as a BLANK white card in this setup — RN 0.86 paints the message
+  // white-on-white — so the first thing a fresh install shows is an empty
+  // warning toast. The text still reaches the Metro terminal either way.
+  require('react-native').LogBox.ignoreLogs([
+    'Sending `onAnimatedValueUpdate` with no listeners registered.'
+  ])
 }
 
 // Must load before anything touches @noble: Hermes has no crypto.getRandomValues,

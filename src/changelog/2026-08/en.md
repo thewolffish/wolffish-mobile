@@ -1,4 +1,26 @@
-## v1.0.28 — 2026-08-10 `Latest`
+## v1.0.29 — 2026-08-10 `Latest`
+
+### Pick a Project With One Tap
+
+Binding an automation or a procedure to a project used to go through a dropdown: a menu opened over the editor to pick from a set that would have fit on the screen itself. Both editors now lay **every project out on one row** — emoji and name, the bound one lit — the same picker the chat's controls already use. One tap binds, one tap frees, and the row **scrolls sideways** however many projects you keep, so the twentieth costs the dialog nothing. If the bound project sits past the row's edge, the editor **opens already scrolled to it**, so what is bound is never out of sight. And the automation card stops spelling the project's name into its detail line — on a phone's width that third segment is what wrapped the line in two, and the card already **wears its project's emoji**.
+
+### A Conversation Wears Its Project
+
+A conversation that ran inside a project now shows **the project's own icon** in History, rather than the mark of whatever channel it was started from — the rule the conversations sheet and the desktop's History already apply. The icon is **read live from the project list**, so changing a project's emoji on the desktop re-badges every one of its conversations here, including the ones long finished.
+
+### A Busy Button Keeps Its Word
+
+A button caught mid-action used to change: Save became **“Saving…”**, Delete became a bare **“…”**, the language toggle and the connection test swapped their labels for a **spinner**. Every one of them now simply **dims and keeps its word** — same text, same size — until the work lands. Where there is real progress to narrate, a **status line** nearby carries it; the button itself never changes shape under your finger.
+
+### Automation Prompts, Kept Whole
+
+An automation is saved as markdown, and the file it lives in has grammar of its own: a line opening `## ` starts the next block, a dashed rule is structure, an HTML comment is how a switched-off automation is wrapped. Paste a prompt that carries any of those — a doc with its own **`## Prompt`** section, say — and everything from that line on used to be **silently swallowed** on save. The editor now **respells those lines harmlessly** as it writes — a space slipped into the token is all it takes — so the prompt you pasted is the prompt that runs: sections, rules, comments and all.
+
+### Smaller Things
+
+The Usage screen's **activity map** — the month of pixels, with its month and year pickers — now sits in **its own card**, wearing the same chrome as every other block on the screen, instead of floating on the page background.
+
+## v1.0.28 — 2026-08-10
 
 ### Spoken Replies, Your Call
 

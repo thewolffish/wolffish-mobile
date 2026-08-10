@@ -365,63 +365,67 @@ function ActivityMonth({
 
   return (
     <View className="flex-col gap-3">
-      <Text className="text-fg font-sans-semibold text-left text-sm">
-        {t('settings.usage.activity')}
-      </Text>
+      {/* Title, selects and pixels share one card in the DayCard's chrome —
+          the Select trigger's bg-bg well is the in-card recipe already. */}
+      <View className="bg-surface border-border flex-col gap-3 rounded-2xl border p-4">
+        <Text className="text-fg font-sans-semibold text-left text-sm">
+          {t('settings.usage.activity')}
+        </Text>
 
-      <View className="flex-row gap-3">
-        <Select<string>
-          className="flex-1"
-          value={`${month}`}
-          options={monthOptions}
-          onChange={(value) => setMonth(Number(value))}
-        />
-        <Select<string>
-          className="w-28"
-          value={`${year}`}
-          options={yearOptions}
-          onChange={(value) => setYear(Number(value))}
-        />
-      </View>
-
-      <View
-        className="flex-col"
-        style={{ gap: CELL_GAP }}
-        onLayout={(event: LayoutChangeEvent) => setGridWidth(event.nativeEvent.layout.width)}
-      >
-        <View className="flex-row" style={{ gap: CELL_GAP }}>
-          {weekdayLabels.map((label, index) => (
-            <View key={index} className="items-center" style={{ width: cellSize }}>
-              <Text className="text-muted font-sans text-[10px]">{label}</Text>
-            </View>
-          ))}
+        <View className="flex-row gap-3">
+          <Select<string>
+            className="flex-1"
+            value={`${month}`}
+            options={monthOptions}
+            onChange={(value) => setMonth(Number(value))}
+          />
+          <Select<string>
+            className="w-28"
+            value={`${year}`}
+            options={yearOptions}
+            onChange={(value) => setYear(Number(value))}
+          />
         </View>
-        {cellSize > 0 &&
-          Array.from({ length: cells.length / 7 }, (_, row) => (
-            <View key={row} className="flex-row" style={{ gap: CELL_GAP }}>
-              {cells.slice(row * 7, row * 7 + 7).map((date, column) =>
-                date === null ? (
-                  <View key={column} style={{ width: cellSize, height: cellSize }} />
-                ) : (
-                  <Pressable
-                    key={column}
-                    accessibilityRole="button"
-                    accessibilityLabel={date}
-                    accessibilityState={{ selected: selected === date }}
-                    onPress={() => setSelected(date)}
-                    style={{
-                      width: cellSize,
-                      height: cellSize,
-                      borderRadius: 4,
-                      backgroundColor: cellColor(date),
-                      borderWidth: selected === date ? 2 : date === today ? 1 : 0,
-                      borderColor: selected === date ? tokens.accent : tokens.muted
-                    }}
-                  />
-                )
-              )}
-            </View>
-          ))}
+
+        <View
+          className="flex-col"
+          style={{ gap: CELL_GAP }}
+          onLayout={(event: LayoutChangeEvent) => setGridWidth(event.nativeEvent.layout.width)}
+        >
+          <View className="flex-row" style={{ gap: CELL_GAP }}>
+            {weekdayLabels.map((label, index) => (
+              <View key={index} className="items-center" style={{ width: cellSize }}>
+                <Text className="text-muted font-sans text-[10px]">{label}</Text>
+              </View>
+            ))}
+          </View>
+          {cellSize > 0 &&
+            Array.from({ length: cells.length / 7 }, (_, row) => (
+              <View key={row} className="flex-row" style={{ gap: CELL_GAP }}>
+                {cells.slice(row * 7, row * 7 + 7).map((date, column) =>
+                  date === null ? (
+                    <View key={column} style={{ width: cellSize, height: cellSize }} />
+                  ) : (
+                    <Pressable
+                      key={column}
+                      accessibilityRole="button"
+                      accessibilityLabel={date}
+                      accessibilityState={{ selected: selected === date }}
+                      onPress={() => setSelected(date)}
+                      style={{
+                        width: cellSize,
+                        height: cellSize,
+                        borderRadius: 4,
+                        backgroundColor: cellColor(date),
+                        borderWidth: selected === date ? 2 : date === today ? 1 : 0,
+                        borderColor: selected === date ? tokens.accent : tokens.muted
+                      }}
+                    />
+                  )
+                )}
+              </View>
+            ))}
+        </View>
       </View>
 
       <DayCard days={days} date={selected} now={now} locale={locale} />

@@ -195,7 +195,6 @@ export default function KnowledgeScreen(): React.JSX.Element {
           <Chip>{nextRunLabel}</Chip>
           <RunNowButton
             label={t('settings.knowledge.reflection.runNow')}
-            busy={running === 'reflection'}
             disabled={readOnly || running !== null}
             onPress={() => void runNow('reflection')}
           />
@@ -247,7 +246,6 @@ export default function KnowledgeScreen(): React.JSX.Element {
         </Text>
         <RunNowButton
           label={t('settings.knowledge.reflection.runNow')}
-          busy={running === 'deepClean'}
           disabled={readOnly || running !== null}
           onPress={() => void runNow('deepClean')}
         />
@@ -312,21 +310,24 @@ function ScoringRow({
   )
 }
 
+/**
+ * The label never swaps while a run is in flight — `disabled` covers the busy
+ * window (callers pass `running !== null`), and the dim is the whole signal,
+ * so the button never changes size mid-run.
+ */
 function RunNowButton({
   label,
-  busy,
   disabled,
   onPress
 }: {
   label: string
-  busy: boolean
   disabled: boolean
   onPress: () => void
 }): React.JSX.Element {
   return (
     <Button variant="outline" size="sm" disabled={disabled} onPress={onPress}>
       <PlayIcon size={12} className="text-fg" />
-      {busy ? '…' : label}
+      {label}
     </Button>
   )
 }

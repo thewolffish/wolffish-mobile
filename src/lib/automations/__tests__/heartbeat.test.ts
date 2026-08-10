@@ -13,6 +13,7 @@ import {
   attachJobs,
   chipSchedule,
   deleteBlock,
+  escapePromptBody,
   findBlock,
   nextCronMs,
   orderAutomations,
@@ -150,6 +151,111 @@ describe('stripLeadingSettings', () => {
   it('leaves a marker-looking line that is not leading', () => {
     // Past the first real content the engine treats these as prose, so must we.
     expect(stripLeadingSettings('Do it.\nicon: 🫀')).toBe('Do it.\nicon: 🫀')
+  })
+})
+
+describe('escapePromptBody', () => {
+  it('respells the lines the block grammar would eat, and only those', () => {
+    const pasted = [
+      '# Title',
+      '## Prompt',
+      '##No space is not a heading',
+      'Plain line.',
+      '---',
+      '### Deeper headings are already safe'
+    ].join('\n')
+    expect(escapePromptBody(pasted)).toBe(
+      [
+        '# Title',
+        ' ## Prompt',
+        '##No space is not a heading',
+        'Plain line.',
+        ' ---',
+        '### Deeper headings are already safe'
+      ].join('\n')
+    )
+  })
+
+  it('defuses comment tokens anywhere — the engine strips them position-blind', () => {
+    expect(escapePromptBody('keep <!-- this --> visible')).toBe('keep < !-- this -- > visible')
+    expect(escapePromptBody('<!--\nalone\n-->')).toBe('< !--\nalone\n-- >')
+  })
+
+  it('is idempotent, so re-saving a parsed body never grows', () => {
+    const once = escapePromptBody('## Prompt\n---\n<!-- x -->')
+    expect(escapePromptBody(once)).toBe(once)
+  })
+})
+
+describe('writeDraft with a prompt full of markdown structure', () => {
+  /** The shape that bit for real: a pasted doc with its own `## ` sections. */
+  const PASTED = [
+    '# Automation — Daily Quiz',
+    '',
+    '**Schedule:** every day at 07:00',
+    '',
+    '## Prompt',
+    '',
+    'You are running unattended. Build the quiz and send it.',
+    '',
+    '---',
+    '',
+    '## When he replies',
+    '',
+    'Grade cold. <!-- no praise -->'
+  ].join('\n')
+
+  it('round-trips the whole prompt — nothing truncates at its `## ` sections', () => {
+    const { markdown } = writeDraft(FILE, null, {
+      schedule: 'Daily (07:00)',
+      prompt: PASTED,
+      icon: '🩺',
+      projectId: ''
+    })
+    const blocks = parseAutomations(markdown)
+    const added = blocks.find((b) => b.label === 'Daily (07:00)')
+    // Every section survives, in the escaped spelling; the sibling automations
+    // and the examples comment are untouched.
+    expect(added?.body).toBe(escapePromptBody(PASTED))
+    expect(added?.body).toContain('## When he replies')
+    expect(added?.body).toContain('Grade cold.')
+    expect(blocks).toHaveLength(4)
+    expect(markdown).toContain('<!--\n## Nightly (23:00)')
+  })
+
+  it('keeps the block replaceable across saves — no orphaned tail accumulates', () => {
+    let markdown = FILE
+    let bound: { label: string; active: boolean } | null = null
+    for (let i = 0; i < 3; i++) {
+      const result = writeDraft(markdown, bound, {
+        schedule: 'Daily (07:00)',
+        prompt: PASTED,
+        icon: '🩺',
+        projectId: ''
+      })
+      markdown = result.markdown
+      bound = result.bound
+    }
+    expect(markdown.match(/## When he replies/g)).toHaveLength(1)
+    expect(parseAutomations(markdown)).toHaveLength(4)
+  })
+
+  it('survives being switched off and back on with its body intact', () => {
+    const { markdown } = writeDraft(FILE, null, {
+      schedule: 'Daily (07:00)',
+      prompt: PASTED,
+      icon: '🩺',
+      projectId: ''
+    })
+    const off = toggleBlock(
+      markdown,
+      findBlock(markdown, { label: 'Daily (07:00)', active: true })!
+    )
+    const offBlock = parseAutomations(off).find((b) => b.label === 'Daily (07:00)')
+    expect(offBlock).toMatchObject({ active: false, body: escapePromptBody(PASTED) })
+    const on = toggleBlock(off, offBlock!)
+    const onBlock = parseAutomations(on).find((b) => b.label === 'Daily (07:00)')
+    expect(onBlock).toMatchObject({ active: true, body: escapePromptBody(PASTED) })
   })
 })
 

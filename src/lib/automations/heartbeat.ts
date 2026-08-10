@@ -466,6 +466,38 @@ export type AutomationDraft = {
 }
 
 /**
+ * Spell a prompt so the file format cannot eat any of it.
+ *
+ * Three kinds of line carry structural meaning no block body can hold: a
+ * `## ` line ENDS the block in every parser of this file (the engine's
+ * collectBody, the desktop page, this port) — pasting a prompt with its own
+ * `## Prompt` section silently truncated everything after it; a dashed
+ * separator line is dropped wholesale; and HTML comment tokens are the on/off
+ * wrapper — a stray `<!--` swallows every automation below it from the
+ * scheduler's view, and a stray `-->` would cut the wrapper short the day the
+ * automation is switched off. Rather than losing user text to any of these,
+ * respell each in the closest form every parser already reads as plain body
+ * content: one leading space for the line-anchored rules (all of them are
+ * anchored at column 0), one inner space for the comment tokens (the engine's
+ * comment strip is position-independent, so a prefix cannot defuse those).
+ *
+ * Ported to the desktop page (wolffish-app src/renderer/src/lib/
+ * heartbeat-escape.ts), so both draft editors write the same safe spelling.
+ * Only WRITTEN bytes change — parsing stays identical on all sides.
+ * Idempotent, so re-saving a parsed body never grows.
+ */
+export function escapePromptBody(text: string): string {
+  return text
+    .split('<!--')
+    .join('< !--')
+    .split('-->')
+    .join('-- >')
+    .split('\n')
+    .map((line) => (/^##\s/.test(line) || /^---+\s*$/.test(line) ? ` ${line}` : line))
+    .join('\n')
+}
+
+/**
  * The marker lines a written block carries, in the engine's read order.
  *
  * `mode`, `files` and `dirs` come from the block being replaced rather than the
@@ -505,7 +537,7 @@ export function writeDraft(
   bound: BoundBlock | null,
   draft: AutomationDraft
 ): { markdown: string; bound: BoundBlock } {
-  const promptLines = stripLeadingSettings(draft.prompt).split('\n')
+  const promptLines = escapePromptBody(stripLeadingSettings(draft.prompt)).split('\n')
   const target = bound ? findBlock(markdown, bound) : null
 
   if (target) {

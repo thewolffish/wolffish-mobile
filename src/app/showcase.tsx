@@ -7,11 +7,10 @@ import { GlobalIcon } from '@/components/core/icons'
 import { Input } from '@/components/core/Input'
 import { Select, type SelectOption } from '@/components/core/Select'
 import { Textarea } from '@/components/core/Textarea'
-import { useTokens } from '@/providers/theme/useTheme'
 import { useToast } from '@/providers/toast/useToast'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
+import { ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 function Section({ title, children }: { title: string; children: ReactNode }): React.JSX.Element {
@@ -39,7 +38,6 @@ const MODEL_OPTIONS: readonly SelectOption<Model>[] = [
 export default function Showcase(): React.JSX.Element {
   const { t } = useTranslation()
   const toast = useToast()
-  const tokens = useTokens()
   const insets = useSafeAreaInsets()
 
   const [name, setName] = useState('')
@@ -129,8 +127,10 @@ export default function Showcase(): React.JSX.Element {
             <GlobalIcon size={16} className="text-fg" />
             {t('showcase.buttons.withIcon')}
           </Button>
+          {/* Loading looks exactly like disabled on purpose: a busy button
+              keeps its label and dims — no spinner joins it, so it never
+              changes size mid-action. */}
           <Button disabled onPress={() => {}}>
-            <ActivityIndicator size="small" color={tokens.primaryFg} />
             {t('showcase.buttons.loadingState')}
           </Button>
         </View>

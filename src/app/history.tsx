@@ -8,6 +8,7 @@ import { HistorySkeleton } from '@/components/history/HistorySkeleton'
 import { groupConversations } from '@/lib/conversations/grouping'
 import { removeConversation, useConversationList } from '@/lib/conversations/hooks'
 import type { ConversationMeta } from '@/lib/conversations/types'
+import { useProjects } from '@/lib/sync/projects'
 import { goBack } from '@/lib/utils/back'
 import { cn } from '@/lib/utils/cn'
 import { useDesktopReachable } from '@/lib/tunnel/useTunnelStatus'
@@ -32,6 +33,7 @@ function RowSeparator(): React.JSX.Element {
 
 const Row = memo(function Row({
   meta,
+  icon,
   position,
   time,
   untitledLabel,
@@ -41,6 +43,14 @@ const Row = memo(function Row({
   onDelete
 }: {
   meta: ConversationMeta
+  /**
+   * The badge emoji, resolved by the SCREEN: the conversation's project icon
+   * (live, so a rename on the desktop propagates) or its stamped one — the
+   * precedence buildConversationRows and the desktop's History both apply.
+   * Resolved outside the row because it needs the project list, and this row
+   * only re-renders when its props change.
+   */
+  icon?: string
   /** Rank in the WHOLE list, not in its group — see ConversationGroup. */
   position: number
   time: string
@@ -71,7 +81,7 @@ const Row = memo(function Row({
       </View>
       <View className="flex-1 flex-col gap-0.5">
         <View className="flex-row items-center gap-1.5">
-          <ChannelBadge icon={meta.icon} channel={meta.channel} />
+          <ChannelBadge icon={icon} channel={meta.channel} />
           <Text
             numberOfLines={1}
             className="text-fg font-sans-medium flex-shrink text-left text-sm"
@@ -118,6 +128,7 @@ export default function HistoryScreen(): React.JSX.Element {
   const { t, i18n } = useTranslation()
   const insets = useSafeAreaInsets()
   const { data, isLoading } = useConversationList()
+  const { data: projects } = useProjects()
   const [doomed, setDoomed] = useState<ConversationMeta | null>(null)
   const [deleting, setDeleting] = useState(false)
   // The conversation whose bundle is being collected, if any.
@@ -128,6 +139,13 @@ export default function HistoryScreen(): React.JSX.Element {
   const canDiagnose = useDesktopReachable()
 
   const rows = useMemo(() => data ?? [], [data])
+  // A conversation that ran inside a project reads as its PROJECT, not as the
+  // channel it was started from — the same live resolution the conversations
+  // sheet gets through buildConversationRows and the desktop's History applies.
+  const projectIcons = useMemo(
+    () => new Map((projects ?? []).map((project) => [project.id, project.icon])),
+    [projects]
+  )
   // Sliced into the same recency buckets the desktop's History page and rail
   // use. Recomputed with the rows, which refetch on every conversation change,
   // so the day boundary is never more stale than the list itself.
@@ -179,6 +197,7 @@ export default function HistoryScreen(): React.JSX.Element {
           renderItem={({ item, index, section }) => (
             <Row
               meta={item}
+              icon={(item.projectId ? projectIcons.get(item.projectId) : undefined) ?? item.icon}
               // The chip keeps counting across the headers (…7, 8 · "Yesterday"
               // · 9, 10…) instead of restarting per group.
               position={section.startIndex + index}

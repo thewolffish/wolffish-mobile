@@ -26,7 +26,7 @@ import * as Device from 'expo-device'
 import { router } from 'expo-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ActivityIndicator, Pressable, Text, View } from 'react-native'
+import { Pressable, Text, View } from 'react-native'
 
 /**
  * Data — the desktop DataPanel's numbers first (they travel in the config
@@ -399,7 +399,8 @@ function FactoryResetModal({
               (!matches || resetting) && 'opacity-50'
             )}
           >
-            {resetting && <ActivityIndicator size="small" color="#ffffff" />}
+            {/* Nothing joins the label mid-reset — the opacity dim above is
+                the busy signal, so the text never shifts inside the button. */}
             <Text className="font-sans-medium text-sm text-white">
               {t('settings.data.factoryReset.confirm')}
             </Text>

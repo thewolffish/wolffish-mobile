@@ -139,7 +139,6 @@ const KEYS = [
   'heartbeat.deleteWarning',
   'heartbeat.deleteConfirm',
   'heartbeat.deleteCancel',
-  'heartbeat.deleting',
   'heartbeat.deleteSuccess',
   'heartbeat.editor.createTitle',
   'heartbeat.editor.editTitle',
