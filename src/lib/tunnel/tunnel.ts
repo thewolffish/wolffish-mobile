@@ -154,7 +154,7 @@ export class Tunnel {
   /** When anything last arrived on this socket — the watchdog's evidence. */
   private lastInboundAt = 0
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
-  private pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void }>()
+  private pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>()
   private rpcHandlers = new Map<string, RpcHandler>()
   private eventHandlers = new Map<string, EventHandler>()
   private controlHandlers = new Map<string, ControlHandler>()
