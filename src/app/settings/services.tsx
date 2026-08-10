@@ -528,6 +528,7 @@ export default function ServicesScreen(): React.JSX.Element {
         <ConfigTextRow
           field="browserScreenshotQuality"
           label={t('settings.services.browserExtension.quality')}
+          placeholder="80"
           keyboardType="number-pad"
         />
         {/* Not the generic desktop-only note — the settings above ARE editable

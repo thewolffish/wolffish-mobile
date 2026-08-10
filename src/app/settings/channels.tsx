@@ -69,6 +69,7 @@ export default function ChannelsScreen(): React.JSX.Element {
         <ConfigTextRow
           field="telegramAllowedUserIds"
           label={t('settings.channels.allowedUserIds')}
+          placeholder={t('settings.channels.allowedUserIdsPlaceholder')}
           requires="telegramEnabled"
           commitOnEndEditing
         />
@@ -107,6 +108,7 @@ export default function ChannelsScreen(): React.JSX.Element {
         <ConfigTextRow
           field="whatsappAllowedNumbers"
           label={t('settings.channels.allowedNumbers')}
+          placeholder={t('settings.channels.allowedNumbersPlaceholder')}
           requires="whatsappEnabled"
           keyboardType="phone-pad"
           commitOnEndEditing

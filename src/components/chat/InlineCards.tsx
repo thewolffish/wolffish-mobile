@@ -1,3 +1,4 @@
+import { ProviderErrorCards } from '@/components/chat/ProviderErrorCard'
 import { ArrowDown01Icon, ArrowRight01Icon, ArrowLeft01Icon } from '@/components/core/icons'
 import type { RenderBlock } from '@/lib/conversations/segments'
 import type { WorkflowSnapshot } from '@/lib/conversations/types'
@@ -36,15 +37,22 @@ export const TurnEndCard = memo(function TurnEndCard({
   const { t } = useTranslation()
   const [showReasoning, setShowReasoning] = useState(false)
   const reasoning = block.reasoningContent?.trim()
+  const failed = block.stopReason === 'error' || block.stopReason === 'no_provider_available'
+  // Provider failures render as the desktop's error cards wherever they
+  // appear — even on a turn that retried through them and finished, which
+  // keeps the failure on record mid-transcript. The retry never rides here:
+  // a failed LAST turn never reaches this card, AssistantMessageView renders
+  // it whole.
+  const failures = block.providerErrors?.length ? block.providerErrors : null
 
   const label =
     block.stopReason === 'max_tokens'
       ? t('chat.turnFooter.maxTokens')
-      : block.stopReason === 'error' || block.stopReason === 'no_provider_available'
+      : failed && !failures
         ? t('chat.turnFooter.error')
         : null
 
-  if (!label && !reasoning) return null
+  if (!label && !reasoning && !failures) return null
   const Chevron = showReasoning
     ? ArrowDown01Icon
     : I18nManager.isRTL
@@ -53,9 +61,20 @@ export const TurnEndCard = memo(function TurnEndCard({
 
   return (
     <View className="flex-col gap-1.5">
+      {failures && <ProviderErrorCards failures={failures} />}
       {label && (
-        <View className="self-start rounded-full bg-amber-500/15 px-2.5 py-1">
-          <Text className="font-sans-medium text-left text-[10px] text-amber-600 dark:text-amber-400">
+        <View
+          className={cn(
+            'self-start rounded-full px-2.5 py-1',
+            failed ? 'bg-red-500/10' : 'bg-amber-500/15'
+          )}
+        >
+          <Text
+            className={cn(
+              'font-sans-medium text-left text-[10px]',
+              failed ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'
+            )}
+          >
             {label}
           </Text>
         </View>

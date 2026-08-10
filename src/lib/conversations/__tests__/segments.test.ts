@@ -1,11 +1,16 @@
 import {
   buildRenderBlocks,
   coalesceTextSegments,
+  failedTurnEnd,
   messageFilePaths,
   messageText,
   toWorkspaceRelative
 } from '@/lib/conversations/segments'
-import type { ConversationMessage, Segment } from '@/lib/conversations/types'
+import type {
+  ConversationMessage,
+  NoProviderAvailableInfo,
+  Segment
+} from '@/lib/conversations/types'
 
 function textSeg(delta: string, id: string, worker?: { id: string }): Segment {
   return { kind: 'text', turnId: 't1', segmentId: id, delta, ...(worker ? { worker } : {}) }
@@ -278,6 +283,57 @@ describe('buildRenderBlocks', () => {
     expect(reasoned[0]).toMatchObject({ type: 'turnEnd', reasoningContent: 'because' })
   })
 
+  it('emits turnEnd for a recovered turn — a clean stop still carrying providerErrors', () => {
+    const blocks = buildRenderBlocks(
+      message([
+        {
+          kind: 'turn_end',
+          turnId: 't1',
+          segmentId: 's1',
+          stopReason: 'end_turn',
+          iterationCount: 21,
+          providerErrors: [
+            {
+              provider: 'deepseek',
+              providerLogo: 'deepseek',
+              statusCode: null,
+              errorReason: 'offline',
+              errorDetail: null,
+              retriesAttempted: 1,
+              totalDurationMs: 35294
+            }
+          ]
+        }
+      ])
+    )
+    expect(blocks[0]).toMatchObject({ type: 'turnEnd', stopReason: 'end_turn' })
+  })
+
+  it('carries providerErrors through the turnEnd block', () => {
+    const failure: NoProviderAvailableInfo = {
+      provider: 'anthropic',
+      providerLogo: 'anthropic',
+      statusCode: 529,
+      errorReason: 'overloaded',
+      errorDetail: 'Overloaded',
+      retriesAttempted: 3,
+      totalDurationMs: 45000
+    }
+    const blocks = buildRenderBlocks(
+      message([
+        {
+          kind: 'turn_end',
+          turnId: 't1',
+          segmentId: 's1',
+          stopReason: 'error',
+          iterationCount: 1,
+          providerErrors: [failure]
+        }
+      ])
+    )
+    expect(blocks[0]).toMatchObject({ type: 'turnEnd', providerErrors: [failure] })
+  })
+
   it('replaces workflow snapshots by workflowId instead of appending', () => {
     const snapshot = (status: 'running' | 'completed') => ({
       workflowId: 'wf1',
@@ -431,5 +487,52 @@ describe('task segments', () => {
       message([taskSeg('a1', 'running', 's1'), taskSeg('b2', 'queued', 's2')])
     )
     expect(blocks.filter((b) => b.type === 'task')).toHaveLength(2)
+  })
+})
+
+describe('failedTurnEnd', () => {
+  const end = (
+    stopReason: 'end_turn' | 'error' | 'no_provider_available',
+    id: string,
+    providerErrors?: NoProviderAvailableInfo[]
+  ): Segment => ({
+    kind: 'turn_end',
+    turnId: 't1',
+    segmentId: id,
+    stopReason,
+    iterationCount: 1,
+    ...(providerErrors ? { providerErrors } : {})
+  })
+
+  it('finds the failed turn_end with its providerErrors', () => {
+    const failure: NoProviderAvailableInfo = {
+      provider: 'openai',
+      providerLogo: 'openai',
+      statusCode: 401,
+      errorReason: 'authentication failed',
+      errorDetail: null,
+      retriesAttempted: 0,
+      totalDurationMs: 900
+    }
+    const found = failedTurnEnd(message([textSeg('partial', 's1'), end('error', 's2', [failure])]))
+    expect(found).toMatchObject({ stopReason: 'error', providerErrors: [failure] })
+    expect(failedTurnEnd(message([end('no_provider_available', 's1')]))).toMatchObject({
+      stopReason: 'no_provider_available'
+    })
+  })
+
+  it('lets a later clean turn absolve an earlier failure — the LAST turn_end decides', () => {
+    const recovered = message([
+      end('error', 's1'),
+      { kind: 'separator', turnId: 't2', segmentId: 's2' },
+      end('end_turn', 's3')
+    ])
+    expect(failedTurnEnd(recovered)).toBeNull()
+  })
+
+  it('is null for clean or segment-less messages', () => {
+    expect(failedTurnEnd(message([end('end_turn', 's1')]))).toBeNull()
+    expect(failedTurnEnd(message([textSeg('hi', 's1')]))).toBeNull()
+    expect(failedTurnEnd({ role: 'assistant', content: '', timestamp: 1 })).toBeNull()
   })
 })

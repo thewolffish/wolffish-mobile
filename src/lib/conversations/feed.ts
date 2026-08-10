@@ -15,10 +15,13 @@ import type { ConversationMessage } from '@/lib/conversations/types'
  *
  * So nothing is sequenced. Both halves are addressed by MESSAGE ID — the phone
  * mints the prompt's id and sends it with the turn, the desktop stamps its
- * assistant message once and mirrors it under that id — and a live row is
- * simply not emitted when the stored transcript already carries its id. The
- * overlay can therefore be dropped whenever, arrive whenever, and repeat: the
- * feed is the same either way.
+ * assistant message once and mirrors it under that id — and while the overlay
+ * is mounted, ITS copy of that message is the one emitted (the stored copy can
+ * be a mid-run progress snapshot, saved so an automation survives a quit, and
+ * is then strictly older than the mirror). The overlay can therefore be
+ * dropped whenever, arrive whenever, and repeat: the feed is the same either
+ * way, because it is only ever dropped once the stored transcript holds the
+ * final copy of the same message.
  *
  * The assistant row's key is fixed rather than derived from the message. A
  * turn's live row starts as a thinking indicator with no id at all and later
@@ -53,7 +56,18 @@ export type BuildFeedInput = {
 export function buildFeed({ messages, live, pendingUser, sending }: BuildFeedInput): FeedItem[] {
   const items: FeedItem[] = []
   const stored = new Set<string>()
+  // While the overlay is up, its copy of the turn's message is the one to draw.
+  // The stored transcript can hold the SAME id and still be behind it: an
+  // automation persists its answer-so-far while it runs (that is what lets a
+  // run survive a quit), so a body fetched mid-turn carries a snapshot that is
+  // stale the moment it lands. Rendering that copy froze the feed at whatever
+  // the fetch happened to catch, with the live mirror updating an invisible
+  // row. The stored copy takes over when settleTurn drops the overlay — which
+  // it only does once a post-turn fetch has the final message in hand, so the
+  // handover swaps identical content.
+  const liveId = live?.message.id
   for (const message of messages ?? []) {
+    if (liveId && message.id === liveId) continue
     const key = message.id ?? `${message.role}:${message.timestamp}`
     if (message.id) stored.add(message.id)
     items.push({ key, message, streaming: false })
@@ -67,9 +81,7 @@ export function buildFeed({ messages, live, pendingUser, sending }: BuildFeedInp
   }
 
   if (live) {
-    if (!(live.message.id && stored.has(live.message.id))) {
-      items.push({ key: LIVE_KEY, message: live.message, streaming: live.status === 'streaming' })
-    }
+    items.push({ key: LIVE_KEY, message: live.message, streaming: live.status === 'streaming' })
     return items
   }
 

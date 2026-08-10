@@ -735,6 +735,87 @@ describe('a turn started on the desktop', () => {
     ])
   })
 
+  it('keeps rendering the live mirror when a mid-run body fetch brings a progress snapshot', async () => {
+    // An automation persists its answer-so-far WHILE it runs (that is what
+    // lets a run survive a quit), under the same message id the mirror
+    // streams. Opening the conversation mid-run fetches that body — so the
+    // stored transcript now holds a STALE copy of the live message. The feed
+    // must keep drawing the mirror: rendering the stored copy froze the
+    // answer at whatever the fetch happened to catch, for the rest of the run.
+    const screen = { conversationId: CONVERSATION }
+    const frames: string[][] = []
+
+    // The run begins on the desktop: shell on disk, `started` pushed.
+    mockDesktop.messages = [PROMPT]
+    emit('turn.status', { conversationId: CONVERSATION, state: 'started' })
+
+    // Mirror ticks arrive; the desktop also persists a progress snapshot.
+    emit('message.appended', {
+      conversationId: CONVERSATION,
+      userMessage: PROMPT,
+      message: {
+        id: 'm_9_ccccc2',
+        role: 'assistant',
+        content: 'Building',
+        timestamp: 9,
+        segments: [textSegment('s1', 'Building')]
+      }
+    })
+    mockDesktop.messages.push({
+      id: 'm_9_ccccc2',
+      role: 'assistant',
+      content: 'Building',
+      timestamp: 9,
+      segments: [textSegment('s1', 'Building')]
+    })
+
+    // The user opens the conversation NOW: the body fetch returns the shell
+    // plus that snapshot. (The chat screen's query does this fetch; here its
+    // effect on the cache is applied directly.)
+    mockCached = mockDesktop.messages.map((m) => ({ ...m }))
+    frames.push(render(screen))
+
+    // The turn keeps writing. The next mirror must be what is on screen —
+    // not the stored snapshot, which still says 'Building'.
+    emit('message.appended', {
+      conversationId: CONVERSATION,
+      userMessage: PROMPT,
+      message: {
+        id: 'm_9_ccccc2',
+        role: 'assistant',
+        content: 'Building the PDF',
+        timestamp: 9,
+        segments: [textSegment('s1', 'Building the PDF')]
+      }
+    })
+    frames.push(render(screen))
+    expect(frames.at(-1)).toEqual(['user(make me a pdf)', 'assistant(text(Building the PDF))'])
+
+    // The run ends: final save first, then the terminal status; the settle
+    // fetch replaces the snapshot and releases the overlay.
+    mockDesktop.messages = [
+      PROMPT,
+      {
+        id: 'm_9_ccccc2',
+        role: 'assistant',
+        content: 'Building the PDF. Done.',
+        timestamp: 9,
+        segments: [textSegment('s1', 'Building the PDF. Done.')]
+      }
+    ]
+    emit('turn.status', { conversationId: CONVERSATION, state: 'done' })
+    await flush()
+    frames.push(render(screen))
+
+    expectSmooth(frames)
+    expectNoRowLost(frames)
+    expect(frames.at(-1)).toEqual([
+      'user(make me a pdf)',
+      'assistant(text(Building the PDF. Done.))'
+    ])
+    expect(useChatRuntime.getState().streams[CONVERSATION]).toBeUndefined()
+  })
+
   it('keeps the accumulated answer when the prompt lands mid-stream', () => {
     // beginTurn re-bases a turn that is not streaming. A prompt arriving on a
     // tick after text has accumulated must fold into the live entry, not reset

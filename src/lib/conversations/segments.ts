@@ -1,5 +1,6 @@
 import type {
   ConversationMessage,
+  NoProviderAvailableInfo,
   Segment,
   SegmentTurnEndReason,
   TaskSnapshot,
@@ -77,6 +78,7 @@ export type RenderBlock =
       key: string
       stopReason: SegmentTurnEndReason
       reasoningContent?: string
+      providerErrors?: NoProviderAvailableInfo[]
     }
 
 const WORKSPACE_PREFIX_RE = /^.*?\/\.wolffish\/workspace\//
@@ -333,15 +335,20 @@ export function buildRenderBlocks(message: ConversationMessage): RenderBlock[] {
         break
       case 'turn_end':
         flushText()
+        // providerErrors emit even on a clean stop: a turn that retried
+        // through a provider failure and recovered still shows the failure
+        // record mid-transcript, exactly as the desktop renders it.
         if (
           segment.stopReason !== 'end_turn' ||
+          segment.providerErrors?.length ||
           (segment.reasoningContent && segment.reasoningContent.trim())
         ) {
           blocks.push({
             type: 'turnEnd',
             key: `e:${segment.segmentId}`,
             stopReason: segment.stopReason,
-            reasoningContent: segment.reasoningContent
+            reasoningContent: segment.reasoningContent,
+            providerErrors: segment.providerErrors
           })
         }
         break
@@ -412,4 +419,23 @@ export function messageText(message: ConversationMessage): string {
     if (segment.kind === 'text' && !segment.worker) parts.push(segment.delta)
   }
   return parts.join('')
+}
+
+/**
+ * The turn_end that failed, when this message IS a failed turn — the phone's
+ * stand-in for the desktop's `message.status === 'error'`, which does not
+ * cross the wire as such. The LAST turn_end decides: a coalesced multi-turn
+ * message can hold an old failure a later turn recovered from.
+ */
+export function failedTurnEnd(
+  message: ConversationMessage
+): Extract<Segment, { kind: 'turn_end' }> | null {
+  const segments = message.segments ?? []
+  for (let i = segments.length - 1; i >= 0; i--) {
+    const segment = segments[i]
+    if (segment.kind !== 'turn_end') continue
+    const failed = segment.stopReason === 'error' || segment.stopReason === 'no_provider_available'
+    return failed ? segment : null
+  }
+  return null
 }

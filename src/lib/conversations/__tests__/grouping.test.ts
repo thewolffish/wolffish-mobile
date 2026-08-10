@@ -1,8 +1,15 @@
-import { groupByRecency, groupConversations } from '@/lib/conversations/grouping'
+import { groupByRecency } from '@/lib/conversations/grouping'
 import type { ConversationMeta } from '@/lib/conversations/types'
 
 function meta(id: string, updatedAt: number): ConversationMeta {
   return { id, title: id, updatedAt, createdAt: updatedAt, messageCount: 1 }
+}
+
+/** Index rows bucketed by their stored recency — the ladder driven through the
+ *  same shape both screens hand it (they group merged rows by `at`; the key
+ *  function is the only difference, which is the point of the genericity). */
+function groupMetas(metas: ConversationMeta[], now: number) {
+  return groupByRecency(metas, (m) => m.updatedAt, now)
 }
 
 /** 2026-07-27 14:30 local — a Monday, mid-afternoon so "today" has room. */
@@ -13,10 +20,10 @@ function at(y: number, m: number, d: number, h = 12): number {
 }
 
 function keysOf(metas: ConversationMeta[]): string[] {
-  return groupConversations(metas, NOW).map((g) => g.key)
+  return groupMetas(metas, NOW).map((g) => g.key)
 }
 
-describe('groupConversations', () => {
+describe('groupByRecency', () => {
   it('cuts at local midnight, not on a rolling 24 hours', () => {
     // 11:59pm last night is Yesterday even though it is under a day old; this
     // morning's 00:01 is Today even though it is nearly 14 hours old.
@@ -26,7 +33,7 @@ describe('groupConversations', () => {
   })
 
   it('walks the full ladder, newest first, dropping empty buckets', () => {
-    const groups = groupConversations(
+    const groups = groupMetas(
       [
         meta('today', NOW - 60_000),
         meta('yesterday', at(2026, 6, 26)),
@@ -60,7 +67,7 @@ describe('groupConversations', () => {
   })
 
   it('numbers rows continuously across group headers', () => {
-    const groups = groupConversations(
+    const groups = groupMetas(
       [
         meta('t1', NOW - 1000),
         meta('t2', NOW - 2000),
@@ -78,7 +85,7 @@ describe('groupConversations', () => {
 
   it('keeps every conversation and its incoming order', () => {
     const metas = [meta('a', NOW), meta('b', NOW - 1), meta('c', at(2026, 6, 26))]
-    const groups = groupConversations(metas, NOW)
+    const groups = groupMetas(metas, NOW)
     expect(groups.flatMap((g) => g.data.map((m) => m.id))).toEqual(['a', 'b', 'c'])
   })
 
@@ -86,12 +93,12 @@ describe('groupConversations', () => {
     // From Aug 31, three months back is May 31 and six is Feb 28 — a bare
     // setMonth would overflow to Mar 2/3 and mis-sort late-February rows.
     const aug31 = new Date(2026, 7, 31, 14, 0).getTime()
-    expect(groupConversations([meta('feb28', at(2026, 1, 28))], aug31)[0]?.key).toBe('last6m')
-    expect(groupConversations([meta('feb27', at(2026, 1, 27))], aug31)[0]?.key).toBe('lastYear')
+    expect(groupMetas([meta('feb28', at(2026, 1, 28))], aug31)[0]?.key).toBe('last6m')
+    expect(groupMetas([meta('feb27', at(2026, 1, 27))], aug31)[0]?.key).toBe('lastYear')
   })
 
   it('returns nothing for an empty list', () => {
-    expect(groupConversations([], NOW)).toEqual([])
+    expect(groupMetas([], NOW)).toEqual([])
   })
 
   /**

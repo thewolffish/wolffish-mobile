@@ -100,6 +100,7 @@
       "ollamaModelsFolder": "مجلد النماذج",
       "localNote": "أولاما يعمل على الحاسوب.",
       "installedModel": "النموذج المثبّت",
+      "installedModelPlaceholder": "اختر نموذجاً",
       "noModelsInstalled": "لا توجد نماذج مثبّتة على الحاسوب."
     },
     "channels": {
@@ -114,7 +115,9 @@
       "telegramDescription": "الجسر يعمل على حاسوبك.",
       "whatsappDescription": "الجسر يعمل على حاسوبك.",
       "allowedUserIds": "معرّفات المستخدمين المسموح بهم",
+      "allowedUserIdsPlaceholder": "123456789, 987654321",
       "allowedNumbers": "أرقام الهواتف المسموح بها",
+      "allowedNumbersPlaceholder": "+966xxxxxxxxx, +1xxxxxxxxxx",
       "autoRefresh": "تحديث تلقائي",
       "autoRefreshDescription": "استئناف المحادثات الراكدة.",
       "staleHours": "تعتبر راكدة بعد (ساعات)",
@@ -739,9 +742,6 @@
     "turnFooter": {
       "error": "خطأ في الاتصال",
       "maxTokens": "توقف عند حد الاستجابة"
-    },
-    "providerError": {
-      "retry": "إعادة المحاولة"
     },
     "menu": {
       "title": "أدوات المحادثة",
@@ -1514,6 +1514,25 @@
       "settings": "الإعدادات",
       "attachments": "المرفقات",
       "opinion": "رأي النموذج"
+    }
+  },
+  "errors": {
+    "provider": {
+      "noProviderTitle": "خطأ من مزوّد الـ API",
+      "noProviderDescription": "فشل مزوّد الـ API في إكمال الاستجابة — هذا ليس خطأ من وولفيش.",
+      "invalidKeyTitle": "مفتاح API غير صالح",
+      "invalidKey": "مفتاح API غير صالح أو منتهٍ — حدّثه من الإعدادات.",
+      "badRequestTitle": "تم رفض الطلب",
+      "badRequest": "رفض المزوّد الطلب — جرّب نموذجاً آخر أو تحقق من الإعدادات.",
+      "modelNotFound": "النموذج غير موجود — ربما أُعيد تسميته أو أُوقف.",
+      "rateLimited": "تم تقييد الطلبات — أعد المحاولة بعد قليل.",
+      "offline": "أنت غير متصل — تحقق من الاتصال.",
+      "timeoutTitle": "المزوّد لا يستجيب",
+      "timeout": "المزوّد لم يستجب في الوقت المحدد — قد يكون مثقلاً. أعد المحاولة أو غيّر المزوّد.",
+      "serverError": "المزوّد غير متاح مؤقتاً — أعد المحاولة.",
+      "viewDetails": "عرض التفاصيل",
+      "tryAgain": "أعد المحاولة",
+      "tryAgainMessage": "انقطع الردّ السابق بسبب خللٍ لدى مزوّد النموذج ({{reason}}). تابع من حيث توقفت — تحقّق ممّا اكتمل فعلاً (ملفات كُتبت، نتائج أدوات، خطط وُضعت) وأكمل دون إعادة ما أُنجز."
     }
   }
 }

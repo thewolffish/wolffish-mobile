@@ -1,5 +1,3 @@
-import type { ConversationMeta } from '@/lib/conversations/types'
-
 /**
  * Recency buckets for conversation lists — the desktop's
  * groupConversationRows (src/renderer/src/lib/conversation-rows.ts), ported so
@@ -11,12 +9,11 @@ import type { ConversationMeta } from '@/lib/conversations/types'
  * long list stays retrievable without ever growing a scroll of undifferentiated
  * rows.
  *
- * Generic over the row type, because the phone lists conversations from two
- * shapes and both must bucket identically: the History screen groups raw index
- * rows by `updatedAt`, and the conversations sheet groups merged rows by `at`
- * (which a running turn lifts). One ladder, one set of labels, one numbering
- * rule — a second copy is how two surfaces end up disagreeing about what
- * "Yesterday" means.
+ * Generic over the row type, because more than one shape flows through it and
+ * all must bucket identically: the History screen and the conversations sheet
+ * both group merged rows by `at` (which a running turn lifts into "Today").
+ * One ladder, one set of labels, one numbering rule — a second copy is how two
+ * surfaces end up disagreeing about what "Yesterday" means.
  */
 export type ConversationGroupKey =
   'today' | 'yesterday' | 'last7' | 'last30' | 'last3m' | 'last6m' | 'lastYear' | 'older'
@@ -39,8 +36,6 @@ export type RecencyGroup<T> = {
    */
   startIndex: number
 }
-
-export type ConversationGroup = RecencyGroup<ConversationMeta>
 
 /**
  * Slice recency-sorted rows into the date groups a list renders headers over.
@@ -114,12 +109,4 @@ export function groupByRecency<T>(
     startIndex += bucketRows.length
   }
   return groups
-}
-
-/** The History screen's form: index rows, bucketed by their stored recency. */
-export function groupConversations(
-  metas: readonly ConversationMeta[],
-  now: number = Date.now()
-): ConversationGroup[] {
-  return groupByRecency(metas, (meta) => meta.updatedAt, now)
 }

@@ -1,5 +1,10 @@
 import { Copy01Icon, Tick02Icon } from '@/components/core/icons'
-import { buildRenderBlocks, messageText, toWorkspaceRelative } from '@/lib/conversations/segments'
+import {
+  buildRenderBlocks,
+  failedTurnEnd,
+  messageText,
+  toWorkspaceRelative
+} from '@/lib/conversations/segments'
 import type { RenderBlock, ToolResultInfo } from '@/lib/conversations/segments'
 import { respondApproval, respondAsk } from '@/lib/sync/cards'
 import type {
@@ -28,6 +33,7 @@ import {
   TurnEndCard,
   WorkflowCard
 } from '@/components/chat/InlineCards'
+import { ProviderErrorCards, syntheticFailure } from '@/components/chat/ProviderErrorCard'
 import { FileBlock } from '@/components/chat/FileBlock'
 import { MarkdownView, markdownHasTable } from '@/components/chat/MarkdownView'
 import { NEEDS_SELECT_SHEET, openSelectMarkdown } from '@/components/chat/SelectTextSheet'
@@ -150,7 +156,9 @@ export const AssistantMessageView = memo(function AssistantMessageView({
   conversationId,
   verbose,
   streaming,
-  liveTurn
+  liveTurn,
+  liveError,
+  onTryAgain
 }: {
   message: ConversationMessage
   conversationId?: string
@@ -159,6 +167,13 @@ export const AssistantMessageView = memo(function AssistantMessageView({
   /** True for the in-flight turn's own row (feed.ts LIVE_KEY) — the only row
    *  that may host the conversation's live cards. */
   liveTurn?: boolean
+  /** The live row when the desktop reported its turn failed — the one failure
+   *  the message itself cannot show, because it can end a turn before any
+   *  segment reaches this phone. */
+  liveError?: boolean
+  /** Present only on the last message when it is a failed turn and no turn is
+   *  running — the desktop's own rule for the retry button. */
+  onTryAgain?: (reason: string) => void
 }): React.JSX.Element {
   const blocks = useMemo(() => buildRenderBlocks(message), [message])
   const fullText = useMemo(() => messageText(message), [message])
@@ -174,6 +189,23 @@ export const AssistantMessageView = memo(function AssistantMessageView({
     [message.approvals, live.approvals]
   )
   const asks = live.asks
+
+  // The desktop's rule for a failed turn: the error card IS the message. A
+  // structured failure renders its provider cards; a bare error string — or a
+  // live turn the desktop marked failed before any segment arrived — renders
+  // the generic one. Everything else about the row (partial text, tool cards,
+  // the copy footer) stays behind the card, exactly as on the desktop.
+  const failedEnd = failedTurnEnd(message)
+  if (failedEnd || message.error || liveError) {
+    const failures = failedEnd?.providerErrors?.length
+      ? failedEnd.providerErrors
+      : [syntheticFailure(message.error ?? 'unavailable')]
+    return (
+      <View className="flex-col items-start gap-1">
+        <ProviderErrorCards failures={failures} onTryAgain={onTryAgain} />
+      </View>
+    )
+  }
 
   const visible = blocks.filter((block) => {
     // An approval always renders — the user must be able to act on a pending

@@ -6,11 +6,12 @@ import {
   overlayTitle,
   PulsingIcon
 } from '@/components/overlays/OverlayChrome'
+import { PromptPreview } from '@/components/workspace/PromptSheet'
 import type { ActiveOverlay } from '@/lib/sync/overlays'
 import { cn } from '@/lib/utils/cn'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ScrollView, Text, View } from 'react-native'
+import { Text, View } from 'react-native'
 
 /**
  * One overlay, opened — the phone's answer to the desktop's expanded run
@@ -102,17 +103,15 @@ export function OverlayDetailSheet({
         {overlay.kind === 'reindex' ? (
           <ReindexDetail done={overlay.done} total={overlay.total} fill={tone.fill} />
         ) : (
-          <View className="bg-bg-soft border-border-soft max-h-56 w-full rounded-xl border">
-            <ScrollView contentContainerClassName="px-3 py-2.5">
-              <Text
-                className={cn(
-                  'text-left font-sans text-[13px] leading-relaxed',
-                  detail ? 'text-fg' : 'text-muted'
-                )}
-              >
-                {detail || t('overlays.noPrompt')}
-              </Text>
-            </ScrollView>
+          <View className="w-full">
+            {/* The desktop's expanded run overlay shows the prompt in its
+                scrolling <pre> block; PromptPreview is this app's copy of that
+                block, and the one treatment every prompt-in-a-dialog uses. The
+                height cap must sit ON the ScrollView (as PromptPreview puts
+                it): capping a wrapper instead leaves the scroller sized to its
+                content — RN children don't shrink to a parent's max-height —
+                so a long automation prompt clipped dead instead of scrolling. */}
+            <PromptPreview value={detail} empty={t('overlays.noPrompt')} maxHeight={196} />
           </View>
         )}
 

@@ -1,4 +1,22 @@
-## v1.0.29 — 2026-08-10 `Latest`
+## v1.0.30 — 2026-08-10 `Latest`
+
+### When a Provider Fails, You See What Happened
+
+A turn that died used to end in a bare amber pill — **"Connection error"** — and everything past that was guessing. A failed turn now renders the desktop's own **error card**: the provider's logo, a plain reading of what actually went wrong — **key invalid, rate-limited, model gone, provider overloaded, or you're offline** — and a **View details** fold holding the verbatim failure trace, ready to copy. A **Try again** button rides the last message, and it doesn't blindly re-send: it opens a fresh turn that tells the model what broke, so it **checks what already finished and continues** instead of redoing it. A turn that hit a provider failure, retried through it and recovered keeps the stumble **on record mid-transcript**, exactly where it happened. And the rating bar steps aside for the card — a turn that never finished isn't one to score.
+
+### History Knows What's Running
+
+The History screen used to be an archive: a conversation appeared only once its first turn was saved. It now merges in **the turns running right now** — start an automation, message in from a channel, and the conversation is **in History the moment its turn starts**, wearing the same **pulsing number chip** the conversations sheet gives it, lifted into **"Today"**, tinted by the outcome when it lands. And while a turn is in flight, the row's **delete sits disabled** — the desktop refuses a mid-run delete anyway, so the button no longer offers what could only fail.
+
+### Mid-Run, the Answer Keeps Moving
+
+An automation saves its answer-so-far while it runs — that is what lets a run survive the desktop quitting. But open that conversation mid-run and the saved snapshot could win the screen: the answer **froze at whatever the fetch happened to catch**, while the live text streamed on invisibly behind it. The live mirror now holds the screen **until the run's final copy is saved**, so what you watch is the turn as it is written — and the handover at the end swaps identical text.
+
+### Smaller Things
+
+The **schedule guide** in the automation editor opens again — on iOS a dialog cannot raise a sibling dialog, so the help button silently did nothing; the guide now stacks inside the editor itself. A long automation prompt in the **run overlay** scrolls instead of being clipped dead at the card's edge. The channels' **allow-list fields**, the local model picker and the screenshot quality row now carry **example placeholders**, and the Ollama **models folder** shows the folder the desktop actually scans when none is set — `~/.ollama/models` — instead of a dash.
+
+## v1.0.29 — 2026-08-10
 
 ### Pick a Project With One Tap
 

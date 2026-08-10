@@ -100,6 +100,7 @@
       "ollamaModelsFolder": "Models folder",
       "localNote": "Ollama runs on the desktop.",
       "installedModel": "Installed model",
+      "installedModelPlaceholder": "Select a model",
       "noModelsInstalled": "No models installed on the desktop."
     },
     "channels": {
@@ -114,7 +115,9 @@
       "telegramDescription": "Bridge runs on your desktop.",
       "whatsappDescription": "Bridge runs on your desktop.",
       "allowedUserIds": "Allowed user IDs",
+      "allowedUserIdsPlaceholder": "123456789, 987654321",
       "allowedNumbers": "Allowed phone numbers",
+      "allowedNumbersPlaceholder": "+966xxxxxxxxx, +1xxxxxxxxxx",
       "autoRefresh": "Auto refresh",
       "autoRefreshDescription": "Auto-resume stale chats.",
       "staleHours": "Stale after (hours)",
@@ -740,9 +743,6 @@
       "error": "Connection error",
       "maxTokens": "Stopped at the response limit"
     },
-    "providerError": {
-      "retry": "Try again"
-    },
     "menu": {
       "title": "Chat controls",
       "project": "Project",
@@ -1257,6 +1257,25 @@
       "settings": "Settings",
       "attachments": "Attachments",
       "opinion": "Model opinion"
+    }
+  },
+  "errors": {
+    "provider": {
+      "noProviderTitle": "API provider error",
+      "noProviderDescription": "The API provider failed to complete the response — this is not a wolffish issue.",
+      "invalidKeyTitle": "API key invalid",
+      "invalidKey": "API key invalid or expired — update in settings.",
+      "badRequestTitle": "Request rejected",
+      "badRequest": "The provider rejected the request — try a different model or check your configuration.",
+      "modelNotFound": "Model not found — may be renamed or retired.",
+      "rateLimited": "Rate-limited — try again shortly.",
+      "offline": "You're offline — check your connection.",
+      "timeoutTitle": "Provider not responding",
+      "timeout": "The provider didn't respond in time — it may be overloaded. Try again or switch providers.",
+      "serverError": "Provider temporarily unavailable — retry shortly.",
+      "viewDetails": "View details",
+      "tryAgain": "Try again",
+      "tryAgainMessage": "The previous response was cut off by a provider failure ({{reason}}). Pick up where you left off — check what already completed (files written, tool results, plans made) and continue without redoing finished work."
     }
   }
 }

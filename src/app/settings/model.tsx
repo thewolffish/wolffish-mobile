@@ -209,6 +209,7 @@ const LocalSection = memo(function LocalSection(): React.JSX.Element {
             label={t('settings.model.installedModel')}
             value={model}
             options={options}
+            placeholder={t('settings.model.installedModelPlaceholder')}
             onChange={(next) => setConfigValue('localModel', next)}
             searchable={options.length > 8}
           />
@@ -223,14 +224,16 @@ const LocalSection = memo(function LocalSection(): React.JSX.Element {
           </Text>
           {/* The desktop's path box: a bordered mono capsule on the page
               ground, forced LTR because a filesystem path is not a sentence —
-              under RTL its leading slash would jump to the wrong end. */}
+              under RTL its leading slash would jump to the wrong end. An
+              empty key falls back to the folder the desktop actually scans
+              when nothing is configured (defaultModelsFolder in ollama.ts). */}
           <View className="bg-bg border-border rounded-lg border px-3 py-2">
             <Text
               selectable
               className="text-muted text-left font-mono text-[11px] leading-4"
               style={{ writingDirection: 'ltr' }}
             >
-              {folder || '—'}
+              {folder || '~/.ollama/models'}
             </Text>
           </View>
         </View>

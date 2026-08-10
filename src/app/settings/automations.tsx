@@ -90,7 +90,6 @@ export default function AutomationsScreen(): React.JSX.Element {
   const [creating, setCreating] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<AutomationBlock | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [guideOpen, setGuideOpen] = useState(false)
   const [fileOpen, setFileOpen] = useState(false)
 
   useFocusEffect(
@@ -448,16 +447,12 @@ export default function AutomationsScreen(): React.JSX.Element {
           blocks={blocks}
           projects={projects}
           readOnly={!writable}
-          onOpenGuide={() => setGuideOpen(true)}
-          guideOpen={guideOpen}
           onClose={() => {
             setEditorFor(null)
             setCreating(false)
           }}
         />
       )}
-
-      <ScheduleGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
 
       {/* The whole file in the expanded editor. Saved as one write, exactly as
           the desktop's markdown view saves it. */}
@@ -556,25 +551,25 @@ function AutomationEditor({
   block,
   blocks,
   projects,
-  guideOpen,
   readOnly,
-  onOpenGuide,
   onClose
 }: {
   /** Null ⇒ creating. */
   block: AutomationBlock | null
   blocks: AutomationBlock[]
   projects: Array<{ id: string; title: string; icon: string }>
-  guideOpen: boolean
   /** No desktop to write to — every control is inert. */
   readOnly: boolean
-  onOpenGuide: () => void
   onClose: () => void
 }): React.JSX.Element {
   const { t } = useTranslation()
   const { locale } = useLocale()
   // Reported inline rather than as a toast — see DialogError.
   const [error, setError] = useState<string | null>(null)
+  // The guide stacks ON this dialog, so it must live INSIDE it: a native modal
+  // rendered as the screen's child cannot present while this one is up — iOS
+  // silently refuses, and the help button would do nothing.
+  const [guideOpen, setGuideOpen] = useState(false)
 
   const [schedule, setSchedule] = useState(block?.label ?? chipSchedule('daily'))
   const [prompt, setPrompt] = useState(block?.body ?? '')
@@ -894,7 +889,7 @@ function AutomationEditor({
           accessibilityRole="button"
           accessibilityLabel={t('heartbeat.editor.guideButton')}
           hitSlop={6}
-          onPress={onOpenGuide}
+          onPress={() => setGuideOpen(true)}
           className="h-7 w-7 items-center justify-center rounded-md active:bg-border/40"
         >
           <HelpCircleIcon size={15} className="text-muted" />
@@ -953,7 +948,7 @@ function AutomationEditor({
 
       {showError || preview === null ? (
         parsed === null ? (
-          <Pressable accessibilityRole="button" onPress={onOpenGuide}>
+          <Pressable accessibilityRole="button" onPress={() => setGuideOpen(true)}>
             <Text className="text-left font-sans text-xs text-rose-500">
               {`${t('heartbeat.editor.invalid')} ${t('heartbeat.editor.guideButton')}`}
             </Text>
@@ -1188,6 +1183,7 @@ function AutomationEditor({
         onPickMedia={() => addFiles('media')}
         onPickFiles={() => addFiles('files')}
       />
+      <ScheduleGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
     </Modal>
   )
 }

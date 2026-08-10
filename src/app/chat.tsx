@@ -8,6 +8,7 @@ import { FLOATING_AREA, FLOATING_GAP, FloatingChrome } from '@/components/chat/F
 import { TurnRating } from '@/components/chat/TurnRating'
 import type { QueuedPrompt } from '@/components/chat/QueuedPrompts'
 import { buildFeed, LIVE_KEY } from '@/lib/conversations/feed'
+import { failedTurnEnd } from '@/lib/conversations/segments'
 import { useConversation } from '@/lib/conversations/hooks'
 import { mintMessageId, type ConversationMessage } from '@/lib/conversations/types'
 import { deriveTitle, ensureDemoConversation, sendDemoPrompt, stopDemoTurn } from '@/lib/demo/agent'
@@ -262,11 +263,27 @@ export default function ChatScreen(): React.JSX.Element {
    * overlay for the beat before its saved copy takes over.
    */
   const lastItem = feed[feed.length - 1]
+  /**
+   * The desktop's Try Again gate, ported: is the feed's last row a failed
+   * assistant turn? Failure is read from the message itself — its turn_end or
+   * error string — or, for the live row, from the stream the desktop marked
+   * failed, which can end a turn before any segment reaches this phone.
+   * A failed turn offers the retry instead of the rating bar; the desktop's
+   * card replaces its bubble the same way.
+   */
+  const lastFailed =
+    !!lastItem &&
+    !lastItem.streaming &&
+    lastItem.message.role === 'assistant' &&
+    (!!lastItem.message.error ||
+      !!failedTurnEnd(lastItem.message) ||
+      (lastItem.key === LIVE_KEY && live?.status === 'error'))
   const completedId =
     scoringEnabled &&
     writable &&
     !streaming &&
     idle &&
+    !lastFailed &&
     conversationId !== null &&
     lastItem &&
     !lastItem.streaming &&
@@ -631,6 +648,24 @@ export default function ChatScreen(): React.JSX.Element {
   }, [])
 
   /**
+   * The desktop's retry, verbatim: not a re-send of the failed prompt but a
+   * fresh continuation turn told what broke, so the model checks what already
+   * completed instead of redoing it. Dropped, never queued, while anything is
+   * in flight — the button only renders idle, so this guard is the double-tap.
+   */
+  const handleTryAgain = useCallback(
+    (reason: string): void => {
+      if (streaming || sendingRef.current) return
+      performSubmit({
+        kind: 'text',
+        text: t('errors.provider.tryAgainMessage', { reason }),
+        files: []
+      })
+    },
+    [streaming, performSubmit, t]
+  )
+
+  /**
    * The flush: while nothing is running and something is waiting, the head of
    * the queue goes. One per idle moment, not the whole queue — each send makes
    * the screen busy again, and the next row leaves when THAT turn ends, so the
@@ -872,6 +907,14 @@ export default function ChatScreen(): React.JSX.Element {
                     // The in-flight turn's row is the one that hosts the
                     // conversation's live ask/approval cards.
                     liveTurn={item.key === LIVE_KEY}
+                    liveError={item.key === LIVE_KEY && live?.status === 'error'}
+                    // Present only on the last row when it is a failed turn
+                    // and no turn is running — the desktop's own predicate.
+                    onTryAgain={
+                      item === lastItem && lastFailed && !streaming && idle
+                        ? handleTryAgain
+                        : undefined
+                    }
                   />
                 )
               )}

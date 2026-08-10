@@ -93,6 +93,21 @@ export type TaskSnapshot = {
   }
 }
 
+/**
+ * One provider failure behind an errored turn — the desktop's
+ * NoProviderAvailableInfo, verbatim. Rides the turn_end segment over the wire
+ * and is what the provider error card renders from.
+ */
+export type NoProviderAvailableInfo = {
+  provider: string
+  providerLogo: string
+  statusCode: number | null
+  errorReason: string
+  errorDetail: string | null
+  retriesAttempted: number
+  totalDurationMs: number
+}
+
 export type Segment =
   | { kind: 'text'; turnId: string; segmentId: string; delta: string; worker?: SegmentWorker }
   | {
@@ -122,6 +137,7 @@ export type Segment =
       stopReason: SegmentTurnEndReason
       iterationCount: number
       reasoningContent?: string
+      providerErrors?: NoProviderAvailableInfo[]
     }
   | { kind: 'separator'; turnId: string; segmentId: string }
   | { kind: 'workflow'; turnId: string; segmentId: string; snapshot: WorkflowSnapshot }

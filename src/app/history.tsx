@@ -1,16 +1,19 @@
 import { ArrowLeft01Icon, ArrowRight01Icon, Bug01Icon, Delete01Icon } from '@/components/core/icons'
 import { ChannelBadge } from '@/components/conversations/ChannelBadge'
+import { chipText, chipTone, Pulse } from '@/components/conversations/ConversationChip'
 import { UnreadBadge } from '@/components/core/UnreadBadge'
 import { useBadges } from '@/state/badges'
 import { DiagnosticExportOverlay } from '@/components/conversations/DiagnosticExportOverlay'
 import { ConfirmDialog } from '@/components/core/ConfirmDialog'
 import { HistorySkeleton } from '@/components/history/HistorySkeleton'
-import { groupConversations } from '@/lib/conversations/grouping'
+import { groupByRecency } from '@/lib/conversations/grouping'
 import { removeConversation, useConversationList } from '@/lib/conversations/hooks'
-import type { ConversationMeta } from '@/lib/conversations/types'
+import { buildConversationRows, type ConversationRow } from '@/lib/conversations/rows'
 import { useProjects } from '@/lib/sync/projects'
 import { goBack } from '@/lib/utils/back'
 import { cn } from '@/lib/utils/cn'
+import { useChatRuntime } from '@/state/chatRuntime'
+import { useRunStatus } from '@/state/runStatus'
 import { useDesktopReachable } from '@/lib/tunnel/useTunnelStatus'
 import { formatRelativeTime } from '@/lib/utils/relativeTime'
 import { router } from 'expo-router'
@@ -21,10 +24,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 /**
  * Conversation history — the desktop History page as a single-column list:
- * date-grouped under the same recency headers, numbered recency chip,
- * channel/source badge, title, relative time, delete with the desktop's confirm
- * copy. Rows open the conversation in the chat screen; data comes straight from
- * the SQLite index so the list is instant.
+ * date-grouped under the same recency headers, numbered recency chip tinted by
+ * what the last turn did, channel/source badge, title, relative time, delete
+ * with the desktop's confirm copy. Rows open the conversation in the chat
+ * screen.
+ *
+ * The rows come from buildConversationRows — the index MERGED with the turns
+ * running right now — for the desktop History page's own reason: a
+ * conversation started anywhere (in-app, a channel, an automation, a
+ * procedure) shows up here the moment its first turn starts, with the same
+ * pulsing number chip the conversations sheet gives it, instead of only once
+ * the run is over.
  */
 
 function RowSeparator(): React.JSX.Element {
@@ -32,61 +42,61 @@ function RowSeparator(): React.JSX.Element {
 }
 
 const Row = memo(function Row({
-  meta,
-  icon,
+  row,
   position,
   time,
-  untitledLabel,
   deleteLabel,
   diagnosticsLabel,
   onDiagnostics,
   onDelete
 }: {
-  meta: ConversationMeta
-  /**
-   * The badge emoji, resolved by the SCREEN: the conversation's project icon
-   * (live, so a rename on the desktop propagates) or its stamped one — the
-   * precedence buildConversationRows and the desktop's History both apply.
-   * Resolved outside the row because it needs the project list, and this row
-   * only re-renders when its props change.
-   */
-  icon?: string
-  /** Rank in the WHOLE list, not in its group — see ConversationGroup. */
+  row: ConversationRow
+  /** Rank in the WHOLE list, not in its group — see RecencyGroup.startIndex. */
   position: number
   time: string
-  untitledLabel: string
   deleteLabel: string
   diagnosticsLabel: string
   /** Absent unless a desktop is reachable — see the screen below. */
-  onDiagnostics?: (meta: ConversationMeta) => void
-  onDelete: (meta: ConversationMeta) => void
+  onDiagnostics?: (row: ConversationRow) => void
+  onDelete: (row: ConversationRow) => void
 }): React.JSX.Element {
-  const title = meta.title === 'Untitled' ? untitledLabel : meta.title
   // Per-row subscription: a badge changing re-renders only the row it marks.
-  const unread = useBadges((state) => state.counts[meta.id]?.n ?? 0)
+  const unread = useBadges((state) => state.counts[row.id]?.n ?? 0)
+  // The desktop disables delete while the conversation's turn is in flight —
+  // main refuses the delete anyway, so an enabled button could only fail. An
+  // unindexed row is the same case by construction: it exists here only
+  // because a turn is running in it.
+  const processing = row.phase === 'processing'
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={title}
-      onPress={() => router.push({ pathname: '/chat', params: { id: meta.id } })}
+      accessibilityLabel={row.title}
+      onPress={() => router.push({ pathname: '/chat', params: { id: row.id } })}
       className="bg-surface border-border flex-row items-center gap-3 rounded-xl border px-4 py-3 active:bg-border/30"
     >
-      <View className="border-border h-6 w-6 items-center justify-center rounded-full border">
-        <Text
-          className="text-muted font-sans-semibold text-[8px]"
-          style={{ writingDirection: 'ltr' }}
+      <Pulse active={processing}>
+        <View
+          className={cn(
+            'h-6 w-6 items-center justify-center rounded-full border',
+            chipTone(row.phase, false)
+          )}
         >
-          {position}
-        </Text>
-      </View>
+          <Text
+            className={cn('font-sans-semibold text-[8px]', chipText(row.phase, false))}
+            style={{ writingDirection: 'ltr' }}
+          >
+            {position}
+          </Text>
+        </View>
+      </Pulse>
       <View className="flex-1 flex-col gap-0.5">
         <View className="flex-row items-center gap-1.5">
-          <ChannelBadge icon={icon} channel={meta.channel} />
+          <ChannelBadge icon={row.icon} channel={row.channel} />
           <Text
             numberOfLines={1}
             className="text-fg font-sans-medium flex-shrink text-left text-sm"
           >
-            {title}
+            {row.title}
           </Text>
         </View>
         <Text className="text-muted text-left font-sans text-xs">{time}</Text>
@@ -101,7 +111,7 @@ const Row = memo(function Row({
           accessibilityRole="button"
           accessibilityLabel={diagnosticsLabel}
           hitSlop={8}
-          onPress={() => onDiagnostics(meta)}
+          onPress={() => onDiagnostics(row)}
           className="h-8 w-8 items-center justify-center rounded-lg active:bg-amber-500/10"
         >
           {({ pressed }) => (
@@ -113,11 +123,18 @@ const Row = memo(function Row({
         accessibilityRole="button"
         accessibilityLabel={deleteLabel}
         hitSlop={8}
-        onPress={() => onDelete(meta)}
-        className="h-8 w-8 items-center justify-center rounded-lg active:bg-rose-500/10"
+        disabled={processing}
+        onPress={() => onDelete(row)}
+        className={cn(
+          'h-8 w-8 items-center justify-center rounded-lg',
+          processing ? 'opacity-40' : 'active:bg-rose-500/10'
+        )}
       >
         {({ pressed }) => (
-          <Delete01Icon size={16} className={pressed ? 'text-rose-500' : 'text-muted'} />
+          <Delete01Icon
+            size={16}
+            className={pressed && !processing ? 'text-rose-500' : 'text-muted'}
+          />
         )}
       </Pressable>
     </Pressable>
@@ -125,11 +142,13 @@ const Row = memo(function Row({
 })
 
 export default function HistoryScreen(): React.JSX.Element {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
-  const { data, isLoading } = useConversationList()
+  const { data: metas, isLoading } = useConversationList()
   const { data: projects } = useProjects()
-  const [doomed, setDoomed] = useState<ConversationMeta | null>(null)
+  const live = useChatRuntime((state) => state.streams)
+  const runs = useRunStatus((state) => state.runs)
+  const [doomed, setDoomed] = useState<ConversationRow | null>(null)
   const [deleting, setDeleting] = useState(false)
   // The conversation whose bundle is being collected, if any.
   const [diagnosing, setDiagnosing] = useState<string | null>(null)
@@ -138,18 +157,15 @@ export default function HistoryScreen(): React.JSX.Element {
   // every other write-through control on this app follows.
   const canDiagnose = useDesktopReachable()
 
-  const rows = useMemo(() => data ?? [], [data])
-  // A conversation that ran inside a project reads as its PROJECT, not as the
-  // channel it was started from — the same live resolution the conversations
-  // sheet gets through buildConversationRows and the desktop's History applies.
-  const projectIcons = useMemo(
-    () => new Map((projects ?? []).map((project) => [project.id, project.icon])),
-    [projects]
+  const untitled = t('chat.conversationsUntitled')
+  const rows = useMemo(
+    () => buildConversationRows({ metas: metas ?? [], live, runs, projects, untitled }),
+    [metas, live, runs, projects, untitled]
   )
-  // Sliced into the same recency buckets the desktop's History page and rail
-  // use. Recomputed with the rows, which refetch on every conversation change,
-  // so the day boundary is never more stale than the list itself.
-  const groups = useMemo(() => groupConversations(rows), [rows])
+  // Sliced into the same recency buckets the desktop's History page and the
+  // conversations sheet use, keyed on `at` — a running turn lifts its row into
+  // "Today" exactly as it lifts it to the top.
+  const groups = useMemo(() => groupByRecency(rows, (row) => row.at), [rows])
   const BackIcon = I18nManager.isRTL ? ArrowRight01Icon : ArrowLeft01Icon
 
   return (
@@ -196,16 +212,14 @@ export default function HistoryScreen(): React.JSX.Element {
           )}
           renderItem={({ item, index, section }) => (
             <Row
-              meta={item}
-              icon={(item.projectId ? projectIcons.get(item.projectId) : undefined) ?? item.icon}
+              row={item}
               // The chip keeps counting across the headers (…7, 8 · "Yesterday"
               // · 9, 10…) instead of restarting per group.
               position={section.startIndex + index}
-              time={formatRelativeTime(item.updatedAt, t)}
-              untitledLabel={t('chat.conversationsUntitled')}
+              time={formatRelativeTime(item.at, t)}
               deleteLabel={t('history.delete')}
               diagnosticsLabel={t('diagnostics.button')}
-              onDiagnostics={canDiagnose ? (meta) => setDiagnosing(meta.id) : undefined}
+              onDiagnostics={canDiagnose ? (row) => setDiagnosing(row.id) : undefined}
               onDelete={setDoomed}
             />
           )}
