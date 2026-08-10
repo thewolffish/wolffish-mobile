@@ -174,6 +174,30 @@ export const ConfigSwitchRow = memo(function ConfigSwitchRow({
 })
 
 /**
+ * The desktop's week-start choice: the same segmented pill the switches use,
+ * with the segments named for the days instead of Off | On. Bound to the one
+ * non-boolean toggle key (`weekStartsOn`, 0 Sunday | 1 Monday), written
+ * through the ordinary setConfigValue path, so a tap syncs exactly like any
+ * switch on the screen.
+ */
+export const ConfigWeekStartRow = memo(function ConfigWeekStartRow(
+  chrome: RowChrome
+): React.JSX.Element {
+  const { t } = useTranslation()
+  const value = useConfigValue('weekStartsOn')
+  return (
+    <RowShell {...chrome}>
+      <Toggle
+        value={value === 1}
+        onValueChange={(next) => setConfigValue('weekStartsOn', next ? 1 : 0)}
+        accessibilityLabel={chrome.label}
+        labels={{ off: t('settings.days.sunday'), on: t('settings.days.monday') }}
+      />
+    </RowShell>
+  )
+})
+
+/**
  * Text field bound to one string config key. Uncontrolled: renders once with
  * the stored value and commits on every keystroke without re-rendering.
  */

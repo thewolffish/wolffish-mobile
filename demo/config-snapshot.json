@@ -517,8 +517,10 @@
     "braveEnabled": true,
     "memesEnabled": true,
     "sttModel": "base",
+    "sttLanguage": "auto",
     "ttsVoice": "af_bella",
     "ttsSpeed": "1.0",
+    "ttsVoiceReplies": true,
     "screenshotMaxWidth": "1280",
     "screenshotFormat": "jpeg",
     "browserExtension": {

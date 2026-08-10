@@ -276,8 +276,12 @@ export type DemoConfigValues = {
   imgflipPassword: string
   giphyApiKey: string
   sttModel: string
+  /** Pinned transcription language — a Whisper code, or 'auto' for detection. */
+  sttLanguage: string
   ttsVoice: string
   ttsSpeed: string
+  /** Voice prompts get spoken replies (default on). A model directive — synced, never enforced. */
+  ttsVoiceReplies: boolean
   screenshotMaxWidth: string
   screenshotFormat: 'jpeg' | 'png'
   /** browserExtension.* — the pairing port and its own screenshot settings. */
@@ -442,8 +446,10 @@ const DEFAULTS: DemoConfigValues = {
   imgflipPassword: 'imgflp-wlf-2861-pass',
   giphyApiKey: 'gYq8HxTkP2nWvR5bZmA7c3DfLj9S',
   sttModel: 'large-v3-turbo',
+  sttLanguage: 'en',
   ttsVoice: 'af_heart',
   ttsSpeed: '1.0',
+  ttsVoiceReplies: true,
   screenshotMaxWidth: '1280',
   screenshotFormat: 'jpeg',
   browserExtensionPort: '23151',
@@ -589,8 +595,12 @@ export type ConfigSnapshot = {
       giphyApiKey?: string
     }
     sttModel: string
+    /** Absent on desktops from before the language pin shipped. */
+    sttLanguage?: string
     ttsVoice: string
     ttsSpeed: string
+    /** Absent on desktops from before voice replies shipped. */
+    ttsVoiceReplies?: boolean
     screenshotMaxWidth: string
     screenshotFormat: string
     /**
@@ -1269,8 +1279,10 @@ export const useDemoConfig = create<DemoConfigState>()(
             imgflipPassword: services.memes?.imgflipPassword ?? DEFAULTS.imgflipPassword,
             giphyApiKey: services.memes?.giphyApiKey ?? DEFAULTS.giphyApiKey,
             sttModel: services.sttModel,
+            sttLanguage: services.sttLanguage ?? DEFAULTS.sttLanguage,
             ttsVoice: services.ttsVoice,
             ttsSpeed: services.ttsSpeed,
+            ttsVoiceReplies: services.ttsVoiceReplies ?? DEFAULTS.ttsVoiceReplies,
             screenshotMaxWidth: services.screenshotMaxWidth,
             screenshotFormat: services.screenshotFormat === 'png' ? 'png' : 'jpeg',
             browserExtensionPort: `${services.browserExtension?.port ?? DEFAULTS.browserExtensionPort}`,
@@ -1423,6 +1435,7 @@ const DESKTOP_EDITABLE: ReadonlySet<keyof DemoConfigValues> = new Set<keyof Demo
   'bypassPermissions',
   'blockCredentials',
   'updatesEnabled',
+  'weekStartsOn',
   // This phone's own two channel settings. The desktop routes them through
   // the mobile channel's setters, not a bare config write — notifications
   // registers or withdraws the model's notify_phone tool — so a flip here is
@@ -1448,8 +1461,10 @@ const DESKTOP_EDITABLE: ReadonlySet<keyof DemoConfigValues> = new Set<keyof Demo
   'imgflipPassword',
   'giphyApiKey',
   'sttModel',
+  'sttLanguage',
   'ttsVoice',
   'ttsSpeed',
+  'ttsVoiceReplies',
   'screenshotMaxWidth',
   'screenshotFormat',
   'browserScreenshotMaxWidth',

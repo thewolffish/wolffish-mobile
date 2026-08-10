@@ -1,23 +1,24 @@
 import { useFreshConfig } from '@/lib/sync/useFreshConfig'
-import { ConfigStatusRow, ConfigSwitchRow } from '@/components/settings/ConfigRows'
-import { InfoRow, PanelScreen, Section } from '@/components/settings/SettingsUI'
-import { useConfigValue } from '@/state/demoConfig'
+import {
+  ConfigStatusRow,
+  ConfigSwitchRow,
+  ConfigWeekStartRow
+} from '@/components/settings/ConfigRows'
+import { PanelScreen, Section } from '@/components/settings/SettingsUI'
 import { useTranslation } from 'react-i18next'
 
 /**
- * Preferences — the desktop WolffishPanel, mirrored. The RAM guard and the
- * two agent safety switches are editable here: setConfigValue routes them
- * through the outbox to the desktop, which persists them exactly as its own
- * panel would and announces the change back. Launch at startup stays
- * display-only — it registers a login item with that machine's OS, an act
- * only the desktop can perform on itself — and week start is likewise the
- * desktop's own display choice, reported here.
+ * Preferences — the desktop WolffishPanel, mirrored. The RAM guard, the two
+ * agent safety switches and the week-start choice are editable here:
+ * setConfigValue routes them through the outbox to the desktop, which
+ * persists them exactly as its own panel would and announces the change
+ * back. Launch at startup stays display-only — it registers a login item
+ * with that machine's OS, an act only the desktop can perform on itself.
  */
 export default function PreferencesScreen(): React.JSX.Element {
   // Desktop-owned values: pull the current ones when this screen opens.
   useFreshConfig()
   const { t } = useTranslation()
-  const weekStartsOn = useConfigValue('weekStartsOn')
 
   return (
     <PanelScreen
@@ -35,9 +36,14 @@ export default function PreferencesScreen(): React.JSX.Element {
           label={t('settings.preferences.restrictPowerfulModels')}
           description={t('settings.preferences.restrictPowerfulModelsDescription')}
         />
-        <InfoRow
+        <ConfigSwitchRow
+          field="ttsVoiceReplies"
+          label={t('settings.preferences.voiceReplies')}
+          description={t('settings.preferences.voiceRepliesDescription')}
+        />
+        <ConfigWeekStartRow
           label={t('settings.preferences.weekStartsOn')}
-          value={weekStartsOn === 1 ? t('settings.days.monday') : t('settings.days.sunday')}
+          description={t('settings.preferences.weekStartsOnDescription')}
         />
       </Section>
       <Section title={t('settings.preferences.safetyTitle')}>

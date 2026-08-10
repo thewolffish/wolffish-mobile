@@ -1,4 +1,26 @@
-## v1.0.26 — 2026-08-09 `Latest`
+## v1.0.28 — 2026-08-10 `Latest`
+
+### Spoken Replies, Your Call
+
+Send a voice note and the reply comes back in kind — Wolffish ends it with a **spoken voice memo**. That behavior now answers to **one switch in Preferences**: off, and voice prompts get quiet text like everything else; on, and the voice returns. The switch **writes through to the paired desktop** like any setting here, so the phone and the machine never disagree about whether the reply is spoken or written.
+
+### Transcription in the Language You Speak
+
+Voice notes are transcribed by Whisper on the desktop, and Whisper now takes direction: a **Language** row under Services pins every transcription to the language you actually speak, picked from the **same hundred-language catalog** the desktop offers, with a search box to cut through it. **Auto-detect** stays for the polyglot days — but detection is a guess, and on a **short recording** it can guess wrong; a pinned language never does.
+
+### The Week Starts Where You Say
+
+Week start used to be a **readout** — the desktop's choice, reported. Now it's a **choice**: Sunday or Monday, on the same segmented toggle the switches use, written through like any of them. It sets where the **activity map** begins and what ranges like **“this week”** mean — Monday if you keep ISO company, Sunday if your calendar keeps its own.
+
+### Voice Notes Land at the Tap
+
+A recorded voice note used to hold the room: the chat sat still while the file **uploaded first**, and the bubble appeared only once the desktop had it. The bubble now **shows up the instant you tap send** — the way file attachments already did — with the upload riding behind it. Offline and in demo mode the note settles from the **phone's own stored copy**, so what you sent is what you see, immediately.
+
+### Smaller Things
+
+The Android app icon's backdrop is now the **same solid navy as the splash screen** — launching reads as one surface opening, not two designs trading places. And the row that severs this phone from its desktop is named for what it does: **Unpair** — it drops the keys and **wipes this phone** — because “disconnect” said less than it meant.
+
+## v1.0.26 — 2026-08-09
 
 ### Every Setting, Settable
 

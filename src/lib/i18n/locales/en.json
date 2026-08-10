@@ -163,6 +163,8 @@
         "mcp": "MCP Servers"
       },
       "sttModel": "Whisper model",
+      "sttLanguage": "Language",
+      "sttLanguageAuto": "Auto-detect",
       "ttsVoice": "Voice",
       "ttsSpeed": "Speed",
       "screenshotMaxWidth": "Screenshot width",
@@ -190,7 +192,7 @@
         "giphyKey": "Giphy API key"
       },
       "stt": {
-        "hint": "Bigger models transcribe better and run slower."
+        "hint": "Bigger models transcribe better and run slower. Every transcription is pinned to the chosen language — Auto-detect can misread short recordings."
       },
       "tts": {
         "hint": "Kokoro runs locally — voices are English only."
@@ -422,7 +424,10 @@
       "launchAtStartupDescription": "Open Wolffish when you log in.",
       "restrictPowerfulModels": "Restrict powerful local models",
       "restrictPowerfulModelsDescription": "Block local models bigger than your RAM.",
+      "voiceReplies": "Voice replies",
+      "voiceRepliesDescription": "When you send a voice prompt, Wolffish ends its reply with a spoken voice memo. This switch alone controls that behavior.",
       "weekStartsOn": "Week starts on",
+      "weekStartsOnDescription": "The first day of the week for the activity map and ranges like \"this week\". Monday is the ISO standard.",
       "safetyTitle": "Safety",
       "bypassPermissions": "Bypass permissions",
       "bypassPermissionsDescription": "Act without approval prompts.",
@@ -1227,7 +1232,7 @@
         "failed": "Model did not respond",
         "empty": "Model returned nothing"
       },
-      "forward": "Send it to the developer — used to fix this, then deleted.",
+      "forward": "Send it to the developer — deleted after the fix.",
       "failedTitle": "Diagnostic export failed",
       "failedBody": "The archive could not be created.",
       "failedHint": "Nothing was changed. You can close this and try again.",

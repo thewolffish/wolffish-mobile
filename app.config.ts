@@ -65,11 +65,9 @@ const config: ExpoConfig = {
       // artwork like icon-trans.png renders zoomed and clipped. Regenerate
       // from icon-trans.png if the artwork changes.
       foregroundImage: './assets/images/adaptive-icon.png',
-      // Low-poly navy pattern behind the fish. Launchers crop this layer to
-      // the inner ~72/108dp mask and parallax-shift it under the foreground,
-      // so it must be fully opaque and edge-to-edge uniform — nothing
-      // distinctive near the borders.
-      backgroundImage: './assets/images/adaptive-icon-bg.png'
+      // Solid navy behind the fish — deliberately SPLASH_BACKGROUND, so the
+      // launcher icon and the splash read as one surface.
+      backgroundColor: SPLASH_BACKGROUND
     },
     predictiveBackGestureEnabled: false
   },

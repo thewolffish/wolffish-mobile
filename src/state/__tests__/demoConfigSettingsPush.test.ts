@@ -126,6 +126,14 @@ describe('preference toggles write-through', () => {
     expect(configSetCalls()).toEqual([[Rpc.configSet, { settings: { bypassPermissions: true } }]])
   })
 
+  it('the week-start choice writes through like a switch, 0|1 on the wire', async () => {
+    useDemoConfig.setState({ weekStartsOn: 1 })
+    setConfigValue('weekStartsOn', 0)
+    expect(useDemoConfig.getState().weekStartsOn).toBe(0)
+    await jest.advanceTimersByTimeAsync(0)
+    expect(configSetCalls()).toEqual([[Rpc.configSet, { settings: { weekStartsOn: 0 } }]])
+  })
+
   it('a snapshot fetched across a flip keeps the flip; the next quiet one applies', async () => {
     // The refresh is already in the air when the user taps the switch.
     let resolveFetch!: (value: unknown) => void
