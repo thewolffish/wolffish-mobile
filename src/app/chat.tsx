@@ -37,7 +37,7 @@ import { useToast } from '@/providers/toast/useToast'
 import { useAppStore } from '@/state/appStore'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AppState, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native'
+import { AppState, KeyboardAvoidingView, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeOut } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -827,11 +827,11 @@ export default function ChatScreen(): React.JSX.Element {
       {/* One per screen, not one per message: every bubble and tool card can
           open it, and it holds whichever text was long-pressed last. */}
       <SelectTextHost />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1"
-        keyboardVerticalOffset={0}
-      >
+      {/* 'padding' on BOTH platforms. The app runs edge-to-edge on Android,
+          where the window ignores adjustResize and the keyboard just paints
+          over the composer — so RN has to do the lifting there exactly as it
+          does on iOS. */}
+      <KeyboardAvoidingView behavior="padding" className="flex-1" keyboardVerticalOffset={0}>
         <View className="flex-1">
           {empty && !loading ? (
             // Project mode swaps the wolffish hero for the project's own

@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next'
 import {
   KeyboardAvoidingView,
   Modal as RNModal,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -75,10 +74,10 @@ export function PromptSheet({
           </Button>
         </View>
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          className="flex-1"
-        >
+        {/* 'padding' on BOTH platforms: edge-to-edge Android never resizes for
+            the keyboard — not even a Modal's window — so without this the
+            field keeps its full height and the cursor types under the IME. */}
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
           <ScrollView
             className="flex-1"
             contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 16 }}
