@@ -15,9 +15,9 @@ jest.mock('@react-native-async-storage/async-storage', () =>
  * so nothing may leave before the dialog's confirm, and a cancel must leave
  * nothing at all.
  *
- * The controls' absence is load-bearing too: with no live mirror (demo,
- * disconnected, an old desktop) the card must show exactly the pre-feature
- * rows, not a dead button.
+ * The dead state is load-bearing too: paired with no live mirror
+ * (disconnected, an old desktop) the check row stays on the card but its
+ * button is disabled — visible, and inert on the wire.
  *
  * No hand-rolled `act`: every tap is a fireEvent settled by waitFor.
  */
@@ -107,12 +107,18 @@ beforeEach(() => {
 })
 
 describe('the desktop card without a live mirror', () => {
-  it('shows no updater controls while paired — exactly the pre-feature card', async () => {
+  it('keeps the check row while paired, with its button dead', async () => {
     await draw()
-    // The one "Check for updates" row is the This-app card's own; the
-    // desktop twin would be a second.
-    expect(screen.getAllByText('Check for updates')).toHaveLength(1)
+    // Both cards keep their "Check for updates" row; the desktop twin's
+    // button is disabled, and a press on it must leave nothing on the wire.
+    expect(screen.getAllByText('Check for updates')).toHaveLength(2)
     expect(screen.queryByText('Install downloaded update')).toBeNull()
+
+    const buttons = screen.getAllByText('Check')
+    expect(buttons[buttons.length - 1]).toBeDisabled()
+    fireEvent.press(buttons[buttons.length - 1])
+    expect(mockRpc).not.toHaveBeenCalled()
+    expect(mockToastShow).not.toHaveBeenCalled()
   })
 })
 

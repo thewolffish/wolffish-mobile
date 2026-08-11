@@ -26,8 +26,8 @@ import { create } from 'zustand'
  * once per connection, exactly like the overlay seed.
  *
  * `state: null` means nothing is known — not connected, or a desktop too old
- * (or unable) to serve the updater RPCs. The Updates screen hides its
- * controls then, which is precisely the pre-feature screen.
+ * (or unable) to serve the updater RPCs. The Updates screen keeps its check
+ * row then but disables the button: there is no desktop to ask.
  */
 
 type DesktopUpdaterStore = { state: UpdaterWireState | null }
@@ -105,8 +105,8 @@ export function clearDesktopUpdater(): void {
  * attaches the push handlers, and an answer describing a world a push has
  * since moved on from must not put the old phase back.
  *
- * Never throws: a desktop too old to answer leaves the controls hidden,
- * which is exactly the screen before this feature existed.
+ * Never throws: a desktop too old to answer leaves the check button
+ * disabled, exactly as if the tunnel were down.
  */
 export async function seedDesktopUpdater(): Promise<void> {
   const tunnel = tunnelClient.active

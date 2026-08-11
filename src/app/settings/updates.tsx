@@ -54,8 +54,8 @@ function shortId(value: string): string {
  * The desktop card also DRIVES that app's updater now — check, watch the
  * download, install-and-restart — through the same registered handlers a
  * click on the desktop or a CLI command invokes (see lib/sync/updater). The
- * controls exist only while the live mirror does: connected, to a desktop
- * that serves them.
+ * check row is always on the card; the button only works while the live
+ * mirror does — connected, to a desktop that serves it.
  */
 export default function UpdatesScreen(): React.JSX.Element {
   const { t } = useTranslation()
@@ -187,10 +187,11 @@ const UPDATE_ERROR_CODES = ['checksum', 'network', 'timeout', 'filesystem', 'unk
  * shows is what the desktop is actually doing, whoever asked for it.
  *
  * PAIRED with no live mirror — disconnected, or a desktop too old to serve
- * the updater RPCs — renders nothing: the phone can know nothing, and a dead
- * button would claim otherwise. DEMO (unpaired) keeps the check row, like
- * every other working control on this card: the tour's desktop is a fiction
- * this device owns outright, and that fiction is always current, so a check
+ * the updater RPCs — keeps the check row but deadens its button: the phone
+ * can ask nothing, and the disabled state says so without the card changing
+ * shape on every drop. DEMO (unpaired) keeps the button live, like every
+ * other working control on this card: the tour's desktop is a fiction this
+ * device owns outright, and that fiction is always current, so a check
  * answers "up to date" without a wire to ask. The install flow stays
  * unreachable there — no phase ever moves — which is the truth too.
  *
@@ -199,7 +200,7 @@ const UPDATE_ERROR_CODES = ['checksum', 'network', 'timeout', 'filesystem', 'unk
  * drop-and-reconnect — the tunnel re-forms on its own and the fresh snapshot
  * carries the new version into the card above.
  */
-function DesktopUpdateControls(): React.JSX.Element | null {
+function DesktopUpdateControls(): React.JSX.Element {
   const { t } = useTranslation()
   const toast = useToast()
   const paired = useAppStore((store) => store.paired)
@@ -245,10 +246,6 @@ function DesktopUpdateControls(): React.JSX.Element | null {
       toast.show({ message: t('settings.updates.installRefused'), tone: 'error' })
     }
   }, [toast, t])
-
-  // Paired with nothing mirrored is the one hidden case; the demo's mirror
-  // is always empty and falls through to the check row, its whole feature.
-  if (!state && paired) return null
 
   if (state?.phase === 'downloading' || state?.phase === 'verifying') {
     const verifying = state.phase === 'verifying'
@@ -329,6 +326,9 @@ function DesktopUpdateControls(): React.JSX.Element | null {
   }
 
   // idle / checking — the desktop-flavoured twin of the This-app check row.
+  // Paired with nothing mirrored means there is no desktop to ask right now;
+  // the demo's mirror is always empty and its button stays live on purpose.
+  const unreachable = paired && !state
   const busy = checking || state?.phase === 'checking'
   return (
     <View className="flex-row items-center gap-3">
@@ -340,7 +340,12 @@ function DesktopUpdateControls(): React.JSX.Element | null {
           {t('settings.updates.desktopCheckDescription')}
         </Text>
       </View>
-      <Button variant="outline" size="sm" disabled={busy} onPress={() => void onCheck()}>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={busy || unreachable}
+        onPress={() => void onCheck()}
+      >
         {t('settings.updates.check')}
       </Button>
     </View>

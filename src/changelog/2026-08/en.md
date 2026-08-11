@@ -1,4 +1,14 @@
-## v1.0.31 — 2026-08-11 `Latest`
+## v1.0.32 — 2026-08-12 `Latest`
+
+### The Keyboard Stops Burying the Input
+
+On Android, the keyboard could rise **over the very field you were typing into** — the chat's **message composer**, and the editors for **prompts and documents**, held still while it covered them. They now **lift above the keyboard the moment it appears**, the way iOS always has, so what you type is never hidden behind the keys typing it.
+
+### The Check Button Stays Put
+
+The desktop card's **Check for updates** row used to vanish outright whenever the phone lost its desktop, so the card changed shape with every drop of the connection. The row now **holds its place** with the button **dimmed while there is no desktop to ask**, and it wakes the moment the tunnel re-forms. One card, connected or not — only the button's readiness tells the difference.
+
+## v1.0.31 — 2026-08-11
 
 ### Update the Desktop From Your Phone
 
