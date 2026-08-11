@@ -1,3 +1,4 @@
+import { resetDemoRelay } from '@/lib/demo/relay'
 import { getDb } from '@/lib/db/database'
 import { QUERY_CACHE_KEY, queryClient } from '@/lib/query/queryClient'
 import { useAppStore } from '@/state/appStore'
@@ -32,7 +33,7 @@ import { Directory, Paths } from 'expo-file-system'
  *   6. The demo config store — back to its defaults, so a value the new
  *      snapshot does not carry cannot survive from the old one.
  *   7. The live chat runtime — in-flight streams point at conversation ids
- *      that no longer exist.
+ *      that no longer exist — and the demo's made-up relay link with it.
  *   8. The persisted query cache — anything derived from the above.
  *
  * Every step is independently guarded: a directory that cannot be deleted must
@@ -73,6 +74,9 @@ export async function purgeDemoState(): Promise<void> {
     useChatRuntime.getState().reset()
     // The chip tints point at conversations that are about to stop existing.
     useRunStatus.getState().reset()
+    // The made-up relay link goes with the dataset it described; the next
+    // demo entry starts a fresh one.
+    resetDemoRelay()
   } catch {
     // In-memory only — a failure here costs nothing durable.
   }

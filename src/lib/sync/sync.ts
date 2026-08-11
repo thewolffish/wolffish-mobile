@@ -14,6 +14,7 @@ import {
 import { pushCapability, setOutboxRefreshHook } from '@/lib/sync/outbox'
 import { applyRunsPush, invalidateAutomations } from '@/lib/sync/automations'
 import { applyOverlayReindex, applyOverlayRuns, readReindex, readRuns } from '@/lib/sync/overlays'
+import { applyUpdaterPush, readUpdaterState } from '@/lib/sync/updater'
 import { invalidateProcedures } from '@/lib/sync/procedures'
 import { invalidateProjects } from '@/lib/sync/projects'
 import { useAppStore } from '@/state/appStore'
@@ -415,6 +416,14 @@ export function attachLiveUpdates(): () => void {
   // takes the card away.
   tunnel.onEvent(Event.reindexChanged, (payload) => {
     applyOverlayReindex(readReindex(payload))
+  })
+
+  // The desktop's self-updater — phase, download percent, ready/installing,
+  // error — so the Updates screen mirrors it live. Payload-carrying like the
+  // run pool: it ticks once per downloaded percent, and a fetch per tick
+  // would be pure overhead.
+  tunnel.onEvent(Event.updaterChanged, (payload) => {
+    applyUpdaterPush(readUpdaterState(payload))
   })
 
   return () => undefined

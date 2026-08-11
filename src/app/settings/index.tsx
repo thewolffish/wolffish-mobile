@@ -31,7 +31,7 @@ import {
 } from '@/components/settings/TabSummaries'
 import { NavRow, PanelScreen, type StatusTone } from '@/components/settings/SettingsUI'
 import { useFreshConfig } from '@/lib/sync/useFreshConfig'
-import { useTunnelStatus } from '@/lib/tunnel/useTunnelStatus'
+import { describeTunnelStatus, useTunnelStatus } from '@/lib/tunnel/useTunnelStatus'
 import { useAppStore } from '@/state/appStore'
 import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -51,9 +51,11 @@ export default function SettingsScreen(): React.JSX.Element {
   // The summaries below are the desktop's values, so this list now needs the
   // same on-focus refresh every screen rendering them takes.
   useFreshConfig()
-  // The one screen with no demo equivalent: in demo mode there is no tunnel
-  // to describe, so the row is absent rather than showing an empty state.
   const paired = useAppStore((state) => state.paired)
+  // Demo mode has no tunnel, but it does have a Relay screen now — the tour's
+  // made-up link (lib/demo/relay) — so the row shows there too, wearing the
+  // connected face that screen always describes.
+  const demoMode = useAppStore((state) => state.demoMode)
   // The link's state is the one thing on this list worth knowing before you
   // tap anything: a stale phone explains every other screen, and the
   // connecting overlay is dismissible, so "not connected" has to be legible
@@ -67,7 +69,7 @@ export default function SettingsScreen(): React.JSX.Element {
     trailing?: React.JSX.Element
     status?: { tone: StatusTone; label: string }
   }> = [
-    ...(paired
+    ...(paired || demoMode
       ? [
           {
             key: 'relay',
@@ -75,7 +77,9 @@ export default function SettingsScreen(): React.JSX.Element {
             // The globe the pairing sheet uses for the relay row — and no
             // longer the brain, which belongs to Model two rows down.
             icon: <Globe02Icon size={18} className="text-muted" />,
-            status: { tone: relayStatus.tone, label: relayStatus.label }
+            status: demoMode
+              ? describeTunnelStatus('connected', t)
+              : { tone: relayStatus.tone, label: relayStatus.label }
           }
         ]
       : []),

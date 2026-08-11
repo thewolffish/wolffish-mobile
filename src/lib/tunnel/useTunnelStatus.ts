@@ -1,6 +1,7 @@
 import { tunnelClient } from '@/lib/tunnel/client'
 import { useAppStore } from '@/state/appStore'
 import type { TunnelState, TunnelStatus } from '@/lib/tunnel/tunnel'
+import type { TFunction } from 'i18next'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -21,19 +22,17 @@ export function useTunnelState(): TunnelState | null {
 }
 
 /**
- * The link as a word and a colour — what a status chip needs and nothing more.
- *
- * Keeps the phase rather than the state object, so the traffic counters that
- * tick constantly on a busy tunnel do not re-render whoever is showing it.
+ * One status → word + colour mapping, shared by the hook below and the demo's
+ * made-up link (lib/demo/relay renders 'connected' through it) — one table,
+ * so the settings row, the Relay screen and the fiction cannot disagree.
  *
  * Anything mid-flight is amber, not grey: a handshake in progress is the link
  * working, and grey would read as dead.
  */
-export function useTunnelStatus(): { status: TunnelStatus; label: string; tone: TunnelTone } {
-  const { t } = useTranslation()
-  const [status, setStatus] = useState<TunnelStatus>(tunnelClient.state?.status ?? 'idle')
-  useEffect(() => tunnelClient.subscribe((state) => setStatus(state.status)), [])
-
+export function describeTunnelStatus(
+  status: TunnelStatus,
+  t: TFunction
+): { status: TunnelStatus; label: string; tone: TunnelTone } {
   switch (status) {
     case 'connected':
       return { status, label: t('relay.status.connected'), tone: 'ok' }
@@ -49,6 +48,19 @@ export function useTunnelStatus(): { status: TunnelStatus; label: string; tone: 
     default:
       return { status, label: t('relay.status.idle'), tone: 'idle' }
   }
+}
+
+/**
+ * The link as a word and a colour — what a status chip needs and nothing more.
+ *
+ * Keeps the phase rather than the state object, so the traffic counters that
+ * tick constantly on a busy tunnel do not re-render whoever is showing it.
+ */
+export function useTunnelStatus(): { status: TunnelStatus; label: string; tone: TunnelTone } {
+  const { t } = useTranslation()
+  const [status, setStatus] = useState<TunnelStatus>(tunnelClient.state?.status ?? 'idle')
+  useEffect(() => tunnelClient.subscribe((state) => setStatus(state.status)), [])
+  return describeTunnelStatus(status, t)
 }
 
 /**

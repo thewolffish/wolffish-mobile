@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils/cn'
 import { forgetLaunchDeeplink, launchDeeplink } from '@/lib/notifications/push'
 import { Image } from 'expo-image'
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
+import * as WebBrowser from 'expo-web-browser'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pressable, Text, View } from 'react-native'
@@ -31,6 +32,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 const PairSheet = lazy(async () => ({
   default: (await import('@/components/pairing/PairSheet')).PairSheet
 }))
+
+/** The install page — where a phone with no desktop to pair with gets one. */
+const SITE_URL = 'https://wolffi.sh'
 
 /**
  * Home — the fish, the name, and the two doors in: pair with a desktop, or
@@ -249,7 +253,19 @@ export default function Home(): React.JSX.Element {
         )}
       </View>
 
-      <View className="items-center">
+      <View className="items-center gap-1">
+        {/* The prerequisite both doors above quietly assume: Wolffish IS the
+            desktop app, and this phone only connects to one. Two muted lines
+            say so, and the link is where to get it — a pointer, not a door,
+            so it stays live even while an import runs. */}
+        <Text className="text-muted max-w-80 text-center font-sans text-xs leading-5">
+          {t('home.desktopNote')}
+        </Text>
+        <Pressable onPress={() => void WebBrowser.openBrowserAsync(SITE_URL)} className="py-1">
+          <Text className="text-muted font-sans text-xs underline">
+            {t('home.downloadDesktop')}
+          </Text>
+        </Pressable>
         <BuildInfo />
       </View>
 

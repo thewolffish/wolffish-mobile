@@ -332,7 +332,32 @@ export const Rpc = {
    * would sit blank until the run ended. Nothing polls it afterwards; the
    * pushes are what keep it current.
    */
-  overlaysRead: 'desktop.overlays.read'
+  overlaysRead: 'desktop.overlays.read',
+  /**
+   * The desktop's self-updater, driven from the phone. All three land on the
+   * SAME registered handlers the desktop's own Updates panel and the CLI
+   * invoke, so a check or install from the phone is the identical act —
+   * guards, state machine and all.
+   *
+   * `updaterState` answers `{ state: UpdaterWireState | null }` — the live
+   * phase machine, taken once per connection like the overlay seed (a phone
+   * connecting mid-download has missed every announcement); `updater.state`
+   * pushes keep it current after that. Null = this desktop cannot self-update.
+   *
+   * `updaterCheck` answers the desktop's own `{ ok, version }` — version null
+   * means up to date, and with auto-download on, a found update starts
+   * downloading immediately, reported by the pushes. A check during an active
+   * download is the same safe no-op it is on the desktop.
+   *
+   * `updaterInstall` arms the restart, answering `{ ok }` BEFORE the desktop
+   * begins shutting down — the reply has to leave on a tunnel the restart is
+   * about to close. `ok: false` = nothing downloaded and verified yet. After
+   * `ok: true` the phone watches the connection drop and re-form; the new
+   * version arrives with the next config snapshot.
+   */
+  updaterState: 'desktop.updater.state',
+  updaterCheck: 'desktop.updater.check',
+  updaterInstall: 'desktop.updater.install'
 } as const
 
 /** Event topics pushed without a request. */
@@ -440,7 +465,17 @@ export const Event = {
    * Throttled on the desktop side: the underlying progress event fires once per
    * batch of files and every tick is one repaint of a single line.
    */
-  reindexChanged: 'reindex.status'
+  reindexChanged: 'reindex.status',
+  /**
+   * The desktop's self-updater moved — checking, downloading (percent ticks),
+   * verifying, ready, installing, error. Payload
+   * `{ state: UpdaterWireState }`: the whole machine every time, exactly what
+   * the desktop's own `updater:state` broadcast carries, so the phone renders
+   * it straight and a missed tick costs nothing. In-memory on the phone and
+   * cleared on disconnect; the next connection re-seeds via
+   * `Rpc.updaterState`.
+   */
+  updaterChanged: 'updater.state'
 } as const
 
 export type RpcMethod = (typeof Rpc)[keyof typeof Rpc]
@@ -710,6 +745,51 @@ export type ReindexStatus = {
 export type OverlaySeed = {
   runs: AutomationRuns
   reindex: ReindexStatus | null
+}
+
+/**
+ * The desktop updater's phase machine on the wire — main/updater.ts
+ * UpdaterState minus `releaseNotes`, which is deliberately left home: state
+ * is pushed on every download-percent tick, and the notes' markdown riding a
+ * hundred times per update would buy nothing the phone shows.
+ *
+ * The phase vocabulary is the desktop's own, exported as a list (the
+ * OVERLAY_KINDS pattern) so the phone validates against it rather than
+ * keeping a copy. A phone reading a phase it does not know treats the
+ * machine as 'idle' rather than guessing — an older app against a newer
+ * desktop degrades to "no live card", never to a wrong one.
+ */
+export const UPDATER_PHASES = [
+  'idle',
+  'checking',
+  'downloading',
+  'verifying',
+  'ready',
+  'installing',
+  'error'
+] as const
+
+export type UpdaterWirePhase = (typeof UPDATER_PHASES)[number]
+
+/**
+ * Coarse failure category + sanitized detail — the desktop's UpdaterErrorInfo
+ * verbatim. `code` is one of its UpdaterErrorCode values; renderers translate
+ * by code and fall back to `message` for one they do not know.
+ */
+export type UpdaterWireError = {
+  code: string
+  message: string
+  detail: string | null
+}
+
+export type UpdaterWireState = {
+  phase: UpdaterWirePhase
+  /** The version being fetched or installed; null outside an update cycle. */
+  version: string | null
+  /** Download progress 0–100, meaningful in the downloading phase. */
+  percent: number
+  /** Set in the error phase (and recorded, but not rendered, outside it). */
+  error: UpdaterWireError | null
 }
 
 // ---------------------------------------------------------------------------

@@ -398,7 +398,30 @@
       "platform": "Platform",
       "syncedAt": "Last synced",
       "desktopAutoLabel": "Automatic updates",
-      "desktopAutoDescription": "Whether the desktop app updates itself. Changing this here changes it there."
+      "desktopAutoDescription": "Whether the desktop app updates itself. Changing this here changes it there.",
+      "desktopCheckDescription": "Ask the desktop to look for a new version now.",
+      "downloadingTitle": "Downloading update",
+      "downloadingSubtitle": "Your update is downloading",
+      "verifyingTitle": "Verifying update",
+      "verifyingSubtitle": "Almost done — verifying your update",
+      "installReady": "Install downloaded update",
+      "updateAvailable": "Ready to install",
+      "install": "Update",
+      "retry": "Retry",
+      "errorTitle": "Update failed",
+      "errors": {
+        "checksum": "The downloaded update was corrupted and couldn't be verified. Please try again.",
+        "network": "Couldn't reach the update server. Check your connection and try again.",
+        "timeout": "The update timed out before it finished. Please try again.",
+        "filesystem": "Couldn't save the update to your disk. Close other apps and try again.",
+        "unknown": "The update failed to download. Please try again."
+      },
+      "confirmTitle": "Update the desktop app?",
+      "confirmMessage": "The desktop app will install v{{version}} and restart. It reconnects and syncs on its own once it is back.",
+      "confirmAction": "Update and restart",
+      "installStarted": "Updating — the desktop app is restarting",
+      "installUnknown": "The desktop stopped answering — if the update began, it will reconnect shortly",
+      "installRefused": "Nothing is ready to install — check for updates first"
     },
     "changelog": {
       "title": "What's new",
@@ -563,7 +586,9 @@
     "demoMode": "Demo Mode",
     "demoHint": "Every feature, every file type — with three months of real conversations.",
     "continue": "Continue",
-    "connectOther": "Connect to another desktop"
+    "connectOther": "Connect to another desktop",
+    "desktopNote": "Wolffish runs on your computer — this app connects to it. Pairing needs the desktop app installed and running.",
+    "downloadDesktop": "Download the desktop app from wolffi.sh"
   },
   "demo": {
     "downloading": "Downloading demo data…",
@@ -970,6 +995,9 @@
     "unpairFailed": "Could not finish unpairing.",
     "unpairConfirmTitle": "Unpair from this desktop?",
     "unpairConfirmBody": "This phone drops its keys and erases the conversations, settings and usage it synced — everything the app holds, back to a fresh install. Your desktop keeps the originals, so pairing again restores them.",
+    "demoUnpairHint": "Ends the tour and clears the sample data.",
+    "demoUnpairConfirmTitle": "Leave the demo?",
+    "demoUnpairConfirmBody": "This clears the demo's sample workspace and returns to the start screen. Demo mode stays one tap away, and entering it again reloads everything.",
     "source": "wolffish-relay on GitHub",
     "how": {
       "pushTitle": "As it happens",

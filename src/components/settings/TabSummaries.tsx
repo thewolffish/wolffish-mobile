@@ -1,4 +1,5 @@
 import {
+  ComputerIcon,
   ComputerTerminal01Icon,
   SmartPhone01Icon,
   TelegramLogo,
@@ -244,12 +245,31 @@ export function DataSummary(): React.JSX.Element {
   return <CodeChip mono className="shrink-0" value={`${desktop} · ${device}`} />
 }
 
-/** Updates — which build of THIS app is running, as its own screen prints it. */
+/**
+ * Updates — both builds, each behind its device's mark: this phone's version,
+ * then the paired desktop's. The build number stays on the screen itself —
+ * two versions already fill the slot, and "which apps, how far apart" is the
+ * question this row answers from the list. The desktop half reads an em dash
+ * until a snapshot has landed: this device cannot know that machine's build.
+ */
 export function UpdatesSummary(): React.JSX.Element {
+  const { t } = useTranslation()
   const version = Constants.expoConfig?.version ?? '?'
-  const build =
-    Constants.expoConfig?.ios?.buildNumber ?? Constants.expoConfig?.android?.versionCode ?? '?'
-  return <CodeChip mono className="shrink-0" value={`v${version} (${build})`} />
+  const desktop = useDesktopInfo()
+  const desktopVersion = desktop.version ? `v${desktop.version}` : '—'
+  return (
+    <View
+      className="shrink-0 flex-row items-center gap-1.5"
+      accessibilityLabel={`${t('settings.updates.thisAppTitle')} v${version}, ${t(
+        'settings.updates.desktopTitle'
+      )} ${desktopVersion}`}
+    >
+      <SmartPhone01Icon size={13} className="text-muted" />
+      <CodeChip mono value={`v${version}`} />
+      <ComputerIcon size={13} className="text-muted" />
+      <CodeChip mono value={desktopVersion} />
+    </View>
+  )
 }
 
 /**

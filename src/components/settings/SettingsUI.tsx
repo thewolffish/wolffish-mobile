@@ -143,29 +143,39 @@ export function CodeChip({
   )
 }
 
-/** `code` renders the value as a CodeChip instead of plain trailing text. */
+/** `code` renders the value as a CodeChip instead of plain trailing text;
+ *  `icon` leads the label — a mark for rows whose label alone is ambiguous
+ *  (two "Version" rows on one screen: whose?). */
 export function InfoRow({
   label,
   value,
   mono,
-  code
+  code,
+  icon
 }: {
   label: string
   value: string
   mono?: boolean
   code?: boolean
+  icon?: React.ReactNode
 }): React.JSX.Element {
   if (code) {
     return (
       <View className="flex-row items-center justify-between gap-3">
-        <Text className="text-muted text-left font-sans text-sm">{label}</Text>
+        <View className="flex-row items-center gap-2">
+          {icon}
+          <Text className="text-muted text-left font-sans text-sm">{label}</Text>
+        </View>
         <CodeChip value={value} mono={mono} selectable className="flex-shrink" />
       </View>
     )
   }
   return (
     <View className="flex-row items-center justify-between gap-3">
-      <Text className="text-muted text-left font-sans text-sm">{label}</Text>
+      <View className="flex-row items-center gap-2">
+        {icon}
+        <Text className="text-muted text-left font-sans text-sm">{label}</Text>
+      </View>
       <Text
         numberOfLines={1}
         selectable

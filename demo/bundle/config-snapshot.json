@@ -990,9 +990,9 @@
     "ollamaModelsFolder": "/Users/younes/.ollama/models"
   },
   "desktop": {
-    "version": "1.0.232",
+    "version": "1.0.247",
     "platform": "macOS",
-    "syncedAt": "2026-07-29T23:40:03.014Z",
+    "syncedAt": "2026-08-11T07:40:03.014Z",
     "timezone": "Asia/Riyadh"
   },
   "changelog": { "months": [] },

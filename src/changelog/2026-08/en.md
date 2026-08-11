@@ -1,4 +1,18 @@
-## v1.0.30 — 2026-08-10 `Latest`
+## v1.0.31 — 2026-08-11 `Latest`
+
+### Update the Desktop From Your Phone
+
+The desktop card on the Updates screen grew hands. **Check** asks the paired desktop to look for a new version right now — the same act, guards and all, as clicking in its own Updates panel. When one is found you watch it from here: a **live progress bar** counts the download up, flips to verifying, and lands on **Install downloaded update**. Installing is the one act that asks first — a dialog says plainly that the desktop app will **install and restart** — and once you confirm, the restart looks like any other blip: the tunnel re-forms on its own and the fresh sync carries the **new version** into the card. If the download fails, a card names **what actually went wrong** — the network, a corrupted download, a disk that wouldn't take it — with **Retry** right under it. The controls appear only while a connected desktop can actually serve them; disconnected, or paired to a desktop from before this feature, the card stays exactly as it was.
+
+### The Tour Gets Its Relay Screen
+
+Demo mode used to skip the Relay screen — there is no tunnel to describe. But that made the tour a different shape from the app it stands in for, so the demo now carries **a link of its own**: connected since before you looked, **stable cipher fingerprints**, traffic counters **ticking at the real keepalive cadence**, and a catch-up clock stamped by the one sync the demo truly performs. Sync answers from the sample dataset, Reconnect rebuilds the fiction and moves its counter, and leaving is labeled for what it is: **ending the tour and clearing the sample data**, with demo mode one tap away again.
+
+### Smaller Things
+
+The Settings list's **Updates row** now answers what it was really being asked — which apps, how far apart — by showing **this phone's version and the desktop's side by side**, each behind its device's mark; the same marks sit on the two Version rows inside. And the start screen says the quiet prerequisite out loud: **Wolffish runs on your computer** and this app connects to it, with a link to get the desktop app from **wolffi.sh**.
+
+## v1.0.30 — 2026-08-10
 
 ### When a Provider Fails, You See What Happened
 

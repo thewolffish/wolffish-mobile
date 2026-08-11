@@ -17,11 +17,13 @@ import { formatRelativeTime } from '@/lib/utils/relativeTime'
 
 const RELAY_REPO_URL = 'https://github.com/thewolffish/wolffish-relay'
 import { factoryResetDevice } from '@/lib/demo/factoryReset'
+import { applyConfigSnapshot } from '@/lib/demo/importer'
+import { getDemoLastSyncAt, reconnectDemoRelay, useDemoRelayState } from '@/lib/demo/relay'
 import { clearAllBadges, unregisterPush } from '@/lib/notifications/push'
 import { beginSync } from '@/lib/sync/activity'
 import { getLastSyncedAt, refreshConfig, refreshSync } from '@/lib/sync/sync'
 import { tunnelClient } from '@/lib/tunnel/client'
-import { useTunnelState, useTunnelStatus } from '@/lib/tunnel/useTunnelStatus'
+import { describeTunnelStatus, useTunnelState, useTunnelStatus } from '@/lib/tunnel/useTunnelStatus'
 import { useAppStore } from '@/state/appStore'
 import { useToast } from '@/providers/toast/useToast'
 import { router } from 'expo-router'
@@ -34,23 +36,36 @@ import * as WebBrowser from 'expo-web-browser'
  * Relay — the connection itself: where it goes, what protects it, and what
  * the relay in the middle can and cannot see.
  *
- * The first screen in Settings when paired, and absent entirely in demo mode
- * (there is no tunnel to describe). The cipher fingerprints are here so the
- * two devices can be compared at a glance: the same short forms appear in the
- * desktop's Mobile panel, and matching values mean both ends agree on which
- * keys are in play.
+ * The first screen in Settings when paired — and in demo mode, where the same
+ * rows describe the tour's made-up link (lib/demo/relay): always connected,
+ * stable fingerprints, counters that move. The cipher fingerprints are here so
+ * the two devices can be compared at a glance: the same short forms appear in
+ * the desktop's Mobile panel, and matching values mean both ends agree on
+ * which keys are in play.
  */
 export default function RelayScreen(): React.JSX.Element {
   const { t } = useTranslation()
   const toast = useToast()
   const setPaired = useAppStore((state) => state.setPaired)
-  const state = useTunnelState()
+  const demoMode = useAppStore((state) => state.demoMode)
+  const liveState = useTunnelState()
+  const demoState = useDemoRelayState()
+  // One variable for every row below, so none of them knows which mode it is
+  // rendering — the demo state is a real TunnelState, just an invented one.
+  const state = demoMode ? demoState : liveState
   // Same word and colour the Settings list shows for this row — one mapping,
-  // so the two cannot disagree about what the link is doing.
-  const { label: statusLabel, tone: statusTone } = useTunnelStatus()
+  // so the two cannot disagree about what the link is doing. The demo pushes
+  // its permanent 'connected' through that same mapping.
+  const liveStatus = useTunnelStatus()
+  const { label: statusLabel, tone: statusTone } = demoMode
+    ? describeTunnelStatus('connected', t)
+    : liveStatus
+  // The demo keeps its own catch-up clock (stamped by the snapshot reads it
+  // actually performs); the live one belongs to the sync module.
+  const readLastSyncAt = demoMode ? getDemoLastSyncAt : getLastSyncedAt
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState(false)
-  const [lastSyncAt, setLastSyncAt] = useState<number | null>(getLastSyncedAt)
+  const [lastSyncAt, setLastSyncAt] = useState<number | null>(readLastSyncAt)
   // Ages the "2m ago" label between syncs; the value itself has not changed.
   const [, setTick] = useState(0)
 
@@ -58,14 +73,29 @@ export default function RelayScreen(): React.JSX.Element {
   // so poll the module's timestamp rather than reading it once.
   useEffect(() => {
     const timer = setInterval(() => {
-      setLastSyncAt(getLastSyncedAt())
+      setLastSyncAt(readLastSyncAt())
       setTick((n) => n + 1)
     }, 5_000)
     return () => clearInterval(timer)
+    // readLastSyncAt is picked by demoMode, which cannot change while this
+    // screen is mounted — both exits unmount the whole stack.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const resync = async (): Promise<void> => {
     setBusy(true)
+    // The demo's catch-up is the same read its entry runs: the saved config
+    // snapshot, which stamps the demo link's sync clock itself. Nothing can
+    // have changed — the dataset is this device's own — so the honest answer
+    // is the live path's no-change one, without the sync dialog a network
+    // round-trip earns.
+    if (demoMode) {
+      await applyConfigSnapshot()
+      setLastSyncAt(readLastSyncAt())
+      toast.show({ tone: 'success', message: t('relay.resynced', { count: 0 }) })
+      setBusy(false)
+      return
+    }
     // Reported so a slow manual sync gets the same dialog a background one
     // does. Wrapped here rather than inside refreshSync: reconcile calls
     // that too, and a nested reporter would fight its two-half progress.
@@ -110,6 +140,13 @@ export default function RelayScreen(): React.JSX.Element {
    * outcome as it happens.
    */
   const reconnect = (): void => {
+    // The fiction rebuilds instantly: "Connected for" resets and the
+    // reconnect counter moves — the same rows a real rebuild moves — with no
+    // socket to drop or wait on.
+    if (demoMode) {
+      reconnectDemoRelay()
+      return
+    }
     setBusy(true)
     tunnelClient.suspend()
     void tunnelClient
@@ -130,17 +167,24 @@ export default function RelayScreen(): React.JSX.Element {
     setBusy(true)
     setConfirming(false)
     try {
-      // Badges first, while the socket is still up: zeroing the relay's
-      // per-device count is a control frame, and the wipe below deletes the
-      // conversations the buckets describe. Then the relay forgets the device
-      // entirely — token, badge, registration — so a severed phone stops
-      // being pushable instead of collecting notifications for a workspace
-      // it no longer holds. Both must precede the socket drop.
-      await clearAllBadges()
-      await unregisterPush()
-      await tunnelClient.disconnect()
-      await factoryResetDevice()
-      setPaired(false)
+      if (demoMode) {
+        // Leaving the tour. No badges, push registration or socket ever
+        // existed here — the imported dataset is the whole footprint, and
+        // this is the same wipe the Data screen's factory reset runs.
+        await factoryResetDevice()
+      } else {
+        // Badges first, while the socket is still up: zeroing the relay's
+        // per-device count is a control frame, and the wipe below deletes the
+        // conversations the buckets describe. Then the relay forgets the device
+        // entirely — token, badge, registration — so a severed phone stops
+        // being pushable instead of collecting notifications for a workspace
+        // it no longer holds. Both must precede the socket drop.
+        await clearAllBadges()
+        await unregisterPush()
+        await tunnelClient.disconnect()
+        await factoryResetDevice()
+        setPaired(false)
+      }
     } catch {
       setBusy(false)
       toast.show({ tone: 'error', message: t('relay.unpairFailed') })
@@ -245,10 +289,12 @@ export default function RelayScreen(): React.JSX.Element {
             </Button>
           }
         />
+        {/* The demo wording tells the truth about what the button wipes —
+            sample data, not keys — while the action keeps its name. */}
         <ActionRow
           icon={<CancelCircleIcon size={18} className="text-rose-500" />}
           title={t('relay.unpair')}
-          description={t('relay.unpairHint')}
+          description={t(demoMode ? 'relay.demoUnpairHint' : 'relay.unpairHint')}
           action={
             <Button size="sm" variant="danger" onPress={() => setConfirming(true)} disabled={busy}>
               {t('relay.unpairAction')}
@@ -307,8 +353,8 @@ export default function RelayScreen(): React.JSX.Element {
       <ConfirmDialog
         open={confirming}
         busy={busy}
-        title={t('relay.unpairConfirmTitle')}
-        message={t('relay.unpairConfirmBody')}
+        title={t(demoMode ? 'relay.demoUnpairConfirmTitle' : 'relay.unpairConfirmTitle')}
+        message={t(demoMode ? 'relay.demoUnpairConfirmBody' : 'relay.unpairConfirmBody')}
         confirmLabel={t('relay.unpairAction')}
         cancelLabel={t('common.cancel')}
         onConfirm={() => void unpair()}

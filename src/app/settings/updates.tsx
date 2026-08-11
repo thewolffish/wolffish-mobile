@@ -1,6 +1,18 @@
+import { Alert } from '@/components/core/Alert'
 import { Button } from '@/components/core/Button'
+import { ConfirmDialog } from '@/components/core/ConfirmDialog'
+import { ComputerIcon, SmartPhone01Icon } from '@/components/core/icons'
+import { ProgressBar } from '@/components/core/ProgressBar'
 import { ConfigSwitchRow } from '@/components/settings/ConfigRows'
-import { InfoRow, NavRow, PanelScreen, Section, SwitchRow } from '@/components/settings/SettingsUI'
+import {
+  CodeChip,
+  InfoRow,
+  NavRow,
+  PanelScreen,
+  Section,
+  SwitchRow
+} from '@/components/settings/SettingsUI'
+import { checkDesktopUpdate, installDesktopUpdate, useDesktopUpdater } from '@/lib/sync/updater'
 import {
   checkForUpdateNow,
   updatesAvailable,
@@ -38,6 +50,12 @@ function shortId(value: string): string {
  * switch is config the desktop owns and this device only mirrors. Those two
  * were one switch until they weren't: the toggle here used to write the
  * desktop's preference under a label about this phone.
+ *
+ * The desktop card also DRIVES that app's updater now — check, watch the
+ * download, install-and-restart — through the same registered handlers a
+ * click on the desktop or a CLI command invokes (see lib/sync/updater). The
+ * controls exist only while the live mirror does: connected, to a desktop
+ * that serves them.
  */
 export default function UpdatesScreen(): React.JSX.Element {
   const { t } = useTranslation()
@@ -99,7 +117,13 @@ export default function UpdatesScreen(): React.JSX.Element {
         <Text className="text-muted text-left font-sans text-xs leading-5">
           {t('settings.updates.thisAppDescription')}
         </Text>
-        <InfoRow label={t('settings.updates.version')} value={`v${version} (${build})`} code mono />
+        <InfoRow
+          icon={<SmartPhone01Icon size={15} className="text-muted" />}
+          label={t('settings.updates.version')}
+          value={`v${version} (${build})`}
+          code
+          mono
+        />
         <InfoRow label={t('settings.updates.channel')} value={channel} code />
         <InfoRow label={t('settings.updates.runtime')} value={runtime} code mono />
         <InfoRow label={t('settings.updates.updateId')} value={updateId} code mono />
@@ -132,6 +156,7 @@ export default function UpdatesScreen(): React.JSX.Element {
           {t('settings.updates.desktopDescription')}
         </Text>
         <InfoRow
+          icon={<ComputerIcon size={15} className="text-muted" />}
           label={t('settings.updates.version')}
           value={desktop.version ? `v${desktop.version}` : '—'}
           code
@@ -144,7 +169,180 @@ export default function UpdatesScreen(): React.JSX.Element {
           label={t('settings.updates.desktopAutoLabel')}
           description={t('settings.updates.desktopAutoDescription')}
         />
+        <DesktopUpdateControls />
       </Section>
     </PanelScreen>
+  )
+}
+
+/** Error codes this build can name; anything else falls back to the wire's
+ *  own message. The same exact-match rule the provider error cards follow. */
+const UPDATE_ERROR_CODES = ['checksum', 'network', 'timeout', 'filesystem', 'unknown'] as const
+
+/**
+ * Check / download / install for the paired desktop's updater — this phone
+ * driving the same phase machine the desktop's own Updates panel renders,
+ * through the same registered handlers a click there or a CLI command
+ * invokes. Phases arrive as pushes (seeded per connection), so what this row
+ * shows is what the desktop is actually doing, whoever asked for it.
+ *
+ * PAIRED with no live mirror — disconnected, or a desktop too old to serve
+ * the updater RPCs — renders nothing: the phone can know nothing, and a dead
+ * button would claim otherwise. DEMO (unpaired) keeps the check row, like
+ * every other working control on this card: the tour's desktop is a fiction
+ * this device owns outright, and that fiction is always current, so a check
+ * answers "up to date" without a wire to ask. The install flow stays
+ * unreachable there — no phase ever moves — which is the truth too.
+ *
+ * Install is the one gated act: it restarts the desktop, so a dialog says so
+ * before anything is sent. After "armed", the restart looks like any other
+ * drop-and-reconnect — the tunnel re-forms on its own and the fresh snapshot
+ * carries the new version into the card above.
+ */
+function DesktopUpdateControls(): React.JSX.Element | null {
+  const { t } = useTranslation()
+  const toast = useToast()
+  const paired = useAppStore((store) => store.paired)
+  const state = useDesktopUpdater((store) => store.state)
+  const [checking, setChecking] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [installing, setInstalling] = useState(false)
+
+  const onCheck = useCallback(async () => {
+    if (checking) return
+    // The demo desktop is this device's own fiction, and it is always
+    // current — answer as the live check does when nothing newer exists.
+    if (!paired) {
+      toast.show({ message: t('settings.updates.upToDate'), tone: 'success' })
+      return
+    }
+    setChecking(true)
+    const result = await checkDesktopUpdate()
+    setChecking(false)
+    // 'found' needs no toast: the phase pushes flip this row into the
+    // download view, which is the announcement.
+    if (result.outcome === 'upToDate') {
+      toast.show({ message: t('settings.updates.upToDate'), tone: 'success' })
+    } else if (result.outcome !== 'found') {
+      toast.show({ message: t('settings.updates.checkFailed'), tone: 'error' })
+    }
+  }, [checking, paired, toast, t])
+
+  const onInstall = useCallback(async () => {
+    // Close the dialog before the round trip so the toast that answers it
+    // never paints behind a dismissing RN Modal.
+    setConfirming(false)
+    setInstalling(true)
+    const result = await installDesktopUpdate()
+    setInstalling(false)
+    if (result === 'armed') {
+      toast.show({ message: t('settings.updates.installStarted'), tone: 'success' })
+    } else if (result === 'unknown') {
+      // The answer may have died with the connection the restart closed —
+      // an unknown outcome, never claimed as a failure.
+      toast.show({ message: t('settings.updates.installUnknown'), tone: 'info' })
+    } else if (result === 'refused') {
+      toast.show({ message: t('settings.updates.installRefused'), tone: 'error' })
+    }
+  }, [toast, t])
+
+  // Paired with nothing mirrored is the one hidden case; the demo's mirror
+  // is always empty and falls through to the check row, its whole feature.
+  if (!state && paired) return null
+
+  if (state?.phase === 'downloading' || state?.phase === 'verifying') {
+    const verifying = state.phase === 'verifying'
+    return (
+      <View className="flex-col gap-2">
+        <View className="flex-row items-center gap-3">
+          <View className="flex-1 flex-col gap-0.5">
+            <Text className="text-fg font-sans-medium text-left text-sm">
+              {verifying
+                ? t('settings.updates.verifyingTitle')
+                : t('settings.updates.downloadingTitle')}
+            </Text>
+            <Text className="text-muted text-left font-sans text-xs leading-5">
+              {verifying
+                ? t('settings.updates.verifyingSubtitle')
+                : `${t('settings.updates.downloadingSubtitle')}${state.percent > 0 ? ` ${state.percent}%` : ''}`}
+            </Text>
+          </View>
+          {state.version ? <CodeChip mono value={`v${state.version}`} /> : null}
+        </View>
+        <ProgressBar value={verifying ? 1 : state.percent / 100} />
+      </View>
+    )
+  }
+
+  if (state?.phase === 'ready' || state?.phase === 'installing') {
+    const busy = installing || state.phase === 'installing'
+    return (
+      <>
+        <View className="flex-row items-center gap-3">
+          <View className="flex-1 flex-col gap-1">
+            <Text className="text-fg font-sans-medium text-left text-sm">
+              {t('settings.updates.installReady')}
+            </Text>
+            <View className="flex-row items-center gap-2">
+              {state.version ? <CodeChip mono value={`v${state.version}`} /> : null}
+              <Text className="text-muted text-left font-sans text-xs">
+                {t('settings.updates.updateAvailable')}
+              </Text>
+            </View>
+          </View>
+          <Button size="sm" disabled={busy} onPress={() => setConfirming(true)}>
+            {t('settings.updates.install')}
+          </Button>
+        </View>
+        <ConfirmDialog
+          open={confirming}
+          title={t('settings.updates.confirmTitle')}
+          message={t('settings.updates.confirmMessage', { version: state.version ?? '?' })}
+          confirmLabel={t('settings.updates.confirmAction')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => void onInstall()}
+          onCancel={() => setConfirming(false)}
+        />
+      </>
+    )
+  }
+
+  if (state?.phase === 'error') {
+    const code = state.error?.code ?? 'unknown'
+    const known = (UPDATE_ERROR_CODES as readonly string[]).includes(code)
+    return (
+      <View className="flex-col gap-2">
+        <Alert
+          tone="error"
+          title={t('settings.updates.errorTitle')}
+          message={
+            known
+              ? t(`settings.updates.errors.${code}`)
+              : state.error?.message || t('settings.updates.errors.unknown')
+          }
+        />
+        <Button variant="outline" size="sm" disabled={checking} onPress={() => void onCheck()}>
+          {t('settings.updates.retry')}
+        </Button>
+      </View>
+    )
+  }
+
+  // idle / checking — the desktop-flavoured twin of the This-app check row.
+  const busy = checking || state?.phase === 'checking'
+  return (
+    <View className="flex-row items-center gap-3">
+      <View className="flex-1 flex-col gap-0.5">
+        <Text className="text-fg font-sans-medium text-left text-sm">
+          {t('settings.updates.checkManual')}
+        </Text>
+        <Text className="text-muted text-left font-sans text-xs leading-5">
+          {t('settings.updates.desktopCheckDescription')}
+        </Text>
+      </View>
+      <Button variant="outline" size="sm" disabled={busy} onPress={() => void onCheck()}>
+        {t('settings.updates.check')}
+      </Button>
+    </View>
   )
 }
