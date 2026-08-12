@@ -11,7 +11,7 @@ Wolffish Mobile is the official phone app for [Wolffish](https://github.com/thew
 Built with React Native and Expo. One codebase, iOS and Android, English and Arabic with full RTL.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.33-green.svg)](https://wolffi.sh)
+[![Version](https://img.shields.io/badge/version-1.0.34-green.svg)](https://wolffi.sh)
 [![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android-lightgrey.svg)]()
 
 ---
