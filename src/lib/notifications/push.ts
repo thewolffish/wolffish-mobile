@@ -496,6 +496,45 @@ export function attachNotificationHandlers(tunnel: Tunnel): void {
 }
 
 /**
+ * How long the platform gets to hand over a push token before this device
+ * registers WITHOUT one.
+ *
+ * Two links in the token chain can hang forever, and both are iOS's:
+ *
+ * - `requestPermissionsAsync` resolves when the user answers the system
+ *   dialog. A user who swipes it away, or never looks at the phone, never
+ *   answers it.
+ * - `getExpoPushTokenAsync` first calls the native `getDevicePushTokenAsync`,
+ *   which stores the promise, calls `registerForRemoteNotifications()`, and
+ *   resolves only from the APNs delegate callback. When neither the success
+ *   nor the failure callback fires — no APNs entitlement in the running
+ *   build, a device that cannot reach Apple's push gateway at that moment —
+ *   nothing settles it. There is no timeout inside expo-notifications.
+ *
+ * Android has no equivalent: its FCM token comes back from Play Services or
+ * throws, promptly, which is exactly why push worked there and not here.
+ */
+const TOKEN_TIMEOUT_MS = 10_000
+
+/** Bound a promise that may never settle. The loser is abandoned, not
+ *  cancelled — harmless here, and a token that lands late still reaches the
+ *  relay through the push-token listener's re-registration. */
+function withTimeout<T>(work: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise<T>((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), ms)
+    work
+      .then((value) => {
+        clearTimeout(timer)
+        resolve(value)
+      })
+      .catch(() => {
+        clearTimeout(timer)
+        resolve(fallback)
+      })
+  })
+}
+
+/**
  * Acquire the Expo push token (null when permission is denied, when this is
  * a simulator, or when anything in the chain fails — a phone that cannot be
  * pushed still registers, and delivery degrades to in-band only).
@@ -534,10 +573,19 @@ let registering: Promise<void> | null = null
  * on every foreground, and on token rotation. Always upserts the same
  * phoneId; a null token is a valid registration (permission denied). Never
  * throws — a failed registration must not disturb pairing or startup.
+ *
+ * REGISTRATION MUST HAPPEN, TOKEN OR NOT. The relay's routing table is keyed
+ * by phoneId, and a notify for a phoneId it has never seen is dropped before
+ * it considers any delivery path — including the live socket. So a phone that
+ * fails to register gets nothing at all, not even in-band notifications it is
+ * connected for. That is why the token is acquired under a timeout rather
+ * than awaited: a phone with no usable push token still registers, still
+ * receives everything in-band, and upgrades to real push the moment a token
+ * arrives (the push-token listener re-registers).
  */
 export function refreshPushRegistration(): Promise<void> {
   if (registering) return registering
-  registering = (async () => {
+  const run = (async () => {
     try {
       const tunnel = activeTunnel
       if (!tunnel) return
@@ -546,7 +594,7 @@ export function refreshPushRegistration(): Promise<void> {
         v: PUSH_WIRE_VERSION,
         type: 'register_push',
         phoneId: await getPhoneId(),
-        expoPushToken: await acquireExpoPushToken(),
+        expoPushToken: await withTimeout(acquireExpoPushToken(), TOKEN_TIMEOUT_MS, null),
         platform: Platform.OS,
         appVersion: Constants.expoConfig?.version ?? null
       }
@@ -558,11 +606,20 @@ export function refreshPushRegistration(): Promise<void> {
       await syncBadge(true)
     } catch {
       // No socket right now — the next foreground/connect registers again.
-    } finally {
-      registering = null
     }
   })()
-  return registering
+  // Released here and NOT in a `finally` inside the body above. A body that
+  // returns before its first await — no tunnel yet, an unsupported platform —
+  // runs to completion synchronously, so that `finally` fired BEFORE this
+  // assignment and left the guard holding an already-settled promise for the
+  // life of the process: every later call returned it and registered nothing.
+  // A foregrounded app that had not connected yet was enough to lose push
+  // until the next cold start.
+  registering = run
+  void run.finally(() => {
+    if (registering === run) registering = null
+  })
+  return run
 }
 
 // ------------------------------------------------------------- badge sync

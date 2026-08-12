@@ -1,4 +1,10 @@
-## v1.0.33 — 2026-08-12 `Latest`
+## v1.0.34 — 2026-08-12 `Latest`
+
+### Notifications Find Your iPhone Again
+
+An iPhone has to introduce itself before anything can be routed to it, and that introduction could quietly never happen. Asking iOS for a notification token is a question the system is free to leave unanswered — no reply, no error, just silence — and the app waited on that answer indefinitely; opening the app before it had found your desktop could stall the very same introduction until the next cold start. A phone that never introduced itself is unreachable by **every** path at once, so nothing arrived — not the lock-screen kind, and **not even the notifications the app could have shown you while it sat open and connected**. It now introduces itself **within seconds either way**, with a token or without one: notifications land the moment they are sent, and **lock-screen delivery switches itself on** as soon as iOS hands the token over — no restart, nothing for you to do.
+
+## v1.0.33 — 2026-08-12
 
 ### Notifications Reach Android With the App Closed
 
