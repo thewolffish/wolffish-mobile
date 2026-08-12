@@ -58,6 +58,30 @@ const config: ExpoConfig = {
     // ],
     package: PACKAGE_IDENTIFIER,
     versionCode: CODE_VERSION,
+    // FCM registration — the whole reason Android push works at all.
+    //
+    // Expo push reaches Android through Firebase Cloud Messaging, and the app
+    // can only obtain an FCM token if Firebase is initialized in the binary.
+    // That initialization is entirely gated on THIS key: @expo/config-plugins'
+    // GoogleServices mod returns early when it is unset, so without it prebuild
+    // neither copies google-services.json into android/app/ nor applies the
+    // com.google.gms.google-services Gradle plugin. The build still succeeds —
+    // which is what made this silent. At runtime getExpoPushTokenAsync() then
+    // throws, acquireExpoPushToken() swallows it and returns null, the phone
+    // registers a null token, and the relay answers every notify with "no push
+    // token — not delivered". Notifications appeared to work only because the
+    // in-band tunnel path was covering for them whenever the app was open.
+    //
+    // The file is committed on purpose: EAS Build uploads the git tree, so an
+    // untracked google-services.json is simply absent on the builder and the
+    // build fails at the copy step. It carries no secret — the Android API key
+    // in it is public by design, scoped to this package name, and Google ships
+    // it inside every APK. The private half (the FCM V1 service account key
+    // Expo's push service sends with) lives in EAS credentials, never here.
+    //
+    // NATIVE CHANGE: forks the fingerprint runtime version. Ships in a store
+    // build (npm run provision), never over the air.
+    googleServicesFile: './google-services.json',
     adaptiveIcon: {
       // adaptive-icon.png is icon-trans.png shrunk into the adaptive-icon
       // safe zone (artwork ~58% of the 1024 canvas, transparent padding) —

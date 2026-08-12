@@ -1,4 +1,10 @@
-## v1.0.32 — 2026-08-12 `Latest`
+## v1.0.33 — 2026-08-12 `Latest`
+
+### Notifications Reach Android With the App Closed
+
+A notification from your agent used to reach an Android phone only while the app was **open and connected**; the moment you closed it — or the tunnel dropped — the notification had nowhere to land and quietly never arrived. Android builds were missing the registration that makes remote delivery possible at all, and they now carry it. A run that finishes, fails or needs you reaches your **lock screen** with the app **closed, backgrounded, or the phone asleep**, exactly as it always has on iOS, and it arrives **the moment it is sent** rather than waiting for the phone to stir on its own. A tap still opens whichever screen the notification names. What has not changed is **when** one is sent: that was always your agent's deliberate choice, and it still is.
+
+## v1.0.32 — 2026-08-12
 
 ### The Keyboard Stops Burying the Input
 
