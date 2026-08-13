@@ -44,6 +44,16 @@ const PAIRING_PEER_WAIT_MS = 45_000
 const KEY_IDENTITY = 'wolffish.tunnel.identity'
 const KEY_PAIRING = 'wolffish.tunnel.pairing'
 
+/**
+ * Ceiling on this device's reconnect backoff — far below the transport's own
+ * default, which is written for a desktop that runs unattended for days.
+ *
+ * The phone only runs while it is on screen. Every second of backoff is a
+ * second someone spends looking at a card that says "reconnecting" and doing
+ * nothing about it, and one phone retrying cannot stampede anything.
+ */
+const PHONE_MAX_BACKOFF_MS = 8_000
+
 export type StoredPairing = {
   /** Base64url — the shared secret the rendezvous ID derives from. */
   secret: string
@@ -114,6 +124,18 @@ class TunnelClient {
   private tunnel: Tunnel | null = null
   private listeners = new Set<ConnectionListener>()
   private lastState: TunnelState | null = null
+  /**
+   * The connect() currently building a tunnel, so two callers cannot each
+   * build one. Both keystore reads inside connect() are awaits, and every
+   * caller here is fire-and-forget — launch, foreground, an RPC that failed —
+   * so overlapping calls are ordinary rather than exceptional. Unguarded, the
+   * second one stops the first's socket a moment after it opened, which
+   * spends the head start the early dial exists to buy.
+   */
+  private connecting: Promise<void> | null = null
+  /** Bumped by every connect(), so one superseded mid-await knows to stand
+   *  down instead of stopping the tunnel that replaced it. */
+  private generation = 0
 
   get state(): TunnelState | null {
     return this.lastState
@@ -138,7 +160,10 @@ class TunnelClient {
     const message = error instanceof Error ? error.message : String(error)
     if (!/not connected|timed out|socket closed|peer gone/i.test(message)) return
     if (this.tunnel?.connected) return
-    this.tunnel?.retryNow()
+    // refresh() rather than retryNow(): the tunnel may have no retry queued at
+    // all — an open socket with a dead session behind it answers nothing and
+    // schedules nothing, which is precisely the state a failing RPC reports.
+    this.tunnel?.refresh()
   }
 
   subscribe(listener: ConnectionListener): () => void {
@@ -181,7 +206,7 @@ class TunnelClient {
       pairedAt: Date.now()
     }
     await savePairing(pairing)
-    await this.connect(pairing, method, PAIRING_PEER_WAIT_MS)
+    await this.dial(pairing, method, PAIRING_PEER_WAIT_MS)
     // connect() resolves on the first settle, success or scheduled retry —
     // so success has to be checked, not assumed. Without this a failed
     // attempt (wrong code, desktop asleep) resolved cleanly, the sheet
@@ -207,18 +232,54 @@ class TunnelClient {
    * The old version returned early whenever a tunnel *object* existed, which
    * quietly made this a no-op for the one case it was written for: a tunnel
    * that had stopped trying. Existing is not the same as working. A live one
-   * is nudged past its backoff; a wedged one is replaced.
+   * is checked and nudged; a wedged one is replaced.
+   *
+   * Safe to call as often as anything likes — launch, every foreground, after
+   * a failed RPC. A connect already under way is joined rather than raced.
    */
   async resume(): Promise<boolean> {
+    const joined = await this.joinConnect()
+    if (joined !== null) return joined
     const existing = this.tunnel
     if (existing?.alive) {
-      existing.retryNow()
+      // Not merely "still trying": verify it, because the state that costs the
+      // most is the one that looks healthiest — see Tunnel.refresh.
+      existing.refresh()
       return true
     }
     const pairing = await loadPairing()
     if (!pairing) return false
-    await this.connect(pairing, 'qr')
+    // The keystore read above is a window in which another caller may have
+    // started one.
+    const raced = await this.joinConnect()
+    if (raced !== null) return raced
+    await this.dial(pairing, 'qr')
     return true
+  }
+
+  /**
+   * Wait out a connect already in flight, if there is one — its outcome is
+   * this caller's answer too. Null means there was nothing to join. Its
+   * failure is swallowed here because it belongs to whoever started it.
+   */
+  private async joinConnect(): Promise<boolean | null> {
+    const pending = this.connecting
+    if (!pending) return null
+    await pending.catch(() => undefined)
+    return this.tunnel !== null
+  }
+
+  /** connect(), single-flighted — see `connecting`. */
+  private dial(
+    pairing: StoredPairing,
+    mode: 'qr' | 'code',
+    peerWaitMs: number | null = null
+  ): Promise<void> {
+    const run = this.connect(pairing, mode, peerWaitMs).finally(() => {
+      if (this.connecting === run) this.connecting = null
+    })
+    this.connecting = run
+    return run
   }
 
   /**
@@ -233,7 +294,12 @@ class TunnelClient {
     mode: 'qr' | 'code',
     peerWaitMs: number | null = null
   ): Promise<void> {
+    const generation = ++this.generation
     const identity = await loadIdentity()
+    // A newer connect started while the keystore read was in flight — a
+    // pairing overtaking a background resume, most of all. That one owns the
+    // tunnel now, and the `stop()` below would tear its socket down.
+    if (generation !== this.generation) return
     const secret = fromBase64Url(pairing.secret)
 
     this.tunnel?.stop()
@@ -250,7 +316,8 @@ class TunnelClient {
         deviceName: Device.deviceName ?? Device.modelName ?? 'iPhone'
       },
       autoReconnect: true,
-      peerWaitMs
+      peerWaitMs,
+      maxBackoffMs: PHONE_MAX_BACKOFF_MS
     })
     this.tunnel = tunnel
     // No log is kept here on purpose. The desktop is the source of truth for
@@ -286,12 +353,18 @@ class TunnelClient {
 
   /** Drop the connection but keep the pairing — used when backgrounding. */
   suspend(): void {
+    // Ahead of the teardown: a connect() still inside its keystore reads would
+    // otherwise finish afterwards and hand back the tunnel just dropped.
+    this.generation += 1
+    this.connecting = null
     this.tunnel?.stop()
     this.tunnel = null
   }
 
   /** Disconnect and forget, returning the app to its unpaired state. */
   async disconnect(): Promise<void> {
+    this.generation += 1
+    this.connecting = null
     this.tunnel?.stop()
     this.tunnel = null
     this.lastState = null

@@ -62,7 +62,7 @@ class FakeSocket {
 const globals = globalThis as unknown as { WebSocket: unknown }
 const realWebSocket = globals.WebSocket
 
-function makeTunnel(): Tunnel {
+function makeTunnel(over: Partial<ConstructorParameters<typeof Tunnel>[0]> = {}): Tunnel {
   return new Tunnel({
     role: 'guest',
     relayUrl: 'wss://relay.test',
@@ -71,8 +71,14 @@ function makeTunnel(): Tunnel {
     pairingSecret: new Uint8Array(32),
     peerStaticPublicKey: null,
     autoReconnect: true,
-    peerWaitMs: null
+    peerWaitMs: null,
+    ...over
   })
+}
+
+/** Let a chain of awaits inside the tunnel settle. */
+async function flush(rounds = 8): Promise<void> {
+  for (let i = 0; i < rounds; i += 1) await Promise.resolve()
 }
 
 beforeEach(() => {
@@ -137,6 +143,160 @@ describe('a socket that stops answering', () => {
     }
 
     expect(socket?.closed).toBe(false)
+  })
+})
+
+describe('a keepalive that goes unanswered', () => {
+  /**
+   * The silence rule alone dates its window from the last inbound frame of any
+   * kind, so how fast it fires depends on when the link happened to die — a
+   * socket lost thirty seconds into a background is still trusted for the best
+   * part of a minute after the app comes back. Holding each ping to an answer
+   * makes detection depend on nothing but the ping.
+   */
+  it('is fatal well before the silence window would have fired', () => {
+    const tunnel = makeTunnel()
+    void tunnel.start()
+    const socket = FakeSocket.last
+    socket?.open()
+
+    // First keepalive goes out at 25s; nothing ever comes back.
+    jest.advanceTimersByTime(25_000)
+    expect(socket?.sent.filter((data) => data === 'ping').length).toBe(1)
+    expect(socket?.closed).toBe(false)
+
+    // Answered inside its deadline it would live; unanswered it is replaced,
+    // and long before the 62.5s of silence the backstop waits for.
+    jest.advanceTimersByTime(10_500)
+    expect(socket?.closed).toBe(true)
+    expect(FakeSocket.last).not.toBe(socket)
+  })
+
+  it('accepts any inbound frame as the answer, not just a pong', () => {
+    const tunnel = makeTunnel()
+    void tunnel.start()
+    const socket = FakeSocket.last
+    socket?.open()
+
+    jest.advanceTimersByTime(25_000)
+    // A peer notice is proof the pipe carries bytes, which is the whole
+    // question. Anything that reaches us counts.
+    socket?.emit('message', { data: 'peer-present' })
+    jest.advanceTimersByTime(10_500)
+
+    expect(socket?.closed).toBe(false)
+    expect(tunnel.alive).toBe(true)
+  })
+})
+
+describe('refresh — the app coming back', () => {
+  /**
+   * The ten seconds of nothing this whole path exists to remove.
+   *
+   * iOS suspends JS mid-flight and the OS drops the socket with nobody left
+   * running to notice, so a returning app finds `readyState` still OPEN, the
+   * state still 'connected', and no timer close enough to catch it. Probing
+   * turns "wait for a watchdog whose window started before the background"
+   * into one round trip.
+   */
+  it('replaces a socket that no longer answers, in seconds', async () => {
+    const tunnel = makeTunnel()
+    void tunnel.start()
+    const socket = FakeSocket.last
+    socket?.open()
+    await flush()
+
+    tunnel.refresh()
+    // The probe goes out immediately...
+    expect(socket?.sent.filter((data) => data === 'ping').length).toBe(1)
+    expect(socket?.closed).toBe(false)
+
+    // ...and the socket has a couple of seconds to prove itself.
+    jest.advanceTimersByTime(3_000)
+    expect(socket?.closed).toBe(true)
+    expect(FakeSocket.last).not.toBe(socket)
+    expect(tunnel.alive).toBe(true)
+  })
+
+  it('leaves a socket that answers exactly where it was', async () => {
+    const tunnel = makeTunnel()
+    void tunnel.start()
+    const socket = FakeSocket.last
+    socket?.open()
+    await flush()
+
+    tunnel.refresh()
+    socket?.emit('message', { data: 'pong' })
+    jest.advanceTimersByTime(3_000)
+
+    // Nothing torn down, nothing redialled: the link was fine and a needless
+    // reconnect would cost a handshake for no reason.
+    expect(socket?.closed).toBe(false)
+    expect(FakeSocket.last).toBe(socket)
+  })
+
+  it('skips a queued backoff rather than probing nothing', async () => {
+    const tunnel = makeTunnel()
+    void tunnel.start()
+    const first = FakeSocket.last
+    first?.emit('error', {})
+    await flush()
+
+    tunnel.refresh()
+
+    expect(FakeSocket.last).not.toBe(first)
+  })
+
+  it('does nothing to a dial still in flight', () => {
+    const tunnel = makeTunnel()
+    void tunnel.start()
+    const first = FakeSocket.last
+
+    // Mid-dial is already the fastest thing available; restarting it would
+    // throw away the connection about to complete.
+    tunnel.refresh()
+
+    expect(FakeSocket.last).toBe(first)
+    expect(first?.closed).toBe(false)
+  })
+
+  it('stays quiet once stopped', () => {
+    const tunnel = makeTunnel()
+    void tunnel.start()
+    FakeSocket.last?.open()
+    tunnel.stop()
+    const socket = FakeSocket.last
+
+    tunnel.refresh()
+    jest.advanceTimersByTime(10_000)
+
+    expect(FakeSocket.last).toBe(socket)
+    expect(tunnel.alive).toBe(false)
+  })
+})
+
+describe('backoff', () => {
+  /**
+   * The ceiling is the caller's to set because the two callers are opposites:
+   * a desktop retries unattended for days and must not stampede a relay, while
+   * a phone only runs with someone looking at the card that says it is not
+   * connected. Half a minute of that is indistinguishable from broken.
+   */
+  it('honours a caller-supplied ceiling', async () => {
+    const tunnel = makeTunnel({ maxBackoffMs: 8_000 })
+    void tunnel.start()
+
+    // Six consecutive failures is where the default ladder tops out at 30s.
+    for (let round = 0; round < 6; round += 1) {
+      FakeSocket.last?.emit('error', {})
+      await flush()
+      jest.advanceTimersByTime(8_000)
+      await flush()
+    }
+
+    // Still retrying, and each wait stayed inside the ceiling — a 15-30s one
+    // would have left the last few rounds with no dial at all.
+    expect(tunnel.getState().reconnects).toBeGreaterThanOrEqual(5)
   })
 })
 

@@ -56,8 +56,38 @@ const COUNTER_NOTIFY_MS = 300
  * Two and a half keepalive intervals: one answer may be lost to a blip
  * without tearing a working link down, but a genuinely half-open socket is
  * caught inside a minute rather than lasting until something else notices.
+ *
+ * The backstop, not the detector — see PING_ANSWER_MS.
  */
 const LIVENESS_TIMEOUT_MS = KEEPALIVE_MS * 2.5
+
+/**
+ * How long the relay may take to answer a keepalive before its socket is
+ * declared dead.
+ *
+ * A keepalive is a REQUEST and the relay answers it from the edge, without
+ * waking anything — so silence after one is not slowness, it is a socket with
+ * nothing behind it. Measuring the answer rather than the silence is what
+ * makes this fast: LIVENESS_TIMEOUT_MS above dates from the last inbound
+ * frame of ANY kind, so a link that died thirty seconds into a background is
+ * still trusted for the best part of a minute after the app returns — a
+ * connection that reads fine and answers nothing, which is the worst state
+ * available.
+ *
+ * Generous on purpose. Ten seconds is an eternity for an edge-answered ping
+ * and still leaves room for a phone whose JS thread is busy decrypting a file
+ * chunk; a false positive costs one reconnect, which is under a second.
+ */
+const PING_ANSWER_MS = 10_000
+
+/**
+ * The same question asked on returning to the foreground, with a much shorter
+ * fuse: the user is watching, and every path out of here is fast.
+ */
+const WAKE_ANSWER_MS = 2_500
+
+/** Ceiling on the reconnect backoff when a caller names none. */
+const MAX_BACKOFF_MS = 30_000
 
 export type TunnelRole = 'host' | 'guest'
 export type PairingMode = 'qr' | 'code'
@@ -140,6 +170,17 @@ export type TunnelOptions = {
    * right now, so a bounded wait is the honest answer.
    */
   peerWaitMs?: number | null
+  /**
+   * Ceiling on the exponential backoff between reconnect attempts.
+   *
+   * The default suits a desktop: it runs for days, nobody is watching it, and
+   * a relay blip across a fleet must not become a stampede. A phone is the
+   * opposite on every count — it only runs while it is on screen, with the
+   * user looking at the very thing that will not connect — so it passes
+   * something far shorter. Half a minute of waiting is indistinguishable from
+   * broken to whoever is holding it.
+   */
+  maxBackoffMs?: number
 }
 
 export class Tunnel {
@@ -151,8 +192,18 @@ export class Tunnel {
   private handshakeQueue: Uint8Array[] = []
   private keepaliveTimer: ReturnType<typeof setInterval> | null = null
   private counterFlushTimer: ReturnType<typeof setTimeout> | null = null
+  /** Deadline for the answer to the keepalive that is currently outstanding. */
+  private answerTimer: ReturnType<typeof setTimeout> | null = null
   /** When anything last arrived on this socket — the watchdog's evidence. */
   private lastInboundAt = 0
+  /**
+   * How many messages have arrived, ever. Counted rather than timed because
+   * the answer deadline asks "did anything come back since I asked", and
+   * millisecond timestamps cannot tell "nothing arrived" from "it arrived
+   * within the same millisecond" — a distinction that decides whether a
+   * healthy socket is torn down.
+   */
+  private inbound = 0
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>()
   private rpcHandlers = new Map<string, RpcHandler>()
@@ -162,6 +213,19 @@ export class Tunnel {
   private nextRpcId = 1
   private stopped = false
   private attempt = 0
+  /** Bumped by every cycle() so a superseded run can tell it has been. */
+  private cycleGeneration = 0
+  /**
+   * Which handshake this tunnel is running, remembered from start().
+   *
+   * Every path that re-dials on its own — a scheduled retry, a wake probe, a
+   * socket that stopped answering — used to hardcode 'qr'. That is right for
+   * every connection a paired device ever makes, and wrong for exactly one:
+   * the first run of a code pairing, which is XX precisely because there is no
+   * pinned key yet. Re-dialling that as IK asks for a key nobody has, and the
+   * pairing fails with "re-pair this device" rather than reconnecting.
+   */
+  private mode: PairingMode = 'qr'
 
   /** Learned during a code pairing; the caller persists it for later IK runs. */
   peerStaticPublicKey: Uint8Array | null
@@ -245,6 +309,7 @@ export class Tunnel {
   /** Connect and hand-shake, retrying until `stop()` when autoReconnect is on. */
   async start(mode: PairingMode = 'qr'): Promise<void> {
     this.stopped = false
+    this.mode = mode
     // cycle() outlives the first connection now — it loops sessions on one
     // socket for as long as the link stays up — so awaiting it outright
     // resolves only when the connection DIES. Every caller that awaits
@@ -281,6 +346,13 @@ export class Tunnel {
 
   private async cycle(mode: PairingMode): Promise<void> {
     if (this.stopped) return
+    // Which run of this loop is the live one. A cycle can be superseded while
+    // it is parked deep inside a handshake nobody will answer — the wake probe
+    // and retryNow both replace one mid-flight — and the stale run must not
+    // report ITS failure afterwards: that patches a working tunnel back to
+    // 'reconnecting' and tears down the socket its successor just built.
+    const generation = ++this.cycleGeneration
+    const current = (): boolean => this.cycleGeneration === generation && !this.stopped
     try {
       await this.openSocket()
       const socket = this.ws
@@ -289,22 +361,26 @@ export class Tunnel {
       // ending the cycle — which would vacate the rendezvous and hand both
       // sides a window in which to miss each other. The guard is socket
       // identity: once this socket is replaced or closed, the loop is over.
-      while (!this.stopped && this.ws === socket) {
+      while (current() && this.ws === socket) {
         // Not `??`: null means park indefinitely and must reach waitForPeer
         // intact. Only an absent option falls back to the parameter's bounded
         // default.
         await this.waitForPeer(this.options.peerWaitMs)
-        if (this.stopped || this.ws !== socket) return
+        if (!current() || this.ws !== socket) return
         await this.performHandshake(mode)
+        if (!current() || this.ws !== socket) return
         this.attempt = 0
         this.patch({ status: 'connected', connectedAt: Date.now(), lastError: null })
         this.log('connected')
         await this.waitForPeerGone()
-        if (this.stopped || this.ws !== socket) return
+        if (!current() || this.ws !== socket) return
         this.log('peer left — listening for its return')
       }
       return
     } catch (error) {
+      // Superseded mid-flight: this run's failure is history, and announcing
+      // it would knock its successor's live socket back into 'reconnecting'.
+      if (!current()) return
       const message = error instanceof Error ? error.message : String(error)
       this.patch({
         status: this.options.autoReconnect ? 'reconnecting' : 'error',
@@ -321,7 +397,8 @@ export class Tunnel {
   private scheduleReconnect(mode: PairingMode): void {
     if (this.reconnectTimer) return
     this.attempt += 1
-    const base = Math.min(30_000, 500 * 2 ** Math.min(this.attempt, 6))
+    const ceiling = this.options.maxBackoffMs ?? MAX_BACKOFF_MS
+    const base = Math.min(ceiling, 500 * 2 ** Math.min(this.attempt, 6))
     const delay = base / 2 + Math.random() * (base / 2)
     this.log(`reconnecting in ${Math.round(delay)}ms (attempt ${this.attempt})`)
     this.reconnectTimer = setTimeout(() => {
@@ -409,7 +486,7 @@ export class Tunnel {
       this.releaseWaiters()
       if (!this.stopped) {
         this.patch({ status: 'reconnecting', peerPresent: false, session: null })
-        if (this.options.autoReconnect) this.scheduleReconnect('qr')
+        if (this.options.autoReconnect) this.scheduleReconnect(this.mode)
       }
     })
     this.lastInboundAt = Date.now()
@@ -424,13 +501,64 @@ export class Tunnel {
       // the pipe is gone and only a fresh socket will fix it.
       if (Date.now() - this.lastInboundAt > LIVENESS_TIMEOUT_MS) {
         this.log('relay stopped answering — reconnecting')
-        this.patch({ status: 'reconnecting', peerPresent: false, session: null })
-        if (this.options.autoReconnect && !this.stopped) this.scheduleReconnect('qr')
-        this.teardownSocket()
+        this.dropAndDial('the relay stopped answering')
         return
       }
       socket.send(KEEPALIVE_REQUEST)
+      // And hold it to an answer. The silence rule above is the backstop; on
+      // its own it can take the best part of two minutes to fire, because the
+      // window it measures started at the last frame rather than at this ping.
+      this.expectAnswer(socket, PING_ANSWER_MS, 'the relay did not answer its keepalive')
     }, KEEPALIVE_MS)
+  }
+
+  /**
+   * Require something inbound within `withinMs` of now, or declare the socket
+   * dead and dial a fresh one.
+   *
+   * Anything at all counts — the relay's `pong`, a presence notice, a frame
+   * from the peer — because the question is whether the pipe still carries
+   * bytes, not which bytes. One deadline is outstanding at a time: a later
+   * call supersedes an earlier one, which is what lets the wake probe ask the
+   * same question on a much shorter fuse.
+   */
+  private expectAnswer(socket: WebSocket, withinMs: number, reason: string): void {
+    this.clearAnswerDeadline()
+    const before = this.inbound
+    this.answerTimer = setTimeout(() => {
+      this.answerTimer = null
+      if (this.stopped || this.ws !== socket) return
+      if (this.inbound !== before) return
+      this.log(`${reason} — reconnecting`)
+      this.dropAndDial(reason)
+    }, withinMs)
+  }
+
+  private clearAnswerDeadline(): void {
+    if (this.answerTimer) clearTimeout(this.answerTimer)
+    this.answerTimer = null
+  }
+
+  /**
+   * This socket is known dead: replace it now rather than backing off.
+   *
+   * Backoff exists to space out attempts that FAILED. Nothing failed here —
+   * a connection that was working stopped existing — so the ladder is reset
+   * and the dial goes out immediately. If the network really is gone the dial
+   * fails on its own terms and schedules a proper retry from there.
+   */
+  private dropAndDial(reason: string): void {
+    if (this.stopped) return
+    this.patch({ status: 'reconnecting', peerPresent: false, session: null, lastError: reason })
+    this.teardownSocket()
+    // Whatever the old cycle was parked on can never arrive now; released so
+    // it unwinds instead of holding the socket it was waiting for.
+    this.releaseWaiters()
+    if (!this.options.autoReconnect) return
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+    this.reconnectTimer = null
+    this.attempt = 0
+    void this.cycle(this.mode)
   }
 
   private waitForPeer(timeoutMs: number | null = 60_000): Promise<void> {
@@ -510,6 +638,9 @@ export class Tunnel {
   private stopKeepalive(): void {
     if (this.keepaliveTimer) clearInterval(this.keepaliveTimer)
     this.keepaliveTimer = null
+    // The outstanding answer belonged to the socket being retired; left armed
+    // it would fire against its replacement's lastInboundAt.
+    this.clearAnswerDeadline()
   }
 
   // -------------------------------------------------------------- handshake
@@ -595,15 +726,27 @@ export class Tunnel {
     const queued = this.handshakeQueue.shift()
     if (queued) return Promise.resolve(queued)
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.handshakeInbox = null
-        reject(new TunnelError('handshake timed out'))
-      }, timeoutMs)
-      this.handshakeInbox = (message) => {
+      // Only ever clear the slot while it is still OURS — the same identity
+      // guard the socket handlers use, and for the same reason.
+      //
+      // An abandoned handshake leaves its timeout armed: the cycle it belonged
+      // to was replaced (a wake probe, a keepalive that went unanswered, a
+      // retry), and nothing cancels a timer nobody is waiting on any more.
+      // Half a minute later it used to fire and null whatever inbox it found —
+      // by then, its SUCCESSOR's. The reply the successor was waiting for then
+      // arrived to an empty slot, queued behind nobody, and that handshake hung
+      // to its own timeout: thirty seconds of a reconnect that had already
+      // reached the relay and had everything it needed.
+      const inbox = (message: Uint8Array): void => {
         clearTimeout(timer)
-        this.handshakeInbox = null
+        if (this.handshakeInbox === inbox) this.handshakeInbox = null
         resolve(message)
       }
+      const timer = setTimeout(() => {
+        if (this.handshakeInbox === inbox) this.handshakeInbox = null
+        reject(new TunnelError('handshake timed out'))
+      }, timeoutMs)
+      this.handshakeInbox = inbox
     })
   }
 
@@ -613,6 +756,7 @@ export class Tunnel {
     // Every inbound byte, of any kind, is the liveness signal the watchdog
     // reads — keepalive answers, relay notices and real frames alike.
     this.lastInboundAt = Date.now()
+    this.inbound += 1
     if (typeof data === 'string') {
       if (data === KEEPALIVE_RESPONSE) return
       if (data === PEER_PRESENT) {
@@ -883,7 +1027,48 @@ export class Tunnel {
     this.reconnectTimer = null
     this.attempt = 0
     this.log('retrying now')
-    void this.cycle('qr')
+    void this.cycle(this.mode)
+  }
+
+  /**
+   * The app came back. Find out whether this link survived, rather than
+   * assuming either way, and take the shortest route to connected.
+   *
+   * The assumption is what made returning slow. iOS suspends JS mid-flight, so
+   * the socket is torn down by the OS with nobody left running to notice:
+   * `readyState` still says OPEN, the state still says connected, and the
+   * first thing anyone learns is an RPC that never answers. The keepalive
+   * eventually catches it, but "eventually" is one interval plus a timeout
+   * window that started before the app went away — the ten-odd seconds of
+   * nothing that a return sometimes costs.
+   *
+   * So: skip a queued backoff (the user being here is evidence the network is
+   * back), replace a tunnel that is not working on anything, and hold an open
+   * socket to a fast answer. All three are cheap and none of them wait.
+   */
+  refresh(): void {
+    if (this.stopped) return
+    // A retry queued behind a backoff: the wait is now pointless.
+    if (this.reconnectTimer !== null) {
+      this.retryNow()
+      return
+    }
+    const socket = this.ws
+    if (!socket || socket.readyState !== 1) {
+      // A dial or handshake genuinely in flight is left to finish — it is
+      // already the fastest thing available. Anything else has no socket and
+      // nothing queued, which is a tunnel that will never recover by itself.
+      if (this.state.status === 'connecting' || this.state.status === 'handshaking') return
+      this.dropAndDial('woke with no live socket')
+      return
+    }
+    try {
+      socket.send(KEEPALIVE_REQUEST)
+    } catch {
+      this.dropAndDial('the socket refused a keepalive')
+      return
+    }
+    this.expectAnswer(socket, WAKE_ANSWER_MS, 'no answer to the wake probe')
   }
 }
 

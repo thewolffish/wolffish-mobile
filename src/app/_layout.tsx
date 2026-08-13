@@ -41,10 +41,17 @@ import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect } from 'react'
-import { useConnection } from '@/lib/sync/useConnection'
+import { dialStoredPairing, useConnection } from '@/lib/sync/useConnection'
 import { initNotifications } from '@/lib/notifications/push'
 
 SplashScreen.preventAutoHideAsync()
+
+// Before the first render, not after it. A paired phone's slowest moment used
+// to be its own startup: the dial waited for two providers to restore from
+// disk and for React to mount, so the relay round trip began after everything
+// else had finished. Started here it runs alongside them, and the connection
+// is usually up by the time there is a screen to show it on.
+dialStoredPairing()
 
 function AppShell(): React.JSX.Element {
   const { isDark } = useTheme()

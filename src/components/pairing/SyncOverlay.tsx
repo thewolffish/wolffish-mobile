@@ -50,8 +50,14 @@ export function SyncOverlay(): React.JSX.Element | null {
   const escapeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const shownAt = useRef<number | null>(null)
+  /** Kept past the end of the work, so the clock does not jump when the card
+   *  is held open through the minimum-visible floor below. */
+  const [startedAt, setStartedAt] = useState<number | null>(null)
 
   useEffect(() => onSyncActivity(setActivity), [])
+  useEffect(() => {
+    if (activity) setStartedAt(activity.startedAt)
+  }, [activity])
 
   const running = activity !== null
 
@@ -113,8 +119,9 @@ export function SyncOverlay(): React.JSX.Element | null {
   if (!visible || !paired || dismissed) return null
 
   // Held open past the end of the work: say so honestly — full bar, last
-  // step — rather than freezing on whatever was mid-flight.
-  const shown = activity ?? { ratio: 1, step: 'wrapping' as const }
+  // step — rather than freezing on whatever was mid-flight. The clock keeps
+  // the start it had; the wait it is timing is the one the user sat through.
+  const shown = activity ?? { ratio: 1, step: 'wrapping' as const, startedAt }
 
   return (
     <BlockingProgress
@@ -123,6 +130,7 @@ export function SyncOverlay(): React.JSX.Element | null {
       body={t('syncing.body')}
       ratio={shown.ratio}
       detail={t(`syncing.step.${shown.step}`)}
+      since={shown.startedAt}
       escape={
         escapable
           ? {

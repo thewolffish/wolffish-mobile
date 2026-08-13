@@ -53,6 +53,16 @@ export function ConnectingOverlay(): React.JSX.Element | null {
   // Dismissal lasts until the link genuinely comes back, so the overlay
   // cannot reappear over the app the user just chose to keep using.
   const [dismissed, setDismissed] = useState(false)
+  /**
+   * When this outage started — what the card's clock counts from.
+   *
+   * The moment the link was lost, deliberately, not the moment the card
+   * appeared: the card is held back for over a second first, and a counter
+   * reading 0:00 when the app has already been unreachable for two seconds is
+   * wrong about the one number on screen anyone can check against their own
+   * sense of how long they have been waiting.
+   */
+  const [since, setSince] = useState<number | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const escapeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -68,10 +78,14 @@ export function ConnectingOverlay(): React.JSX.Element | null {
       escapeTimer.current = null
       setVisible(false)
       setEscapable(false)
+      setSince(null)
       // A connection that came back re-arms the block for the next outage.
       if (connected) setDismissed(false)
       return
     }
+    // Stamped on the way in, before the appearance delay, and left alone by
+    // every state change the outage goes through afterwards.
+    setSince((current) => current ?? Date.now())
     if (timer.current || visible) return
     timer.current = setTimeout(() => {
       timer.current = null
@@ -106,6 +120,7 @@ export function ConnectingOverlay(): React.JSX.Element | null {
       body={t('connecting.body')}
       ratio={PHASE_RATIO[status] ?? 0.2}
       detail={detail}
+      since={since}
       note={state?.reconnects ? t('connecting.attempts', { count: state.reconnects }) : undefined}
       escape={
         escapable

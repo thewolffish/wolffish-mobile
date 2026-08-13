@@ -11,12 +11,23 @@
  */
 export type SyncStep = 'settings' | 'conversations' | 'wrapping'
 
-export type SyncActivity = { ratio: number; step: SyncStep } | null
+export type SyncActivity = {
+  ratio: number
+  step: SyncStep
+  /**
+   * When the OUTERMOST catch-up started — what the overlay's clock counts
+   * from. Overlapping reconciles keep the first one's stamp rather than each
+   * resetting it, because what the user is waiting on is the wait, not
+   * whichever pull happens to be reporting.
+   */
+  startedAt: number
+} | null
 
 let activity: SyncActivity = null
 /** Reconciles can overlap — two connections in quick succession. The overlay
  *  must clear when the last one finishes, not the first. */
 let depth = 0
+let startedAt = 0
 const listeners = new Set<(activity: SyncActivity) => void>()
 
 function publish(next: SyncActivity): void {
@@ -44,14 +55,18 @@ export function beginSync(): {
   end: () => void
 } {
   depth += 1
-  if (depth === 1) publish({ ratio: 0.08, step: 'settings' })
+  if (depth === 1) {
+    startedAt = Date.now()
+    publish({ ratio: 0.08, step: 'settings', startedAt })
+  }
   return {
     step: ({ settings, conversations }) => {
       if (depth === 0) return
       const finished = (settings ? 1 : 0) + (conversations ? 1 : 0)
       publish({
         ratio: 0.08 + 0.92 * (finished / 2),
-        step: finished === 2 ? 'wrapping' : settings ? 'conversations' : 'settings'
+        step: finished === 2 ? 'wrapping' : settings ? 'conversations' : 'settings',
+        startedAt
       })
     },
     end: () => {

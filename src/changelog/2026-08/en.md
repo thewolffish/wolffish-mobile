@@ -1,4 +1,18 @@
-## v1.0.34 — 2026-08-12 `Latest`
+## v1.0.35 — 2026-08-13 `Latest`
+
+### Coming Back to the App Is Instant Again
+
+Leaving the app and returning could cost you ten seconds of a screen that looked connected and did nothing. iOS quietly drops the connection while the app is asleep, and the app had no way to tell a link that survived from one that had already gone — so it trusted the connection it had and waited for a slow safety check to notice, and how long that took depended on nothing more useful than how long you had been away. It now **asks the connection to prove it is alive** the moment you come back, and replaces it within **two seconds** if it cannot. Opening the app is quicker too: it starts reaching for your desktop **while the app is still starting up** rather than after, and when a reconnect does have to wait between attempts, it now waits **seconds rather than half a minute**.
+
+### Changing Networks No Longer Strands the App
+
+Walking out of Wi-Fi range onto mobile data was the one case nothing could see: the app never closes, you never touch anything, and the connection is dead the instant the network underneath it changes — yet everything keeps reporting that all is well. The app now **watches for the network moving** and reconnects the moment it does, so a handover costs a couple of seconds instead of the best part of a minute.
+
+### The Waiting Card Says How Long — and Shows Up Everywhere
+
+When reconnecting or syncing does take a moment, the card that says so now **pulses while it works** and **counts the seconds**, so you can tell a blink apart from a real outage instead of watching a bar that never moves. It also appears **over every screen**: with a panel open — the conversation list, a picker, a settings dialog — it used to say nothing at all, on the one occasion the app most needed to speak.
+
+## v1.0.34 — 2026-08-12
 
 ### Notifications Find Your iPhone Again
 
