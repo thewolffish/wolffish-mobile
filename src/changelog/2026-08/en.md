@@ -1,4 +1,10 @@
-## v1.0.35 — 2026-08-13 `Latest`
+## v1.0.36 — 2026-08-14 `Latest`
+
+### Your Appearance Choice Survives a Language Switch
+
+Changing the app's language could bring it back in your phone's colours rather than your own. With **Light** chosen on a phone set to dark, switching to Arabic returned a **dark** app — and the Appearance screen still showed Light selected, so nothing looked wrong except everything you could see. Switching languages restarts the app, and on the way back it told the system which scheme to draw; but the system was already holding that scheme from a moment earlier, so it had nothing to report back, and the app went on painting the one your phone prefers. It now **confirms that the scheme it asked for is the one actually showing**, and puts it right before the app appears — so your choice comes back with your language, and **Light stays light**.
+
+## v1.0.35 — 2026-08-13
 
 ### Coming Back to the App Is Instant Again
 
