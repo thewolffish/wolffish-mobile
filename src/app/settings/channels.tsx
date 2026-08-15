@@ -36,6 +36,14 @@ export default function ChannelsScreen(): React.JSX.Element {
           label={t('settings.verbose.label')}
           description={t('settings.verbose.description')}
         />
+        {/* The desktop's floating automation cards — that machine's screen,
+            edited from here. This phone's own copy of the question lives in
+            the section below, because the two are answered differently. */}
+        <ConfigSwitchRow
+          field="inappRunCards"
+          label={t('settings.channels.runCards')}
+          description={t('settings.channels.runCardsDesktopDescription')}
+        />
       </Section>
 
       {/* This device, as the desktop's Mobile panel sees it — the same two
@@ -54,6 +62,14 @@ export default function ChannelsScreen(): React.JSX.Element {
           field="mobileVerbose"
           label={t('settings.channels.taskResults')}
           description={t('settings.channels.taskResultsDescription')}
+        />
+        {/* Whether a run on the desktop cards over THIS phone. Off by
+            default: the pushes still arrive, the Automations screen still
+            shows what ran — only the interruption goes away. */}
+        <ConfigSwitchRow
+          field="mobileRunCards"
+          label={t('settings.channels.runCards')}
+          description={t('settings.channels.runCardsPhoneDescription')}
         />
       </Section>
 

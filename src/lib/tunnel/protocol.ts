@@ -684,7 +684,13 @@ export type AutomationJob = {
  * Both sides need the same rule, so `kind` states it rather than leaving each
  * renderer to sniff the string.
  */
-export const OVERLAY_KINDS = ['automation', 'compaction', 'reflection', 'reindex'] as const
+export const OVERLAY_KINDS = [
+  'automation',
+  'compaction',
+  'reflection',
+  'procedure',
+  'reindex'
+] as const
 export type OverlayKind = (typeof OVERLAY_KINDS)[number]
 
 /** One in-flight run. `body` reads per `kind` — see OverlayKind. */

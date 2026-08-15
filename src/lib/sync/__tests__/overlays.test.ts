@@ -144,6 +144,58 @@ describe('composing the stack', () => {
     expect(composeOverlays(pool([], queued), null).queued).toEqual(queued)
   })
 
+  it('drops a family whose cards are switched off — card, queue row and count', () => {
+    // Off is not "shown smaller": a hidden run must not survive as a "+1 more"
+    // the user cannot open, or the strip becomes the interruption instead.
+    const { active, queued, hidden } = composeOverlays(
+      pool(
+        [
+          run('auto', { kind: 'automation', startedAt: 1 }),
+          run('daily', { kind: 'compaction', startedAt: 2 }),
+          run('nightly', { kind: 'reflection', startedAt: 3 })
+        ],
+        [{ id: 'q', label: 'Weekly', kind: 'automation' as const, queuedAt: 5 }]
+      ),
+      null,
+      { automation: false, compaction: true, reflection: false }
+    )
+    expect(active.map((overlay) => overlay.id)).toEqual(['daily'])
+    expect(queued).toEqual([])
+    expect(hidden).toBe(0)
+  })
+
+  it('lets a procedure run ride the automations switch', () => {
+    const pooled = pool([
+      run('proc', { kind: 'procedure', startedAt: 1 }),
+      run('auto', { kind: 'automation', startedAt: 2 })
+    ])
+    const on = composeOverlays(pooled, null, {
+      automation: true,
+      compaction: false,
+      reflection: false
+    })
+    expect(on.active.map((overlay) => overlay.id)).toEqual(['proc', 'auto'])
+    const off = composeOverlays(pooled, null, {
+      automation: false,
+      compaction: true,
+      reflection: true
+    })
+    expect(off.active).toEqual([])
+  })
+
+  it('never hides the reindex — it has no switch', () => {
+    const { active } = composeOverlays(
+      pool([run('auto')]),
+      { startedAt: 0, done: 1, total: 2 },
+      {
+        automation: false,
+        compaction: false,
+        reflection: false
+      }
+    )
+    expect(active.map((overlay) => overlay.id)).toEqual(['reindex'])
+  })
+
   it('carries the prompt and mode onto the card', () => {
     const [card] = composeOverlays(
       pool([run('a', { body: 'Summarise the day', mode: 'workflow', kind: 'reflection' })]),

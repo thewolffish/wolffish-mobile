@@ -8,6 +8,7 @@ import {
   PulsingIcon
 } from '@/components/overlays/OverlayChrome'
 import { useOverlayStack, type ActiveOverlay } from '@/lib/sync/overlays'
+import { useConfigValue } from '@/state/demoConfig'
 import { cn } from '@/lib/utils/cn'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -37,7 +38,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
  * which is what they already do under the discs.
  */
 export function ActiveOverlays(): React.JSX.Element | null {
-  const { active, queued, hidden } = useOverlayStack()
+  // Which families may interrupt this phone, from the mirrored desktop config.
+  // All three ship OFF: the automations switch is this device's own, while
+  // compaction and reflection each carry one switch both devices obey. A
+  // reindex has no switch — it is the one thing that blocks the desktop
+  // outright, and a phone left guessing why nothing responds is worse.
+  const { active, queued, hidden } = useOverlayStack({
+    automation: useConfigValue('mobileRunCards'),
+    compaction: useConfigValue('compactionCards'),
+    reflection: useConfigValue('reflectionCards')
+  })
   const [openId, setOpenId] = useState<string | null>(null)
   const insets = useSafeAreaInsets()
 

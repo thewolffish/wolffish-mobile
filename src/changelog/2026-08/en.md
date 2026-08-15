@@ -1,4 +1,14 @@
-## v1.0.36 — 2026-08-14 `Latest`
+## v1.0.37 — 2026-08-16 `Latest`
+
+### The Floating Run Card Is Now Yours to Switch Off
+
+When something runs on your desktop — one of your automations, the nightly reflection, the daily tidy-up of its memory — a live card floats over whatever screen you are on and counts it out. Welcome when you asked for the run; less so at three in the morning, for housekeeping you never think about. Every family of run now carries **its own switch**, and they all **start off**: automations and procedures on **Settings → Channels**, compaction and reflection on **Settings → Knowledge**. Off hides the card and **nothing else** — the run happens on the same schedule, the notifications you asked for still arrive, and the Automations and Knowledge screens still report exactly what ran and when. The one card that never hides is the **memory index rebuild**, because that one really does block the desktop, and a phone left guessing why nothing answers is worse than a card. The desktop's own card has a switch here too, on the same screen: **your desk and your pocket are asked separately**, because a card worth having on one is not automatically worth having on the other.
+
+### Procedures Card Like Everything Else
+
+A **procedure** — a prompt you saved and run in the background — used to pass over the phone without a trace. It now appears in the same stack as everything else, **showing the prompt it is running**, under the same switch automations use: whether something is running for you is one question, not two. And the **Automations** screen no longer mistakes one for the other — a procedure that happened to share a name with one of your automations used to light that automation up as **running** when it was doing nothing at all.
+
+## v1.0.36 — 2026-08-14
 
 ### Your Appearance Choice Survives a Language Switch
 

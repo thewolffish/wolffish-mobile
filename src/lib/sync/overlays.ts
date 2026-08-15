@@ -40,7 +40,7 @@ import { create } from 'zustand'
 /** How many cards the stack shows at once. See composeOverlays for the rest. */
 export const MAX_OVERLAYS = 3
 
-const RUN_KINDS = ['automation', 'compaction', 'reflection'] as const
+const RUN_KINDS = ['automation', 'compaction', 'reflection', 'procedure'] as const
 type RunKind = (typeof RUN_KINDS)[number]
 
 /**
@@ -231,6 +231,27 @@ export async function seedOverlays(): Promise<void> {
 // ---------------------------------------------------------------- composing
 
 /**
+ * Which run families draw a card here, out of the desktop's config: the
+ * automations switch is this phone's own (`mobile.runCards`) and covers
+ * procedure runs too, while compaction and reflection each carry one switch
+ * that both devices obey. Every one of them ships OFF — see composeOverlays.
+ */
+export type OverlayVisibility = {
+  /** Automations AND procedure runs — one switch, because to the person
+   *  watching they are one question: is something running for me. */
+  automation: boolean
+  compaction: boolean
+  reflection: boolean
+}
+
+/** No filter at all — what an unfiltered compose means, and the tests' case. */
+export const ALL_OVERLAYS_VISIBLE: OverlayVisibility = {
+  automation: true,
+  compaction: true,
+  reflection: true
+}
+
+/**
  * The run pool and the reindex, as one ordered stack.
  *
  * Reindex leads because it is the only one that blocks the desktop outright —
@@ -243,8 +264,22 @@ export async function seedOverlays(): Promise<void> {
  * The cap here is the phone's own: three rows is what fits above the fold
  * without the stack becoming the screen. What it leaves out is counted rather
  * than dropped silently — `hidden` is what the queue strip owns up to.
+ *
+ * `visible` is the user's answer to "which of these do I want interrupting
+ * me", and every family is off by default — a phone that lit up nightly for
+ * the desktop's own housekeeping was the whole complaint. A run switched off
+ * is filtered out ENTIRELY: not carded, not queued, not counted in `hidden`,
+ * because a strip announcing "1 more" that can never be opened is the same
+ * interruption wearing a smaller coat. The reindex has no switch — it is the
+ * one that blocks the desktop outright.
  */
-export function composeOverlays(runs: AutomationRuns, reindex: ReindexStatus | null): OverlayStack {
+export function composeOverlays(
+  runs: AutomationRuns,
+  reindex: ReindexStatus | null,
+  visible: OverlayVisibility = ALL_OVERLAYS_VISIBLE
+): OverlayStack {
+  const shown = (kind: RunKind): boolean =>
+    kind === 'procedure' ? visible.automation : visible[kind]
   const all: ActiveOverlay[] = []
   if (reindex) {
     all.push({
@@ -255,7 +290,9 @@ export function composeOverlays(runs: AutomationRuns, reindex: ReindexStatus | n
       total: reindex.total
     })
   }
-  for (const run of [...runs.running].sort((a, b) => a.startedAt - b.startedAt)) {
+  for (const run of [...runs.running]
+    .filter((run) => shown(run.kind))
+    .sort((a, b) => a.startedAt - b.startedAt)) {
     all.push({
       kind: run.kind,
       id: run.id,
@@ -267,21 +304,32 @@ export function composeOverlays(runs: AutomationRuns, reindex: ReindexStatus | n
   }
   return {
     active: all.slice(0, MAX_OVERLAYS),
-    queued: runs.queued,
+    queued: runs.queued.filter((entry) => shown(entry.kind)),
     hidden: Math.max(0, all.length - MAX_OVERLAYS)
   }
 }
 
 /**
- * The stack, for the one component that draws it.
+ * The stack, for the one component that draws it — given which families the
+ * user allows to interrupt them. The switches are READ by the caller (they
+ * live in the mirrored desktop config, which this module deliberately does not
+ * import: overlays stay pure wire-folding), so a flip made on either device
+ * lands on the very next render, including for runs already in flight.
  *
  * The two slices are selected separately and composed in a memo rather than
  * composed inside the selector: a selector that builds a new array on every
  * call has no stable snapshot for useSyncExternalStore to compare, and React
  * says so at runtime.
  */
-export function useOverlayStack(): OverlayStack {
+export function useOverlayStack(visible: OverlayVisibility): OverlayStack {
   const runs = useOverlayStore((state) => state.runs)
   const reindex = useOverlayStore((state) => state.reindex)
-  return useMemo(() => composeOverlays(runs, reindex), [runs, reindex])
+  const { automation, compaction, reflection } = visible
+  // Destructured into the dep list rather than depending on the object: the
+  // caller reads three switches off the config store and builds the record
+  // inline, so its identity changes on every render and would defeat the memo.
+  return useMemo(
+    () => composeOverlays(runs, reindex, { automation, compaction, reflection }),
+    [runs, reindex, automation, compaction, reflection]
+  )
 }

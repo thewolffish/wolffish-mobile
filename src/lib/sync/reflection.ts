@@ -26,6 +26,8 @@ import { refreshConfigSnapshot, useDemoConfig, type DemoConfigValues } from '@/s
 export type ReflectionPatch = {
   hour?: number
   quietHours?: number
+  /** Whether a running reflection draws its floating card, on both surfaces. */
+  cards?: boolean
   scoring?: Partial<{ inapp: boolean; telegram: boolean; whatsapp: boolean }>
 }
 
@@ -33,6 +35,7 @@ export type ReflectionPatch = {
 type ReflectionAnswer = {
   hour?: unknown
   quietHours?: unknown
+  cards?: unknown
   scoring?: { inapp?: unknown; telegram?: unknown; whatsapp?: unknown }
 }
 
@@ -49,6 +52,7 @@ const SCORING_KEY: Record<ScoringSurface, keyof DemoConfigValues> = {
 const REFLECTION_KEYS: ReadonlyArray<keyof DemoConfigValues> = [
   'reflectionHour',
   'reflectionQuietHours',
+  'reflectionCards',
   'reflectionScoringInapp',
   'reflectionScoringTelegram',
   'reflectionScoringWhatsapp'
@@ -59,6 +63,7 @@ function patchKeys(patch: ReflectionPatch): Array<keyof DemoConfigValues> {
   const keys: Array<keyof DemoConfigValues> = []
   if (patch.hour !== undefined) keys.push('reflectionHour')
   if (patch.quietHours !== undefined) keys.push('reflectionQuietHours')
+  if (patch.cards !== undefined) keys.push('reflectionCards')
   for (const surface of SCORING_SURFACES) {
     if (patch.scoring?.[surface] !== undefined) keys.push(SCORING_KEY[surface])
   }
@@ -71,6 +76,7 @@ function mergePatch(base: ReflectionPatch, next: ReflectionPatch): ReflectionPat
     ...base,
     ...(next.hour !== undefined ? { hour: next.hour } : {}),
     ...(next.quietHours !== undefined ? { quietHours: next.quietHours } : {}),
+    ...(next.cards !== undefined ? { cards: next.cards } : {}),
     ...(base.scoring || next.scoring ? { scoring: { ...base.scoring, ...next.scoring } } : {})
   }
 }
@@ -80,6 +86,7 @@ function applyAnswer(answer: ReflectionAnswer): void {
   const { setValue } = useDemoConfig.getState()
   if (typeof answer.hour === 'number') setValue('reflectionHour', answer.hour)
   if (typeof answer.quietHours === 'number') setValue('reflectionQuietHours', answer.quietHours)
+  if (typeof answer.cards === 'boolean') setValue('reflectionCards', answer.cards)
   for (const surface of SCORING_SURFACES) {
     const flag = answer.scoring?.[surface]
     if (typeof flag === 'boolean') setValue(SCORING_KEY[surface], flag)

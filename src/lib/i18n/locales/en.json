@@ -111,6 +111,9 @@
       "notificationsDescription": "Lets the agent send a push notification to your paired phone with its notify_phone tool — when a run finishes, fails, or needs you. Nothing is ever sent automatically; the agent has to deliberately call the tool, and Off makes that tool refuse.",
       "taskResults": "Task results",
       "taskResultsDescription": "Off keeps the phone's feed clean: assistant messages, file-bearing results and errors. On relays every tool call and activity. Connection logging is always on and is not affected by this.",
+      "runCards": "Run cards",
+      "runCardsDesktopDescription": "Show a live card over the desktop app while one of your automations or procedures runs. Off (the default) keeps that screen quiet — the run still happens and still reports on its own page.",
+      "runCardsPhoneDescription": "Show a live card on this phone while one of your automations or procedures runs on the desktop. Off (the default) keeps the phone quiet — nothing about the run itself changes.",
       "enabled": "Enabled",
       "telegramDescription": "Bridge runs on your desktop.",
       "whatsappDescription": "Bridge runs on your desktop.",
@@ -235,6 +238,12 @@
       "weeklyTitle": "Weekly consolidation",
       "weeklyDay": "Day",
       "weeklyHour": "Hour",
+      "cards": {
+        "title": "Run cards",
+        "description": "Show a live card — over the chat on the desktop, and over whatever screen this phone is on — while one of these runs. Off (the default) hides the card only; both still run on the schedules above.",
+        "compaction": "Compaction",
+        "reflection": "Reflection"
+      },
       "lastRun": {
         "dailyTitle": "Last daily run",
         "weeklyTitle": "Last weekly run",
@@ -1223,6 +1232,7 @@
       "automation": "Automation",
       "compaction": "Compaction",
       "reflection": "Reflection",
+      "procedure": "Procedure",
       "reindex": "Rebuilding memory index"
     },
     "openHint": "Opens the full prompt",

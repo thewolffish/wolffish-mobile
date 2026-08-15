@@ -118,8 +118,15 @@ export default function AutomationsScreen(): React.JSX.Element {
    */
   const busyByLabel = useMemo(() => {
     const map = new Map<string, 'running' | 'queued'>()
-    for (const run of data?.runs.running ?? []) map.set(run.label, 'running')
-    for (const run of data?.runs.queued ?? []) if (!map.has(run.label)) map.set(run.label, 'queued')
+    // Procedure runs share the pool and now ride the wire too (they are
+    // carded under the automations switch) — but they are not headings in
+    // this file, so a label collision must not light up somebody else's row.
+    for (const run of data?.runs.running ?? []) {
+      if (run.kind !== 'procedure') map.set(run.label, 'running')
+    }
+    for (const run of data?.runs.queued ?? []) {
+      if (run.kind !== 'procedure' && !map.has(run.label)) map.set(run.label, 'queued')
+    }
     return map
   }, [data?.runs])
 

@@ -3,6 +3,7 @@ import {
   AiMagicIcon,
   BrainIcon,
   Database02Icon,
+  PlayIcon,
   type IconProps
 } from '@/components/core/icons'
 import type { ActiveOverlay } from '@/lib/sync/overlays'
@@ -76,6 +77,13 @@ export const OVERLAY_TONES: Record<ActiveOverlay['kind'], OverlayTone> = {
     tint: 'text-sky-600 dark:text-sky-400',
     fill: 'bg-sky-500'
   },
+  procedure: {
+    icon: PlayIcon,
+    disc: 'bg-teal-500/15',
+    halo: 'bg-teal-500/20',
+    tint: 'text-teal-600 dark:text-teal-400',
+    fill: 'bg-teal-500'
+  },
   reindex: {
     icon: Database02Icon,
     disc: 'bg-indigo-500/15',
@@ -111,7 +119,9 @@ export function overlayDetail(overlay: ActiveOverlay, t: (key: string) => string
   if (overlay.kind === 'reindex') return ''
   const body = overlay.body.trim()
   if (!body) return ''
-  return overlay.kind === 'automation' ? body : t(body)
+  // A procedure's body is a saved prompt, the same as an automation's; only
+  // the two built-in families carry an i18n key.
+  return overlay.kind === 'automation' || overlay.kind === 'procedure' ? body : t(body)
 }
 
 /** mm:ss, growing an hours field only once there is one. */
