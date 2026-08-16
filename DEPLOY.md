@@ -11,6 +11,7 @@ There are two, and the whole procedure exists to pick correctly between them:
 | Bumps | `APP_VERSION` | `APP_VERSION` **and** `CODE_VERSION` |
 | Tags | `vX.Y.Z` — fires the Release workflow | Nothing |
 | Undo | `npm run rollback` (the user's lever) | Nothing to undo |
+| Notes you author | In-app changelog only | In-app changelog **+ store notes** (App Store “What's New” · Play release notes) |
 | Left for the user | Nothing | EAS build → submit → `npm run release` |
 
 **`ota` is a publish.** It reaches users before anyone can look at it again. `provision` reaches no one. That asymmetry drives every rule below.
@@ -27,9 +28,10 @@ Follow the steps **in order**. If anything looks wrong, **stop and report** (see
 - **Never run `npm run release` or `npm run rollback`.** `release` asserts a store build passed review — you cannot know that. `rollback` is the emergency lever for an OTA that went wrong, and the user pulls it.
 - **Never run `eas` yourself** beyond the read-only `eas build:list` in step 4, and **never create or push a tag by hand.** `ota` publishes and tags on its own; hand-driving either is how a tag ends up pointing at a tree that was never built.
 - **Never edit the version by hand.** `APP_VERSION`, `CODE_VERSION` and `UPDATE_DATE` in `app.config.ts`, `version` in `package.json` / `package-lock.json`, and the **README version badge** are all written by whichever script you run. You write no version anywhere.
-- **The changelog is the one thing you author**, and it is **this app's own** changelog — `src/changelog/<YYYY-MM>/en.md` and `ar.md`, bundled into the binary and read by the Changelog screen. It is not the paired desktop's notes, which the app fetches separately over the tunnel and which are none of this repo's business.
+- **The release notes are the one thing you author** — the changelog on both paths, plus the store notes on `provision` — and the changelog is **this app's own** changelog — `src/changelog/<YYYY-MM>/en.md` and `ar.md`, bundled into the binary and read by the Changelog screen. It is not the paired desktop's notes, which the app fetches separately over the tunnel and which are none of this repo's business.
 - **Nothing is committed until the changelog entries exist.** A user-facing batch that reaches `main` without them ships a version the app cannot describe — and on the OTA path that version is already on phones by the time anyone notices.
 - **Both changelog languages, always.** AR is a full translation, not a stub.
+- **A `provision` also needs store notes; an `ota` never does.** A provisioned version is going through App Store review and a Play rollout, and both submission forms have a notes field the user fills in by hand — so `store/v<X.Y.Z>/` gets two plain-text files (step 5). An OTA is submitted to no one: writing store notes on that path invents a submission that will never happen. This is the only asymmetry in what you author between the two paths.
 - **A new month needs a code change too.** `src/lib/changelog/index.ts` holds a `PAGES` registry of **static** imports — Metro cannot glob a folder, so a new `src/changelog/<YYYY-MM>/` directory that isn't registered there ships as a month the app cannot read.
 - **Commit everything before you ship.** Both scripts refuse a dirty working tree, and their own commit deliberately carries nothing but the bump — so your work has to already be a commit of its own.
 - **Stay on `main`.** No branches.
@@ -129,9 +131,20 @@ Gate A is blind to `src/`, and that is where the batch's actual risk lives. Any 
 
 Both gates clean → **`ota`**. Anything else → **`provision`**. Write the decision and the reason down now; step 8 has you report it, and a reason invented after the command ran is not a reason.
 
-### 5. Write the changelog entries (EN + AR)
+### 5. Write the release notes
 
-Only reach this step if steps 2 and 3 came back clean and the batch has user-facing changes. Step 4 does not gate this one — it chose *which* command runs, not *whether* one does, and the version is a patch bump either way, so the entry you write is identical on both paths.
+Only reach this step if steps 2 and 3 came back clean and the batch has user-facing changes.
+
+Two audiences, and step 4 decides how many of them you write for:
+
+| | Who reads it | Which path |
+|---|---|---|
+| **In-app changelog** — `src/changelog/<YYYY-MM>/{en,ar}.md` | Someone already using the app, on the Changelog screen | **Both** |
+| **Store notes** — `store/v<X.Y.Z>/*.txt` | Someone looking at the App Store or Play listing, deciding whether to update | **`provision` only** |
+
+The changelog is the same entry on either path — step 4 chose *which* command runs, not *whether* one does, and the version is a patch bump regardless. The store notes exist only because a provisioned build gets submitted; write them second, from the changelog you just wrote.
+
+#### 5a. The in-app changelog (EN + AR) — both paths
 
 1. **Compute the next version:** a patch bump of `APP_VERSION` in `app.config.ts`. If it says `1.0.20`, the release is **`1.0.21`**. You are writing the notes *ahead* of a bump the script will make — that is why the version isn't in the file yet.
 2. **Pick the changelog folder** by today's date: `src/changelog/<YYYY-MM>/`. New month → create `en.md` and `ar.md`, **and** add the static imports plus a `PAGES` entry in `src/lib/changelog/index.ts`.
@@ -144,9 +157,74 @@ Only reach this step if steps 2 and 3 came back clean and the batch has user-fac
 4. Use today's real date, and keep EN and AR in lockstep.
 5. **If an entry for this version already exists** (an earlier pass wrote one and more work has since landed), append `### Headline` sections to that same block and refresh its header date to today. Never open a second block for one version.
 
+#### 5b. The store notes (App Store + Play) — `provision` only
+
+**Skip this whole subsection on the OTA path.** No submission is happening, no form is waiting for text, and a `store/` folder for a version that only ever went over the air is a lie in the repo.
+
+On the `provision` path, write two files under `store/v<X.Y.Z>/` — same version step 5a used, the one `provision` is about to bump to:
+
+| File | Goes in | Hard limit |
+|---|---|---|
+| `apple-en.txt` | App Store Connect → the new version → **What's New in This Version** | 4,000 characters |
+| `play-en.txt` | Play Console → the release → **Release notes**, inside the `<en-US>` tags | **500 characters** |
+
+**English only — this is the one place the app's two languages don't both apply.** The in-app changelog is EN + AR because the app is; the store listings are English, so there is no Arabic field to fill and no `*-ar.txt` here. If a listing ever gains an Arabic localization, it takes an `apple-ar.txt` / `play-ar.txt` in the same shape, under the same limits.
+
+`.txt`, one block per file, no front matter and no filename header inside the file — the file *is* the paste. The folder is created on the first provision that needs it; nothing in the build reads it, it is a handover artifact for the user at submission time, and it stays in git as the record of what each shipped build actually claimed.
+
+**Rules both stores share**
+
+- **Plain text. Neither store renders Markdown.** `**bold**` arrives as literal asterisks, `###` as literal hashes. Blank lines between paragraphs and a leading `• ` on a list line are the only formatting either field has.
+- **Say only what the changelog says.** These are a compression of the step-5a entry, not a second act of authorship — no headline the changelog doesn't cover, no change the batch doesn't contain.
+- **Write for someone who has not opened the app today.** No file names, no `SCHEMA_VERSION`, no repo or build vocabulary, no "OTA", no version number in the body (both stores print it above the text), no links, no ratings pleas.
+- **Nothing user-facing in the batch** (a native-only provision: a dependency bump, an icon, a config plugin) is the one case a generic line is correct and honest — "Stability and performance improvements." Apple's guideline 2.3.12 allows a generic description for exactly that and nothing more.
+
+**`apple-en.txt` — the App Store's house style**
+
+- Lead with the single change a user would notice, in the **first sentence**: the listing truncates What's New behind a **more** link after a couple of lines, and most readers never open it.
+- Then one short paragraph per further notable change, benefit first, present tense, addressed to the reader — the changelog's voice with the explanation cut out. Two to four paragraphs, roughly 400–800 characters, is the shape that reads well; 4,000 is the ceiling, not the target.
+- **Guideline 2.3.12** — *"Apps must clearly describe new features and product changes in their 'What's New' text. Simple bug fixes, security updates, and performance improvements may rely on a generic description, but more significant changes must be listed in the notes."* A batch with real features that ships "Bug fixes and improvements" is not just a wasted field; it is rejectable metadata.
+- **Guideline 2.3.10:** Apple metadata may not name other mobile platforms or app marketplaces. Never let a line about Android or Google Play cross over from `play-en.txt` into this one. The paired **desktop app** is not another mobile platform and is fine to name.
+- Nothing about beta, TestFlight, pricing, or anything "coming soon" — the notes describe this version as submitted.
+
+**`play-en.txt` — Play's house style**
+
+- **500 Unicode characters, spaces and newlines counted** (the limit is per language; English is the only one). It is the binding constraint on this whole step — exceeding it fails the console's own validation — so write the Apple block first and cut it down to this one, rather than writing to 500 and finding the App Store text has nothing left to say.
+- Three to five lines, each opening `• `, most important first — the listing card shows roughly the first two lines before **Read more**.
+- One clause per line, no sub-bullets, no HTML, no emoji as decoration. Play's metadata policy wants release notes descriptive, not promotional: no "Download now", no comparisons, no calls to action.
+
+**What each one looks like** — the same batch (the v1.0.37 changelog above), compressed twice. `apple-en.txt`:
+
+```text
+The floating card that appears while something runs on your desktop is now yours to switch off. Automations and procedures have a switch on Settings > Channels; compaction and reflection have one on Settings > Knowledge. All of them start off.
+
+Switching a card off hides the card and nothing else: the run happens on the same schedule, the notifications you asked for still arrive, and the Automations and Knowledge screens still show exactly what ran and when.
+
+Procedures now appear in the same stack as everything else, showing the prompt they are running. An automation that shared a name with a procedure no longer lights up as running when it isn't.
+```
+
+`play-en.txt` — same story, four lines, comfortably inside 500:
+
+```text
+• Live run cards now have a switch per family: automations and procedures on Settings > Channels, compaction and reflection on Settings > Knowledge. All start off.
+• Switching one off hides the card only. Runs keep their schedule, notifications still arrive, and the Automations and Knowledge screens still report every run.
+• Procedures now show up in the run stack with the prompt they are running.
+• Fixed: an automation sharing a name with a procedure showed as running when it wasn't.
+```
+
+**Check the lengths before committing** — the stores count characters, not bytes, and the `•` alone is three bytes each time, so `wc -c` can tell you a Play block is over when it isn't:
+
+```bash
+for f in store/v1.0.38/*.txt; do
+  node -e "console.log([...require('fs').readFileSync(process.argv[1],'utf8').trimEnd()].length, process.argv[1])" "$f"
+done
+```
+
+**If a provisioned version never shipped** — it happens; releases are 1:N with provisions — its `store/v<X.Y.Z>/` stays where it is as history, and the notes for the version that *does* get submitted must cover that skipped build's changes too. Users never saw it, so from the store's side those changes are landing now. Say so in the report.
+
 ### 6. Commit and push the work
 
-1. **One regular commit** with everything: source changes (including step-2 formatting fixes) + changelog EN/AR + any `PAGES` registration. Concise message summarizing the headline change (e.g. `add: turn rating, conversations sheet`).
+1. **One regular commit** with everything: source changes (including step-2 formatting fixes) + changelog EN/AR + any `PAGES` registration +, on the `provision` path, the two `store/v<X.Y.Z>/*.txt` files. Concise message summarizing the headline change (e.g. `add: turn rating, conversations sheet`). The store notes have to ride *this* commit — `provision` refuses a dirty tree, and its own commit carries nothing but the bump.
 2. **Do not touch `app.config.ts` / `package.json` / `package-lock.json` / the README badge.** Step 7 writes all four.
 3. Confirm the tree is clean: `git status` shows nothing to commit — both scripts refuse a dirty tree.
 4. Push:
@@ -165,7 +243,7 @@ npm run ota
 
 It re-runs the three gates on the exact tree it is about to publish, re-runs the fingerprint comparison from gate A, then raises `APP_VERSION` by a patch and stamps `UPDATE_DATE`; mirrors the version into `package.json` / `package-lock.json` and the README badge; commits that as `ota: vX.Y.Z (over build N)`; publishes with `eas update` to the `production` channel; tags `vX.Y.Z`; and pushes commit and tag.
 
-**`CODE_VERSION` is untouched** — the update rides the store build already in users' hands, and the commit message records which one.
+**`CODE_VERSION` is untouched** — the update rides the store build already in users' hands, and the commit message records which one. **No store notes on this path** (step 5b): nothing is being submitted, so there is no What's New field and no Play release to attach notes to.
 
 Three things this sets off, all of them real:
 
@@ -183,7 +261,7 @@ npm run provision
 
 It re-runs the same three gates on the exact tree it is about to bump, then raises `APP_VERSION` by a patch, `CODE_VERSION` by one, and stamps `UPDATE_DATE`; mirrors the version into `package.json` / `package-lock.json` and the README badge; commits that as `provision: vX.Y.Z (build N)`; and pushes it.
 
-**No tag, so nothing publishes.** The release workflow fires on `v*` tags only, and `provision` creates none. The build, the submission and `npm run release` are the user's.
+**No tag, so nothing publishes.** The release workflow fires on `v*` tags only, and `provision` creates none. The build, the submission and `npm run release` are the user's — and the store notes from step 5b are what they paste into the two submission forms, so they must already be committed by now.
 
 A failing gate in either script is a **hard stop**, not something to work around: it means step 2 was run against a different tree than the one being shipped — re-read the diff rather than re-running the command.
 
@@ -196,7 +274,7 @@ Tell the user, briefly:
 - **Which command you ran, and why that one and not the other.** This is the first thing in the report, not the last. Name the deciding evidence: for `ota`, the matching fingerprints from gate A (both platforms, with build numbers) and the fact that gate B was clean; for `provision`, the specific thing that ruled OTA out — the mismatched hash, the native file, the unverified device check.
 - What's in the release, and the version the script created — `vX.Y.Z (build N)` for a provision, `vX.Y.Z (over build N)` for an OTA, straight from its output.
 - **If you published:** say plainly that it is live on every installed phone, and that `npm run rollback` is the user's lever if it turns out wrong.
-- **If you provisioned:** what's left for them — EAS build → submit → `npm run release`.
+- **If you provisioned:** what's left for them — EAS build → submit → `npm run release` — and that the store notes are written and committed at `store/v<X.Y.Z>/`, naming both files and where each one goes (App Store What's New; Play release notes). **Quote both blocks inline in the report** so they can be pasted without opening a file, and give the Play block's character count against the 500 limit. Say if a skipped, never-shipped provision's changes are folded into them.
 - Anything you fixed yourself (formatting), and anything you noted but left alone.
 - What you actually verified on a device.
 
@@ -213,6 +291,8 @@ After a **provision**, the version exists in git and nowhere else, and getting i
 ```
 npm run ios:prod / npm run android:prod  →  submit  →  App Store review  →  npm run release
 ```
+
+At the submission step, the notes are already written: paste `store/v<X.Y.Z>/apple-en.txt` into **What's New in This Version** in App Store Connect, and `store/v<X.Y.Z>/play-en.txt` into the Play release's **Release notes** between the `<en-US>` tags.
 
 Use those npm scripts rather than a bare `eas build`: they run `fix:fingerprint` first, and a bare invocation after a local `npm run android` fails EAS's own runtime-version check for the reason gate A describes.
 
@@ -246,9 +326,11 @@ Do not partially ship, do not work around a flagged issue, and do not decide on 
 | Update date | `app.config.ts` → `UPDATE_DATE` | **No** — the scripts stamp it |
 | npm version mirror | `package.json` → `"version"` | **No** — the scripts write it |
 | Version badge | `README.md` badge line | **No** — the scripts write it |
-| Changelog (English) | `src/changelog/<YYYY-MM>/en.md` | **Yes** — the one thing you author |
+| Changelog (English) | `src/changelog/<YYYY-MM>/en.md` | **Yes** — you author it, both paths |
 | Changelog (Arabic) | `src/changelog/<YYYY-MM>/ar.md` | **Yes** — full translation |
 | Month registry | `src/lib/changelog/index.ts` → `PAGES` | **Yes** — only for a new month |
+| App Store “What's New” | `store/v<X.Y.Z>/apple-en.txt` | **Yes** — `provision` only · EN · ≤ 4,000 chars |
+| Play release notes | `store/v<X.Y.Z>/play-en.txt` | **Yes** — `provision` only · EN · **≤ 500 chars** |
 
 ```bash
 git status && git diff                                                   # 1. see all changes
@@ -258,11 +340,13 @@ diff -r src/lib/tunnel ../wolffish-app/src/main/tunnel                   # 3. sy
 npm run fix:fingerprint                                                  # 4. undo node_modules drift, then …
 #    ship gate: fingerprint local vs shipped store build (both platforms) + the judgment list
 #    both clean -> ota   ·   anything else, or unsure -> provision
-# 5. write src/changelog/<YYYY-MM>/{en,ar}.md   (next = patch bump of APP_VERSION)
-git add -A && git commit -m "<summary>"   # 6. one regular commit, then …
+# 5a. write src/changelog/<YYYY-MM>/{en,ar}.md  (next = patch bump of APP_VERSION) — both paths
+# 5b. provision ONLY: store/v<X.Y.Z>/{apple-en,play-en}.txt   (store listings are English only)
+#     plain text · apple ≤ 4000 chars · play ≤ 500 chars · never on the ota path
+git add -A && git commit -m "<summary>"   # 6. one regular commit (changelog + store notes), then …
 git push origin main                      #    … plain push — no tags, nothing publishes
 npm run ota          # 7a. JS-only + verified: bumps, publishes to every phone, tags, pushes
 npm run provision    # 7b. otherwise: bumps version + build + badge, commits, pushes. No tag.
 ```
 
-**One-line summary:** analyze → run the three checks (formatting: fix yourself; types, tests, code: stop) → run the sync gate if the diff touches the tunnel → **run the ship gate: fingerprints match on every shipped platform *and* nothing in the batch is too risky to land on all phones at once → `ota`; anything else, or any doubt → `provision`** → write this app's own EN+AR changelog → commit and push the work → run the one command the gate chose → report which one and why. `ota` publishes to users and cannot be undone by you; `provision` publishes nothing. `release` and `rollback` stay the user's.
+**One-line summary:** analyze → run the three checks (formatting: fix yourself; types, tests, code: stop) → run the sync gate if the diff touches the tunnel → **run the ship gate: fingerprints match on every shipped platform *and* nothing in the batch is too risky to land on all phones at once → `ota`; anything else, or any doubt → `provision`** → write this app's own EN+AR changelog, plus — on the `provision` path only — the English App Store and Play store notes under `store/v<X.Y.Z>/` → commit and push the work → run the one command the gate chose → report which one and why. `ota` publishes to users and cannot be undone by you; `provision` publishes nothing. `release` and `rollback` stay the user's.
