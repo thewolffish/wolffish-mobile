@@ -16,6 +16,23 @@ Built with React Native and Expo. One codebase, iOS and Android, English and Ara
 
 ---
 
+## Get the app
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://apps.apple.com/us/app/wolffish/id6792797989"><img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" height="56" alt="Download on the App Store" /></a>
+    </td>
+    <td align="center">
+      <a href="https://play.google.com/store/apps/details?id=sh.wolffi.mobile"><img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="83" alt="Get it on Google Play" /></a>
+    </td>
+  </tr>
+</table>
+
+Requires the [Wolffish desktop app](https://github.com/thewolffish/wolffish-app) on your computer to pair with. Or open the app without pairing to explore the built-in demo.
+
+---
+
 ## Watch
 
 <table>
@@ -39,6 +56,7 @@ Built with React Native and Expo. One codebase, iOS and Android, English and Ara
 
 ## Table of Contents
 
+- [Get the app](#get-the-app)
 - [Watch](#watch)
 - [What it does](#what-it-does)
 - [How it connects](#how-it-connects)
@@ -358,6 +376,8 @@ Conversation data never leaves the pair. The relay stores none of it, and there 
 ## Links
 
 - **Website** — [wolffi.sh](https://wolffi.sh)
+- **App Store** — [Wolffish for iOS](https://apps.apple.com/us/app/wolffish/id6792797989)
+- **Google Play** — [Wolffish for Android](https://play.google.com/store/apps/details?id=sh.wolffi.mobile)
 - **Desktop app** — [thewolffish/wolffish-app](https://github.com/thewolffish/wolffish-app)
 - **Documentation** — [docs.wolffi.sh](https://docs.wolffi.sh/)
 - **Discord** — [Join the community](https://discord.com/invite/F5Ue36PzQ)
