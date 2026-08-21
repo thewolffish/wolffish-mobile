@@ -363,39 +363,32 @@ describe('demoConfig reflection', () => {
   beforeEach(() => {
     useDemoConfig.setState({
       reflectionHour: 3,
-      reflectionQuietHours: 12,
-      reflectionScoringInapp: true,
-      reflectionScoringTelegram: true,
-      reflectionScoringWhatsapp: true
+      reflectionQuietHours: 12
     })
   })
 
-  it('ingests the schedule, quiet gate and per-surface scoring', () => {
+  it('ingests the schedule and quiet gate', () => {
     useDemoConfig.getState().applySnapshot({
       ...snapshot(),
       reflection: {
         hour: 2,
-        quietHours: 24,
-        scoring: { inapp: true, telegram: true, whatsapp: false }
+        quietHours: 24
       }
     })
     const state = useDemoConfig.getState()
     expect(state.reflectionHour).toBe(2)
     expect(state.reflectionQuietHours).toBe(24)
-    expect(state.reflectionScoringInapp).toBe(true)
-    expect(state.reflectionScoringWhatsapp).toBe(false)
   })
 
   // A bundle/desktop from before reflection shipped carries no `reflection`
-  // key: the desktop defaults (3 AM / 12 h / all surfaces) must land, and a
-  // stale non-default from a previous sync must not survive the new snapshot.
+  // key: the desktop defaults (3 AM / 12 h) must land, and a stale
+  // non-default from a previous sync must not survive the new snapshot.
   it('falls back to the desktop defaults when the snapshot predates reflection', () => {
-    useDemoConfig.setState({ reflectionHour: 22, reflectionScoringWhatsapp: false })
+    useDemoConfig.setState({ reflectionHour: 22 })
     useDemoConfig.getState().applySnapshot(snapshot())
     const state = useDemoConfig.getState()
     expect(state.reflectionHour).toBe(3)
     expect(state.reflectionQuietHours).toBe(12)
-    expect(state.reflectionScoringWhatsapp).toBe(true)
   })
 
   it('carries the reflection and deep-clean run records beside compaction’s', () => {

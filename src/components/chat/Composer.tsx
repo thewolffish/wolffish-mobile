@@ -9,6 +9,7 @@ import {
   Tick02Icon
 } from '@/components/core/icons'
 import { INPUT_TEXT_ALIGN, WRITING_DIRECTION, rtlPlaceholder } from '@/components/core/Input'
+import { KEYBOARD_DISMISS_BAR_ID, KeyboardDismissBar } from '@/components/core/KeyboardDismissBar'
 import type { ConversationFile } from '@/lib/conversations/types'
 import { pickDocuments, pickMedia, type PickedFile } from '@/lib/files/pickAttachments'
 import { MAX_FILES_PER_MESSAGE, uploadErrorMessage, validateUpload } from '@/lib/files/uploadPolicy'
@@ -27,6 +28,8 @@ import { useTranslation } from 'react-i18next'
 import { Keyboard, Pressable, Text, TextInput, View } from 'react-native'
 import { AttachSheet, AttachmentTray } from '@/components/chat/AttachmentPicker'
 import { ChatControlsPanel, ChatMenuSheet } from '@/components/chat/ChatMenuSheet'
+import { OllamaLogo, ProviderMark } from '@/components/core/providerLogos'
+import { useConfigValue } from '@/state/demoConfig'
 import { PromptEditorModal } from '@/components/chat/PromptEditorModal'
 import { QueuedPromptTray, type QueuedPrompt } from '@/components/chat/QueuedPrompts'
 import { RainbowBorder } from '@/components/chat/RainbowBorder'
@@ -35,11 +38,13 @@ import { useActiveProject, useProjectsWritable } from '@/lib/sync/projects'
 import { useChatRuntime } from '@/state/chatRuntime'
 
 /**
- * The chat composer — desktop grammar mapped to touch: fixed-height surface
- * field flanked by 42.5pt icon buttons, primary arrow-up send, a red stop while
- * streaming, attach and mic on the end cluster, and the rainbow strip on top
- * while a turn runs. Voice flow: idle → recording (pulsing red dot + counter) →
- * send/delete straight from the recording bar.
+ * The chat composer — the desktop's composer card mapped to touch: ONE
+ * bordered card whose top row is the field (or the recording bar swapped into
+ * its place) and whose bottom row carries every control — the menu/project
+ * button and the active-model chip at the start, expand / attach / the
+ * mic-or-send swap and the red stop at the end — under the rainbow strip
+ * while a turn runs. Voice flow: idle → recording (pulsing red dot +
+ * counter) → send/delete straight from the recording bar.
  *
  * The field does NOT grow with the draft, which is where this parts from the
  * desktop textarea: on a phone a composer that climbs the screen takes the
@@ -61,7 +66,7 @@ import { useChatRuntime } from '@/state/chatRuntime'
  * you cannot stop while you are typing the next message would be a trap.
  */
 
-/** The single-line height of the field, and of every button beside it. */
+/** The single-line height of the field row at the top of the card. */
 const ROW_HEIGHT = 42.5
 
 export type ComposerSubmit =
@@ -108,6 +113,17 @@ export function Composer({
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY)
   const recorderState = useAudioRecorderState(recorder, 500)
   const [recording, setRecording] = useState(false)
+
+  // The active model, for the bottom row's chip — read from the same config
+  // mirror the controls sheet's ModelSwitch reads, and resolved by its
+  // active-tab rule: local wins only while local is enabled.
+  const localOnly = useConfigValue('localOnly')
+  const localEnabled = useConfigValue('localEnabled')
+  const localModel = useConfigValue('localModel')
+  const brainProvider = useConfigValue('brainProvider')
+  const brainModel = useConfigValue('brainModel')
+  const localActive = localOnly && localEnabled
+  const activeModelName = (localActive ? localModel : brainModel) || t('settings.model.noModel')
 
   // A file on its own is a message, exactly as it is on the desktop — the
   // prompt is optional once something is attached.
@@ -270,181 +286,218 @@ export function Composer({
       {/* Staged files sit above the input, as they do above the desktop
           textarea — visible, removable, and not yet anywhere but this phone. */}
       {!recording && <AttachmentTray files={files} onRemove={remove} />}
-      <View className="flex-row items-end gap-2 px-3 py-2.5">
-        {/* Faders, not the hamburger the floating chrome uses to open the
-            navigator: this button tunes the turn about to be sent (mode,
-            thinking, model, context), so it reads as controls rather than as a
-            second way out of the chat.
-
-            In project mode this slot becomes the PROJECT button — the project's
-            own emoji instead of the faders, opening a dialog that carries BOTH
-            halves behind one switch: the project (instructions, files, new
-            conversation, close) and the chat controls this glyph opens otherwise.
-            Nothing is lost by the swap. The desktop makes the same swap, on the
-            New-Chat slot its composer has and this one does not. */}
-        {!recording && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              activeProject
-                ? activeProject.title.trim() || t('projects.untitled')
-                : t('chat.menu.title')
-            }
-            onPress={() => (activeProject ? setProjectOpen(true) : setMenuOpen(true))}
-            className="border-border bg-surface h-[42.5px] w-[42.5px] items-center justify-center rounded-lg border active:bg-border/40"
-          >
-            {activeProject ? (
-              <Text className="text-lg leading-6">
-                {activeProject.icon || DEFAULT_PROJECT_ICON}
-              </Text>
-            ) : (
-              <PreferenceVerticalIcon size={18} className="text-fg" />
-            )}
-          </Pressable>
-        )}
-        {recording ? (
-          <View
-            key="recording-bar"
-            className="bg-surface border-border h-[42.5px] flex-1 flex-row items-center gap-3 rounded-lg border px-3"
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('chat.voice.delete')}
-              hitSlop={8}
-              onPress={() => void stopRecording(false)}
-            >
-              <Delete02Icon size={18} className="text-rose-500" />
-            </Pressable>
-            <View className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
-            <Text className="text-fg font-sans-medium flex-1 text-left text-sm">
-              {t('chat.voice.recording')}
-            </Text>
-            <Text className="text-muted font-sans text-sm" style={{ writingDirection: 'ltr' }}>
-              {mmss(recorderState.durationMillis)}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('chat.voice.send')}
-              hitSlop={8}
-              onPress={() => void stopRecording(true)}
-              className="bg-primary h-8 w-8 items-center justify-center rounded-lg active:opacity-90"
-            >
-              <Tick02Icon size={16} color={tokens.primaryFg} />
-            </Pressable>
-          </View>
-        ) : (
-          <View key="compose-field" className="relative flex-1">
-            {/* One row, always. `height` (not minHeight/maxHeight) is the whole
-                point: the field never resizes, so nothing above it moves while
-                typing — the text scrolls within these 42.5pt instead, and the
-                caret is kept in view by the platform. */}
-            <TextInput
-              multiline
-              scrollEnabled
-              value={draft}
-              onChangeText={setDraft}
-              placeholder={rtlPlaceholder(
-                streaming ? t('chat.queue.placeholder') : t('chat.placeholder')
-              )}
-              placeholderTextColor={tokens.muted}
-              selectionColor={tokens.accent}
-              style={[{ height: ROW_HEIGHT }, WRITING_DIRECTION]}
-              className={cn(
-                'bg-surface border-border rounded-lg border px-3 py-2.5 pe-8 font-sans text-sm leading-5',
-                'text-fg',
-                INPUT_TEXT_ALIGN
-              )}
-              accessibilityLabel={streaming ? t('chat.queue.placeholder') : t('chat.placeholder')}
-            />
-            {/* Expand — opens the full-screen draft editor, like the desktop
-                textarea's expand button; vertically centered in the field. */}
-            <View
-              pointerEvents="box-none"
-              className="absolute bottom-0 end-1.5 top-0 justify-center"
-            >
+      <View className="px-3 py-2.5">
+        {/* One surface, the desktop's composer card on touch: the card
+            carries the border and background, the field rides bare in its top
+            row, and every control lives in the bottom row INSIDE it. */}
+        <View className="border-border bg-surface w-full flex-col rounded-lg border">
+          {recording ? (
+            <View key="recording-bar" className="h-[42.5px] flex-row items-center gap-3 px-3">
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t('chat.editor.title')}
-                hitSlop={6}
-                onPress={() => setEditorOpen(true)}
-                className="h-6 w-6 items-center justify-center rounded-md active:bg-border/40"
+                accessibilityLabel={t('chat.voice.delete')}
+                hitSlop={8}
+                onPress={() => void stopRecording(false)}
               >
-                <ArrowExpandIcon size={12} className="text-muted" />
+                <Delete02Icon size={18} className="text-rose-500" />
+              </Pressable>
+              <View className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
+              <Text className="text-fg font-sans-medium flex-1 text-left text-sm">
+                {t('chat.voice.recording')}
+              </Text>
+              <Text className="text-muted font-sans text-sm" style={{ writingDirection: 'ltr' }}>
+                {mmss(recorderState.durationMillis)}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('chat.voice.send')}
+                hitSlop={8}
+                onPress={() => void stopRecording(true)}
+                className="bg-primary h-8 w-8 items-center justify-center rounded-lg active:opacity-90"
+              >
+                <Tick02Icon size={16} color={tokens.primaryFg} />
               </Pressable>
             </View>
-          </View>
-        )}
+          ) : (
+            <View key="compose-field" className="flex-row items-center">
+              {/* One row, always. `height` (not minHeight/maxHeight) is the whole
+                point: the field never resizes, so nothing above it moves while
+                typing — the text scrolls within these pixels instead, and the
+                caret is kept in view by the platform. Bare: the card carries
+                the border and surface the input used to wear. */}
+              <TextInput
+                multiline
+                scrollEnabled
+                value={draft}
+                onChangeText={setDraft}
+                placeholder={rtlPlaceholder(
+                  streaming ? t('chat.queue.placeholder') : t('chat.placeholder')
+                )}
+                placeholderTextColor={tokens.muted}
+                selectionColor={tokens.accent}
+                style={[{ height: ROW_HEIGHT }, WRITING_DIRECTION]}
+                className={cn(
+                  'flex-1 py-2.5 ps-3 pe-3 font-sans text-sm leading-5',
+                  'text-fg',
+                  INPUT_TEXT_ALIGN
+                )}
+                accessibilityLabel={streaming ? t('chat.queue.placeholder') : t('chat.placeholder')}
+                // The dismiss chevron docked above the iPhone keyboard — the
+                // OS gives that keyboard no way down of its own. iOS-only
+                // prop; Android's navigation bar already carries the chevron.
+                inputAccessoryViewID={KEYBOARD_DISMISS_BAR_ID}
+              />
+            </View>
+          )}
 
-        {/* Attach lives in the END cluster, where the desktop puts it — a
-            message action, next to the mic, not a session control. It stays
-            put when the mic becomes send, so a file can be added to a prompt
-            that has already been typed.
-            The media glyph, not a plus: the desktop's attach button carries
-            this exact icon, and a plus is already spoken for on this screen —
-            the header's new-chat control. Two identical glyphs meaning
-            different things is the one thing a composer cannot afford. */}
-        {!recording && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('chat.attach.title')}
-            onPress={() => setAttachOpen(true)}
-            className="border-border bg-surface h-[42.5px] w-[42.5px] items-center justify-center rounded-lg border active:bg-border/40"
-          >
-            <Image02Icon size={18} className="text-fg" />
-          </Pressable>
-        )}
+          {/* The bottom row inside the card — the desktop's grammar with what
+            this screen already has. Start: the controls button (faders — or
+            the PROJECT button in project mode: the project's own emoji,
+            opening the dialog that carries both the project and these
+            controls; the desktop makes the same swap) and the active-model
+            chip, which opens the very same surface. End: expand, attach, the
+            mic↔send swap, and the red stop. While the recorder owns the top
+            row every control here hides exactly as it used to — except stop,
+            which survives: a turn you cannot stop because you happen to be
+            holding a recording would be a trap. The row itself only renders
+            when it has something to show. */}
+          {(!recording || streaming) && (
+            <View className="flex-row items-center gap-1 px-1.5 pb-1.5">
+              {!recording && (
+                <>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      activeProject
+                        ? activeProject.title.trim() || t('projects.untitled')
+                        : t('chat.menu.title')
+                    }
+                    hitSlop={6}
+                    onPress={() => (activeProject ? setProjectOpen(true) : setMenuOpen(true))}
+                    className="h-7 w-7 items-center justify-center rounded-md active:bg-border/40"
+                  >
+                    {activeProject ? (
+                      <Text className="text-base leading-5">
+                        {activeProject.icon || DEFAULT_PROJECT_ICON}
+                      </Text>
+                    ) : (
+                      <PreferenceVerticalIcon size={16} className="text-muted" />
+                    )}
+                  </Pressable>
+                  {/* The active model, worn as the desktop model chip — a second
+                    handle on the controls the button beside it opens, so the
+                    model about to answer is always one glance away. */}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={activeModelName}
+                    hitSlop={6}
+                    onPress={() => (activeProject ? setProjectOpen(true) : setMenuOpen(true))}
+                    className="bg-primary/10 h-7 shrink flex-row items-center gap-1.5 rounded-lg px-2 active:bg-primary/20"
+                  >
+                    {localActive ? (
+                      <OllamaLogo size={13} className="text-primary" />
+                    ) : (
+                      <ProviderMark provider={brainProvider} size={13} className="text-primary" />
+                    )}
+                    <Text
+                      numberOfLines={1}
+                      className="text-primary font-sans-medium max-w-[130px] text-[11px]"
+                      style={{ writingDirection: 'ltr' }}
+                    >
+                      {activeModelName}
+                    </Text>
+                  </Pressable>
+                </>
+              )}
+              <View className="flex-1" />
+              {!recording && (
+                <>
+                  {/* Expand — opens the full-screen draft editor, like the
+                    desktop textarea's expand button. */}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('chat.editor.title')}
+                    hitSlop={6}
+                    onPress={() => setEditorOpen(true)}
+                    className="h-7 w-7 items-center justify-center rounded-md active:bg-border/40"
+                  >
+                    <ArrowExpandIcon size={13} className="text-muted" />
+                  </Pressable>
+                  {/* Attach sits with the other message actions, next to the
+                    mic, not with the session controls. It stays put when the
+                    mic becomes send, so a file can be added to a prompt that
+                    has already been typed.
+                    The media glyph, not a plus: the desktop's attach button
+                    carries this exact icon, and a plus is already spoken for
+                    on this screen — the header's new-chat control. Two
+                    identical glyphs meaning different things is the one thing
+                    a composer cannot afford. */}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('chat.attach.title')}
+                    hitSlop={6}
+                    onPress={() => setAttachOpen(true)}
+                    className="h-7 w-7 items-center justify-center rounded-md active:bg-border/40"
+                  >
+                    <Image02Icon size={16} className="text-muted" />
+                  </Pressable>
+                  {/* Distinct keys so React unmounts one and mounts the other on
+                    the mic↔send swap, instead of reusing one instance and
+                    mutating its variable-bearing className (which trips
+                    css-interop's remount warning in dev).
 
-        {/* Distinct keys so React unmounts one and mounts the other on the
-            mic↔send swap, instead of reusing one instance and mutating its
-            variable-bearing className (which trips css-interop's remount
-            warning in dev).
-
-            The mic stays live mid-turn, as it does on the desktop: a take
-            recorded while the agent is working joins the queue rather than
-            being refused. */}
-        {!recording && !canSend && (
-          <Pressable
-            key="composer-mic"
-            accessibilityRole="button"
-            accessibilityLabel={streaming ? t('chat.voice.queue') : t('chat.voice.record')}
-            onPress={() => void startRecording()}
-            className="border-border bg-surface h-[42.5px] w-[42.5px] items-center justify-center rounded-lg border active:bg-border/40"
-          >
-            <Mic01Icon size={18} className="text-fg" />
-          </Pressable>
-        )}
-
-        {/* The primary button keeps its place and its meaning mid-turn — it
-            queues instead of sending. Stop is the separate red one beside it,
-            never the same control wearing two hats. */}
-        {!recording && canSend && (
-          <Pressable
-            key="composer-send"
-            accessibilityRole="button"
-            accessibilityLabel={streaming ? t('chat.queue.add') : t('chat.send')}
-            onPress={submitText}
-            className="bg-primary h-[42.5px] w-[42.5px] items-center justify-center rounded-lg active:opacity-90"
-          >
-            <ArrowUp02Icon size={18} color={tokens.primaryFg} />
-          </Pressable>
-        )}
-
-        {/* Stop survives the recording bar, which hides every other control: a
-            turn you cannot stop because you happen to be holding a recording
-            would be a trap — the desktop makes the same exception. */}
-        {streaming && (
-          <Pressable
-            key="composer-stop"
-            accessibilityRole="button"
-            accessibilityLabel={t('chat.stop')}
-            onPress={onStop}
-            className="h-[42.5px] w-[42.5px] items-center justify-center rounded-lg bg-red-600 active:bg-red-700"
-          >
-            <StopCircleIcon size={18} color="#ffffff" />
-          </Pressable>
-        )}
+                    The mic stays live mid-turn, as it does on the desktop: a
+                    take recorded while the agent is working joins the queue
+                    rather than being refused. */}
+                  {!canSend && (
+                    <Pressable
+                      key="composer-mic"
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        streaming ? t('chat.voice.queue') : t('chat.voice.record')
+                      }
+                      hitSlop={6}
+                      onPress={() => void startRecording()}
+                      className="h-7 w-7 items-center justify-center rounded-md active:bg-border/40"
+                    >
+                      <Mic01Icon size={16} className="text-muted" />
+                    </Pressable>
+                  )}
+                  {/* The primary button keeps its place and its meaning mid-turn
+                    — it queues instead of sending. Stop is the separate red
+                    one beside it, never the same control wearing two hats. */}
+                  {canSend && (
+                    <Pressable
+                      key="composer-send"
+                      accessibilityRole="button"
+                      accessibilityLabel={streaming ? t('chat.queue.add') : t('chat.send')}
+                      onPress={submitText}
+                      className="bg-primary h-8 w-8 items-center justify-center rounded-full active:opacity-90"
+                    >
+                      <ArrowUp02Icon size={16} color={tokens.primaryFg} />
+                    </Pressable>
+                  )}
+                </>
+              )}
+              {streaming && (
+                <Pressable
+                  key="composer-stop"
+                  accessibilityRole="button"
+                  accessibilityLabel={t('chat.stop')}
+                  onPress={onStop}
+                  className="h-8 w-8 items-center justify-center rounded-full bg-red-600 active:bg-red-700"
+                >
+                  <StopCircleIcon size={16} color="#ffffff" />
+                </Pressable>
+              )}
+            </View>
+          )}
+        </View>
       </View>
 
+      {/* Renders nothing inline — the bar lives in the keyboard's window,
+          shown whenever the field above names it. */}
+      <KeyboardDismissBar />
       <AttachSheet
         open={attachOpen}
         onClose={() => setAttachOpen(false)}

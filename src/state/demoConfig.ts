@@ -310,9 +310,6 @@ export type DemoConfigValues = {
   compactionWeeklyHour: number
   reflectionHour: number
   reflectionQuietHours: number
-  reflectionScoringInapp: boolean
-  reflectionScoringTelegram: boolean
-  reflectionScoringWhatsapp: boolean
   /**
    * compaction.cards / reflection.cards — whether a running compaction or
    * reflection job draws its floating card. One switch per family, obeyed by
@@ -484,12 +481,9 @@ const DEFAULTS: DemoConfigValues = {
   compactionDailyHour: 23,
   compactionWeeklyDay: 0,
   compactionWeeklyHour: 23,
-  // Desktop DEFAULT_REFLECTION: 3 AM, 12 h quiet, every surface scored.
+  // Desktop DEFAULT_REFLECTION: 3 AM, 12 h quiet.
   reflectionHour: 3,
   reflectionQuietHours: 12,
-  reflectionScoringInapp: true,
-  reflectionScoringTelegram: true,
-  reflectionScoringWhatsapp: true,
   // Floating run cards, all off — the desktop's own defaults.
   compactionCards: false,
   reflectionCards: false,
@@ -788,17 +782,15 @@ export type ConfigSnapshot = {
     }
   }
   /**
-   * Reflection schedule + per-surface turn scoring. Absent in bundles or
-   * desktops from before reflection shipped — those render the desktop's own
-   * defaults (3 AM, 12 h quiet, every surface scored), which is exactly what
-   * an unset config means upstream.
+   * Reflection schedule. Absent in bundles or desktops from before
+   * reflection shipped — those render the desktop's own defaults (3 AM,
+   * 12 h quiet), which is exactly what an unset config means upstream.
    */
   reflection?: {
     hour?: number
     quietHours?: number
     /** Floating run cards. Absent on desktops from before they shipped. */
     cards?: boolean
-    scoring?: { inapp?: boolean; telegram?: boolean; whatsapp?: boolean }
   }
   /**
    * The workspace usage ledger folded per (day × provider × model) — what the
@@ -1187,12 +1179,6 @@ export const useDemoConfig = create<DemoConfigState>()(
             reflectionCards: snapshot.reflection?.cards ?? DEFAULTS.reflectionCards,
             reflectionHour: snapshot.reflection?.hour ?? DEFAULTS.reflectionHour,
             reflectionQuietHours: snapshot.reflection?.quietHours ?? DEFAULTS.reflectionQuietHours,
-            reflectionScoringInapp:
-              snapshot.reflection?.scoring?.inapp ?? DEFAULTS.reflectionScoringInapp,
-            reflectionScoringTelegram:
-              snapshot.reflection?.scoring?.telegram ?? DEFAULTS.reflectionScoringTelegram,
-            reflectionScoringWhatsapp:
-              snapshot.reflection?.scoring?.whatsapp ?? DEFAULTS.reflectionScoringWhatsapp,
             compactionRuns: {
               daily: compaction?.runs?.daily ?? null,
               weekly: compaction?.runs?.weekly ?? null,

@@ -74,26 +74,48 @@ export function useConnection(): void {
 
     // resume() replaces a tunnel that has stopped trying, joins one that is
     // still dialing, and checks one that claims to be connected; either way it
-    // is safe to call as often as we like.
-    const kick = (): void => {
-      void tunnelClient.resume().catch(() => undefined)
+    // is safe to call as often as we like. `patient` reaches the wake probe —
+    // see Tunnel.refresh.
+    const kick = (patient = false): void => {
+      void tunnelClient.resume(patient).catch(() => undefined)
     }
 
     kick()
 
+    // Which state the app comes back FROM decides what the return means, so
+    // it is tracked here: RN only hands the listener where it arrived.
+    let lastState: AppStateStatus = AppState.currentState
     const onChange = (next: AppStateStatus): void => {
+      const was = lastState
+      lastState = next
       if (next !== 'active') return
       // Backgrounding is left alone deliberately: iOS tears the socket down
       // itself, and calling stop() here would cancel the reconnect loop that
       // makes returning instant.
-      kick()
-      // A brief background can leave the socket intact: iOS suspends JS
-      // before the OS gets around to killing the connection, and anything the
-      // desktop pushed meanwhile is simply gone. The edge-triggered catch-up
-      // below only fires when a connection re-FORMS, so a still-connected
-      // return needs its own reconcile or those minutes stay missing until
-      // the next reconnect.
-      if (tunnelClient.connected) void reconcile().catch(() => undefined)
+      //
+      // Only a return from a REAL background gets the probe-and-catch-up
+      // treatment. 'background' is the away state: iOS suspends JS within
+      // seconds there, the socket is presumed dead, and pushes sent meanwhile
+      // are gone. 'inactive' is not away at all — the control centre, the
+      // notification shade, a permission sheet, an incoming-call banner — JS
+      // keeps running and the socket keeps its keepalive cadence the whole
+      // time, so there is nothing to verify and nothing to catch up on.
+      // Kicking on those dips put a short-fuse probe and a visible resync in
+      // the middle of active use for the crime of glancing at a notification
+      // — the probe could even kill the healthy socket it was checking. A
+      // tunnel that is NOT connected is still kicked from any return: that
+      // costs nothing when a dial is already running and skips a queued
+      // backoff when one is not.
+      if (was === 'background' || !tunnelClient.connected) {
+        kick()
+        // A brief background can leave the socket intact: iOS suspends JS
+        // before the OS gets around to killing the connection, and anything
+        // the desktop pushed meanwhile is simply gone. The edge-triggered
+        // catch-up below only fires when a connection re-FORMS, so a
+        // still-connected return needs its own reconcile or those minutes
+        // stay missing until the next reconnect.
+        if (tunnelClient.connected) void reconcile().catch(() => undefined)
+      }
       // Every foreground re-upserts the push registration — the contract that
       // keeps the relay's token fresh. A reconnecting return is covered by
       // the client's own connect-time registration; a still-open socket is
@@ -106,7 +128,9 @@ export function useConnection(): void {
       void reconcilePresentedNotifications()
     }
     const subscription = AppState.addEventListener('change', onChange)
-    const network = watchNetwork(kick)
+    // Patient: a type flap fires mid-use with the user none the wiser, and a
+    // spurious one must cost a probe, never the healthy socket it probed.
+    const network = watchNetwork(() => kick(true))
 
     // Edge-triggered: only the transition into connected, so a burst of
     // status updates cannot start several catch-ups.

@@ -8,7 +8,6 @@ import {
 } from '@/lib/conversations/cache'
 import { mintMessageId } from '@/lib/conversations/types'
 import { attachCardStream } from '@/lib/sync/cards'
-import { applyRemoteRatings } from '@/lib/sync/rating'
 import { fetchConversationBody } from '@/lib/sync/sync'
 import { tunnelClient } from '@/lib/tunnel/client'
 import { Event, Rpc } from '@/lib/tunnel/protocol'
@@ -16,7 +15,6 @@ import { useChatRuntime, type LiveStream } from '@/state/chatRuntime'
 import { markRun, useRunStatus } from '@/state/runStatus'
 import type {
   ConversationMessage,
-  ConversationRating,
   MessageAttachment,
   Segment,
   ConversationChannel
@@ -230,11 +228,10 @@ export function beginTurn(
  * Turn lifecycle reaches the phone as pushes and nothing else, so a tunnel that
  * comes up mid-run has missed the only `started` that turn will ever send. Until
  * the desktop next mirrors it — which across a long tool call is minutes away —
- * the conversation renders as idle: a live composer, no stop, and a rating bar
- * offering to score a turn still being written. An overlay per running
- * conversation makes all of those read correctly from the first frame, because
- * every one of them derives "running" from the live streams (see
- * conversations/rows.ts).
+ * the conversation renders as idle: a live composer and no stop, over a turn
+ * still being written. An overlay per running conversation makes all of those
+ * read correctly from the first frame, because every one of them derives
+ * "running" from the live streams (see conversations/rows.ts).
  *
  * ORDER: called from the same connected edge that runs attachTurnStream, and
  * AFTER it. That function force-settles every turn this phone believed was
@@ -500,9 +497,9 @@ export function attachTurnStream(): void {
       // take over — the two are separate events and only one of them is now.
       //
       // `ended: 'desktop'` is the desktop SAYING so, as opposed to the
-      // reconnect re-settle assuming it. It is what lets the rating bar offer
-      // this turn while it is still the live row, without offering every turn
-      // that merely stopped streaming for a moment.
+      // reconnect re-settle assuming it. It is what lets end-of-turn chrome
+      // treat this turn as finished while it is still the live row, without
+      // doing the same for every turn that merely stopped streaming a moment.
       useChatRuntime.getState().putStream(conversationId, {
         ...live,
         status: state === 'error' ? 'error' : 'complete',
@@ -511,32 +508,6 @@ export function attachTurnStream(): void {
     }
     invalidateConversationList()
     void settleTurn(conversationId)
-  })
-
-  // A turn was scored on ANY surface — the desktop's own rating bar, a
-  // bare-number Telegram/WhatsApp reply, this phone's vote echoing back — and
-  // an open chat has to reflect it now, exactly as the desktop's bar does.
-  //
-  // The rating travels with the push, so this writes it and repaints. Nothing
-  // else would: a ratings-only write moves no updated_at, so the conversation
-  // never looks stale and no other path would ever come back for it.
-  tunnel.onEvent(Event.turnScored, (payload) => {
-    const { conversationId, rating } = (payload ?? {}) as {
-      conversationId?: string
-      rating?: ConversationRating
-    }
-    if (!conversationId) return
-    if (rating?.messageId && typeof rating.score === 'number') {
-      void applyRemoteRatings(conversationId, [rating]).catch(() => undefined)
-      return
-    }
-    // A desktop that predates the payload — the score is on its file, so the
-    // body carries it. Never mid-turn: a fetch before the turn folds returns a
-    // transcript without the message being written (see above).
-    if (isTurnRunning(conversationId) || liveFor(conversationId)) return
-    void fetchConversationBody(conversationId)
-      .then(() => invalidateConversation(conversationId))
-      .catch(() => undefined)
   })
 }
 

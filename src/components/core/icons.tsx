@@ -1,5 +1,5 @@
 import { cssInterop } from 'nativewind'
-import Svg, { Circle, Ellipse, Path, type SvgProps } from 'react-native-svg'
+import Svg, { Circle, Ellipse, Path, Rect, type SvgProps } from 'react-native-svg'
 
 // Let icons take Tailwind text color classes (className="text-muted") the
 // same way hugeicons-react icons inherit currentColor on the desktop app.
@@ -2084,6 +2084,56 @@ export function KeyboardIcon(props: IconProps): React.JSX.Element {
       />
       <Path
         d="M7 17L17 17"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+    </IconBase>
+  )
+}
+
+/**
+ * Not a verbatim Hugeicons path like the rest of this file: the free set has
+ * no keyboard-dismiss glyph, so this one is composed in its language —
+ * KeyboardIcon's key rows in a squatter body, over ArrowDown01Icon's chevron
+ * scaled to sit beneath it. The same picture Material ships as keyboard_hide
+ * and the iPad keyboard wears on its dismiss key.
+ */
+export function KeyboardHideIcon(props: IconProps): React.JSX.Element {
+  return (
+    <IconBase {...props}>
+      <Rect x={2} y={3.5} width={20} height={11} rx={3} stroke="currentColor" strokeWidth={1.5} />
+      <Path
+        d="M7 7.25L8 7.25"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <Path
+        d="M11.5 7.25L12.5 7.25"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <Path
+        d="M16 7.25L17 7.25"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <Path
+        d="M7 11L17 11"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <Path
+        d="M16 18C16 18 13.0541 21.75 12 21.75C10.9459 21.75 8 18 8 18"
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"

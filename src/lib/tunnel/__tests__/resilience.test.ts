@@ -153,6 +153,11 @@ describe('a keepalive that goes unanswered', () => {
    * socket lost thirty seconds into a background is still trusted for the best
    * part of a minute after the app comes back. Holding each ping to an answer
    * makes detection depend on nothing but the ping.
+   *
+   * The verdict is two-strike: one silence earns a second ping on a short
+   * fuse, and only silence to both is fatal. A busy thread can sit on a
+   * deadline long enough for it to fire with the answer already queued behind
+   * it, and one missed fuse must not execute a healthy link mid-use.
    */
   it('is fatal well before the silence window would have fired', () => {
     const tunnel = makeTunnel()
@@ -165,9 +170,15 @@ describe('a keepalive that goes unanswered', () => {
     expect(socket?.sent.filter((data) => data === 'ping').length).toBe(1)
     expect(socket?.closed).toBe(false)
 
-    // Answered inside its deadline it would live; unanswered it is replaced,
-    // and long before the 62.5s of silence the backstop waits for.
+    // The first deadline passes in silence: not fatal yet — one more ping
+    // goes out on a short fuse instead.
     jest.advanceTimersByTime(10_500)
+    expect(socket?.sent.filter((data) => data === 'ping').length).toBe(2)
+    expect(socket?.closed).toBe(false)
+
+    // Silence to the second ask is the verdict — and the whole judgement
+    // still lands long before the 62.5s of silence the backstop waits for.
+    jest.advanceTimersByTime(3_000)
     expect(socket?.closed).toBe(true)
     expect(FakeSocket.last).not.toBe(socket)
   })
@@ -182,10 +193,30 @@ describe('a keepalive that goes unanswered', () => {
     // A peer notice is proof the pipe carries bytes, which is the whole
     // question. Anything that reaches us counts.
     socket?.emit('message', { data: 'peer-present' })
-    jest.advanceTimersByTime(10_500)
+    jest.advanceTimersByTime(13_500)
 
     expect(socket?.closed).toBe(false)
     expect(tunnel.alive).toBe(true)
+  })
+
+  it('keeps a link whose answer arrives late, inside the second ask', () => {
+    const tunnel = makeTunnel()
+    void tunnel.start()
+    const socket = FakeSocket.last
+    socket?.open()
+
+    // The stall scenario: the deadline fires before the queued answer is
+    // processed. The retry fuse is exactly the window in which those queued
+    // frames run.
+    jest.advanceTimersByTime(25_000)
+    jest.advanceTimersByTime(10_500)
+    expect(socket?.sent.filter((data) => data === 'ping').length).toBe(2)
+    socket?.emit('message', { data: 'pong' })
+    jest.advanceTimersByTime(3_000)
+
+    // The link was merely busy, and it stays exactly where it was.
+    expect(socket?.closed).toBe(false)
+    expect(FakeSocket.last).toBe(socket)
   })
 })
 
@@ -233,6 +264,50 @@ describe('refresh — the app coming back', () => {
     // reconnect would cost a handshake for no reason.
     expect(socket?.closed).toBe(false)
     expect(FakeSocket.last).toBe(socket)
+  })
+
+  /**
+   * The patient probe — what a network-type flap or a failed RPC runs. Those
+   * fire mid-use with nobody watching a card, so one missed fuse asks again
+   * rather than executing a socket that may only have been busy; the urgent
+   * foreground probe above keeps its one-strike speed.
+   */
+  it('asks twice before replacing when told to be patient', async () => {
+    const tunnel = makeTunnel()
+    void tunnel.start()
+    const socket = FakeSocket.last
+    socket?.open()
+    await flush()
+
+    tunnel.refresh(true)
+    expect(socket?.sent.filter((data) => data === 'ping').length).toBe(1)
+
+    // First fuse burns in silence: a second ask, not a teardown.
+    jest.advanceTimersByTime(3_000)
+    expect(socket?.sent.filter((data) => data === 'ping').length).toBe(2)
+    expect(socket?.closed).toBe(false)
+
+    // An answer inside the second fuse keeps the link exactly where it was.
+    socket?.emit('message', { data: 'pong' })
+    jest.advanceTimersByTime(3_000)
+    expect(socket?.closed).toBe(false)
+    expect(FakeSocket.last).toBe(socket)
+  })
+
+  it('still replaces a patient probe answered by nothing at all', async () => {
+    const tunnel = makeTunnel()
+    void tunnel.start()
+    const socket = FakeSocket.last
+    socket?.open()
+    await flush()
+
+    tunnel.refresh(true)
+    jest.advanceTimersByTime(3_000)
+    jest.advanceTimersByTime(3_000)
+
+    // Silence to both asks is a dead pipe, patience or not.
+    expect(socket?.closed).toBe(true)
+    expect(FakeSocket.last).not.toBe(socket)
   })
 
   it('skips a queued backoff rather than probing nothing', async () => {

@@ -1,12 +1,5 @@
 import { Button } from '@/components/core/Button'
-import {
-  Activity04Icon,
-  AiMagicIcon,
-  BrainIcon,
-  BubbleChatIcon,
-  ComputerIcon,
-  PlayIcon
-} from '@/components/core/icons'
+import { Activity04Icon, AiMagicIcon, BrainIcon, PlayIcon } from '@/components/core/icons'
 import { Select, type SelectOption } from '@/components/core/Select'
 import { PanelScreen, Section, SwitchRow } from '@/components/settings/SettingsUI'
 import { pushReflectionConfig, runReflectionJob } from '@/lib/sync/reflection'
@@ -20,8 +13,7 @@ import {
   useConfigValue,
   useDesktopInfo,
   useSettingsReadOnly,
-  type CompactionRunRecord,
-  type DemoConfigValues
+  type CompactionRunRecord
 } from '@/state/demoConfig'
 import { useAppStore } from '@/state/appStore'
 import { useEffect, useMemo, useState } from 'react'
@@ -32,12 +24,12 @@ import { ScrollView, Text, View } from 'react-native'
  * Knowledge — the desktop's two Knowledge panels on one column. Compaction
  * (the desktop CompactionPanel): when the daily compaction and weekly
  * consolidation run. Reflection (the desktop ReflectionPanel): the nightly
- * self-review's hour and quiet gate, the per-surface 0-10 turn scoring, and
- * the monthly deep reflection. Every schedule and scoring control writes
- * through to the paired desktop — compaction over the generic configSet path
- * (setConfigValue), reflection over its own RPC (lib/sync/reflection) — and
- * stays local in demo mode; the last-run cards are read-only records the
- * desktop's brainstem wrote, carried in the config snapshot.
+ * self-review's hour and quiet gate, and the monthly deep reflection. Every
+ * schedule control writes through to the paired desktop — compaction over
+ * the generic configSet path (setConfigValue), reflection over its own RPC
+ * (lib/sync/reflection) — and stays local in demo mode; the last-run cards
+ * are read-only records the desktop's brainstem wrote, carried in the
+ * config snapshot.
  */
 export default function KnowledgeScreen(): React.JSX.Element {
   // Desktop-owned values: pull the current ones when this screen opens.
@@ -253,30 +245,6 @@ export default function KnowledgeScreen(): React.JSX.Element {
         />
       </Section>
 
-      <Section title={t('settings.knowledge.reflection.scoring.title')}>
-        <Text className="text-muted text-left font-sans text-xs leading-5">
-          {t('settings.knowledge.reflection.scoring.subtitle')}
-        </Text>
-        <ScoringRow
-          surface="inapp"
-          field="reflectionScoringInapp"
-          icon={<ComputerIcon size={16} className="text-muted" />}
-          disabled={readOnly}
-        />
-        <ScoringRow
-          surface="telegram"
-          field="reflectionScoringTelegram"
-          icon={<BubbleChatIcon size={16} className="text-muted" />}
-          disabled={readOnly}
-        />
-        <ScoringRow
-          surface="whatsapp"
-          field="reflectionScoringWhatsapp"
-          icon={<BubbleChatIcon size={16} className="text-muted" />}
-          disabled={readOnly}
-        />
-      </Section>
-
       <Section title={t('settings.knowledge.reflection.deepClean.label')}>
         <Text className="text-muted text-left font-sans text-xs leading-5">
           {t('settings.knowledge.reflection.deepClean.description')}
@@ -310,42 +278,6 @@ export default function KnowledgeScreen(): React.JSX.Element {
 
 /** Desktop QUIET_HOUR_CHOICES, verbatim. */
 const QUIET_HOUR_CHOICES = [1, 2, 3, 6, 12, 24, 48]
-
-type ScoringSurface = 'inapp' | 'telegram' | 'whatsapp'
-
-/**
- * One turn-scoring toggle. Its own component so each row keeps the store's
- * single-field subscription contract — flipping WhatsApp re-renders this row,
- * not the panel. The local set moves the switch under the finger; the
- * write-through replaces it with whatever the desktop actually persisted.
- */
-function ScoringRow({
-  surface,
-  field,
-  icon,
-  disabled
-}: {
-  surface: ScoringSurface
-  field: keyof DemoConfigValues & `reflectionScoring${string}`
-  icon: React.ReactNode
-  disabled: boolean
-}): React.JSX.Element {
-  const { t } = useTranslation()
-  const value = useConfigValue(field) as boolean
-  return (
-    <SwitchRow
-      label={t(`settings.knowledge.reflection.scoring.${surface}`)}
-      description={t(`settings.knowledge.reflection.scoring.${surface}Hint`)}
-      icon={icon}
-      value={value}
-      disabled={disabled}
-      onValueChange={(next) => {
-        setConfigValue(field, next)
-        pushReflectionConfig({ scoring: { [surface]: next } })
-      }}
-    />
-  )
-}
 
 /**
  * The label never swaps while a run is in flight — `disabled` covers the busy

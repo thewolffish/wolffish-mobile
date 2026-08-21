@@ -255,27 +255,17 @@
       },
       "reflection": {
         "title": "Reflection",
-        "subtitle": "Every night, Wolffish reviews its finished conversations — your scores, what worked, what failed — and distills the lessons into a playbook it carries into every future turn.",
+        "subtitle": "Every night, Wolffish reviews its finished conversations — what worked, what failed — and distills the lessons into a playbook it carries into every future turn.",
         "hour": "Hour",
         "nightly": {
           "label": "Nightly reflection",
-          "description": "Reviews every conversation that has settled since the last pass — automations included — scoring each one and extracting what worked, what failed, and what you liked. Your 0-10 scores are the ground truth; the lessons fold into the playbook carried into every turn. Missed fires (asleep, app closed) run on the next launch."
+          "description": "Reviews every conversation that has settled since the last pass — automations included — scoring each one and extracting what worked, what failed, and what you liked. The lessons fold into the playbook carried into every turn. Missed fires (asleep, app closed) run on the next launch."
         },
         "quiet": {
           "label": "Review after quiet for",
-          "description": "A conversation is only reviewed once it has been idle this long, so unfinished or not-yet-scored work isn't judged early. Anything still warm simply waits for a later night — nothing is ever skipped — and a conversation you continue after its review gets reviewed again with the new turns and scores included."
+          "description": "A conversation is only reviewed once it has been idle this long, so unfinished work isn't judged early. Anything still warm simply waits for a later night — nothing is ever skipped — and a conversation you continue after its review gets reviewed again with the new turns included."
         },
         "quietHoursOption": "{{count}}h",
-        "scoring": {
-          "title": "Turn scoring",
-          "subtitle": "Optional 0-10 turn scores — the strongest signal reflection learns from.",
-          "inapp": "In-app",
-          "inappHint": "Shows a 0-10 rating bar above the chat composer after each completed turn.",
-          "telegram": "Telegram",
-          "telegramHint": "A reply that is just a number 0-10 scores the last turn instead of sending a message.",
-          "whatsapp": "WhatsApp",
-          "whatsappHint": "A reply that is just a number 0-10 scores the last turn instead of sending a message."
-        },
         "deepClean": {
           "label": "Monthly deep reflection",
           "description": "Once a month, a deep reflection takes the opposite stance of the nightly pass: it challenges the playbook and knowledge files against recent evidence, merging duplicates and pruning stale, over-general, or contradicted entries — the structural guard against learned bad habits."
@@ -616,10 +606,7 @@
     "placeholder": "Message Wolffish",
     "send": "Send",
     "stop": "Stop",
-    "rating": {
-      "label": "Rate this turn",
-      "rateAs": "Rate {{score}} out of 10"
-    },
+    "hideKeyboard": "Hide keyboard",
     "queue": {
       "placeholder": "Queue for Wolffish",
       "add": "Queue message",
@@ -1222,7 +1209,7 @@
     "overlay": {
       "compactionDaily": "Curate today's episodes into the long-term knowledge files — merge, dedupe, and update.",
       "compactionWeekly": "Consolidate the past week's episodes into a digest.",
-      "reflection": "Review settled conversations — scores, wins, failures — and fold the lessons into the playbook.",
+      "reflection": "Review settled conversations — wins, failures — and fold the lessons into the playbook.",
       "deepClean": "Deep reflection: challenge the playbook and knowledge files — merge duplicates, prune stale or contradicted entries."
     },
     "attachAfterSave": "Save the schedule and prompt first — files and folders attach to a saved automation."

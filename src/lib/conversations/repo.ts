@@ -4,7 +4,6 @@ import type {
   ConversationFile,
   ConversationMessage,
   ConversationMeta,
-  ConversationRating,
   ConversationStats
 } from '@/lib/conversations/types'
 
@@ -28,7 +27,6 @@ type ConversationRow = {
   message_count: number
   stats_json: string | null
   summary: string | null
-  ratings_json: string | null
 }
 
 type MessageRow = {
@@ -131,145 +129,8 @@ export async function getConversation(id: string): Promise<ConversationFile | nu
     icon: row.icon ?? undefined,
     sealed: row.sealed === 1,
     stats,
-    summary: row.summary,
-    ratings: parseRatings(row.ratings_json)
+    summary: row.summary
   }
-}
-
-/** Ratings off a row. A corrupt blob reads as "no scores", never as a throw
- *  that would cost the whole transcript. */
-function parseRatings(json: string | null): ConversationRating[] {
-  if (!json) return []
-  try {
-    const parsed = JSON.parse(json) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter(
-      (entry): entry is ConversationRating =>
-        !!entry &&
-        typeof entry === 'object' &&
-        typeof (entry as ConversationRating).messageId === 'string' &&
-        typeof (entry as ConversationRating).score === 'number'
-    )
-  } catch {
-    return []
-  }
-}
-
-/** One conversation's scores, without reading its transcript. */
-export async function getConversationRatings(id: string): Promise<ConversationRating[]> {
-  const db = await getDb()
-  const row = await db.getFirstAsync<{ ratings_json: string | null }>(
-    'SELECT ratings_json FROM conversations WHERE id = ?',
-    id
-  )
-  return parseRatings(row?.ratings_json ?? null)
-}
-
-/**
- * Fold scores into a conversation, keyed by assistant message id — the
- * desktop's own union, in the one direction that matters here.
- *
- * INCOMING ALWAYS WINS for the ids it names, and no id it omits is touched.
- * The desktop is the source of truth for every vote (this phone's included:
- * its optimistic paint is settled by the answer to its own write), so an
- * arriving score is by definition the newer fact about that turn — while a
- * push describing ONE turn must not erase the scores of the others, which a
- * whole-array replace would.
- *
- * Timestamps deliberately do not arbitrate: the phone's clock and the
- * desktop's are not synchronised, so a fresher-`at`-wins rule would let a
- * phone running minutes ahead pin its own stale copy over the desktop's newer
- * one. In-flight local votes are held out of this by their caller (see
- * sync/rating.ts), which is the same guard the desktop's own bar uses.
- */
-export async function mergeConversationRatings(
-  conversationId: string,
-  incoming: ConversationRating[]
-): Promise<ConversationRating[]> {
-  const db = await getDb()
-  let merged: ConversationRating[] = []
-  await db.withExclusiveTransactionAsync(async (tx) => {
-    const row = await tx.getFirstAsync<{ ratings_json: string | null }>(
-      'SELECT ratings_json FROM conversations WHERE id = ?',
-      conversationId
-    )
-    // No row means the conversation is not on this device — nothing to file
-    // the scores under, and the body fetch that brings it will carry them.
-    if (!row) return
-    const byId = new Map<string, ConversationRating>()
-    for (const rating of parseRatings(row.ratings_json)) byId.set(rating.messageId, rating)
-    for (const rating of incoming) {
-      if (!rating?.messageId || typeof rating.score !== 'number') continue
-      byId.set(rating.messageId, rating)
-    }
-    merged = [...byId.values()].sort((a, b) => a.at - b.at)
-    await tx.runAsync(
-      'UPDATE conversations SET ratings_json = ? WHERE id = ?',
-      merged.length ? JSON.stringify(merged) : null,
-      conversationId
-    )
-  })
-  return merged
-}
-
-/**
- * Replace every score on a conversation with the set the desktop just served
- * — the ratings half of a body fetch, which is authoritative in both
- * directions: it adds what this phone had not seen and drops what the desktop
- * no longer holds, exactly as the message rows it arrives with do.
- *
- * `heldIds` names turns with a vote still on the wire from this phone. Those
- * keep their local entry and ignore the served one, because the body was read
- * on the desktop BEFORE that vote landed — it describes the turn as it was a
- * moment ago. Resolved inside the transaction rather than by the caller so a
- * vote written between a read and a write cannot be lost.
- */
-export async function replaceConversationRatings(
-  conversationId: string,
-  incoming: ConversationRating[],
-  heldIds: ReadonlySet<string>
-): Promise<void> {
-  const db = await getDb()
-  await db.withExclusiveTransactionAsync(async (tx) => {
-    const row = await tx.getFirstAsync<{ ratings_json: string | null }>(
-      'SELECT ratings_json FROM conversations WHERE id = ?',
-      conversationId
-    )
-    if (!row) return
-    const next = parseRatings(row.ratings_json).filter((rating) => heldIds.has(rating.messageId))
-    for (const rating of incoming) {
-      if (!rating?.messageId || typeof rating.score !== 'number') continue
-      if (heldIds.has(rating.messageId)) continue
-      next.push(rating)
-    }
-    next.sort((a, b) => a.at - b.at)
-    await tx.runAsync(
-      'UPDATE conversations SET ratings_json = ? WHERE id = ?',
-      next.length ? JSON.stringify(next) : null,
-      conversationId
-    )
-  })
-}
-
-/** Drop one turn's score — the take-back when a vote never landed. */
-export async function removeConversationRating(
-  conversationId: string,
-  messageId: string
-): Promise<void> {
-  const db = await getDb()
-  await db.withExclusiveTransactionAsync(async (tx) => {
-    const row = await tx.getFirstAsync<{ ratings_json: string | null }>(
-      'SELECT ratings_json FROM conversations WHERE id = ?',
-      conversationId
-    )
-    if (!row) return
-    const rest = parseRatings(row.ratings_json).filter((rating) => rating.messageId !== messageId)
-    await tx.runAsync(
-      'UPDATE conversations SET ratings_json = ? WHERE id = ?',
-      rest.length ? JSON.stringify(rest) : null,
-      conversationId
-    )
-  })
 }
 
 /** Insert or fully replace a conversation (demo import + sync ingestion). */
@@ -279,8 +140,8 @@ export async function upsertConversation(file: ConversationFile): Promise<void> 
     await tx.runAsync(
       `INSERT OR REPLACE INTO conversations
         (id, title, model, channel, icon, project_id, sealed, created_at, updated_at,
-         message_count, stats_json, summary, ratings_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         message_count, stats_json, summary)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       file.id,
       file.title,
       file.model,
@@ -292,8 +153,7 @@ export async function upsertConversation(file: ConversationFile): Promise<void> 
       file.updatedAt,
       file.messages.length,
       file.stats ? JSON.stringify(file.stats) : null,
-      file.summary ?? null,
-      file.ratings?.length ? JSON.stringify(file.ratings) : null
+      file.summary ?? null
     )
     await tx.runAsync('DELETE FROM messages WHERE conversation_id = ?', file.id)
     let seq = 0

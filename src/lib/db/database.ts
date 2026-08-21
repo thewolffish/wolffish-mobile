@@ -71,13 +71,9 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       // showing the stale copy, because it is no longer empty.
       await tx.execAsync('ALTER TABLE conversations ADD COLUMN body_synced_at INTEGER')
     }
-    if (current < 3) {
-      // Per-turn 0-10 scores, the desktop's ratings[] verbatim. On the
-      // conversation rather than on its messages because that is where the
-      // desktop keeps them: a vote is a whole-file write keyed by assistant
-      // message id, and mirroring the shape means one merge rule, not two.
-      await tx.execAsync('ALTER TABLE conversations ADD COLUMN ratings_json TEXT')
-    }
+    // Version 3 added a ratings_json column for the retired turn-scoring
+    // feature. Nothing reads or writes it any more: databases that have it
+    // simply carry an ignored column, and fresh installs never create it.
     await tx.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`)
   })
 }

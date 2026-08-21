@@ -8,9 +8,8 @@ jest.mock('@react-native-async-storage/async-storage', () =>
  * Turn lifecycle arrives as pushes and nothing else, so a tunnel that comes up
  * mid-run has already missed the only `turn.status: started` that turn will
  * ever send. Everything downstream reads "running" off the live streams (see
- * conversations/rows.ts), so that gap renders a busy conversation as idle: live
- * composer, no stop, and a rating bar offering to score a turn that has not
- * finished.
+ * conversations/rows.ts), so that gap renders a busy conversation as idle:
+ * live composer and no stop, over a turn that has not finished.
  *
  * The seed closes it, and the cases below are all the ways it must not overshoot
  * — a seed that re-opens a finished turn leaves thinking words running forever,

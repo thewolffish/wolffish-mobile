@@ -1010,8 +1010,7 @@
   },
   "reflection": {
     "hour": 3,
-    "quietHours": 12,
-    "scoring": { "inapp": true, "telegram": true, "whatsapp": false }
+    "quietHours": 12
   },
   "compaction": {
     "dailyHour": 16,

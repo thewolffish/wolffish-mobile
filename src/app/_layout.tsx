@@ -21,8 +21,7 @@ import '@/lib/i18n'
 
 import { ChartSnapshotHost } from '@/components/chat/ChartSnapshotHost'
 import { ActiveOverlays } from '@/components/overlays/ActiveOverlays'
-import { ConnectingOverlay } from '@/components/pairing/ConnectingOverlay'
-import { SyncOverlay } from '@/components/pairing/SyncOverlay'
+import { ConnectionOverlay } from '@/components/pairing/ConnectionOverlay'
 import { UpdateNotice } from '@/components/updates/UpdateNotice'
 import { sweepStagedFiles } from '@/lib/files/fileCache'
 import { useOtaUpdates } from '@/lib/updates/useOtaUpdates'
@@ -106,11 +105,10 @@ function AppShell(): React.JSX.Element {
           the drop), so the two never compete for the same space. */}
       <ActiveOverlays />
       {/* Above every screen: without the tunnel a paired app can only show a
-          stale copy and refuse every action. */}
-      <ConnectingOverlay />
-      {/* Mutually exclusive with the above by construction: syncing needs a
-          connection, and the connecting overlay only shows without one. */}
-      <SyncOverlay />
+          stale copy and refuse every action. One card for the whole episode —
+          reconnecting, then the catch-up every reconnect runs, then gone —
+          so a drop never interrupts twice. */}
+      <ConnectionOverlay />
       {/* Invisible, and null until the first chart card asks for a snapshot —
           the one ECharts runtime every inline chart in the app shares. */}
       <ChartSnapshotHost />

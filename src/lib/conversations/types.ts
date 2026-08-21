@@ -276,22 +276,6 @@ export type ConversationStats = {
   } | null
 }
 
-/**
- * A user's 0-10 score for one completed turn, keyed by the turn's assistant
- * message id — the desktop's ConversationRating verbatim. One rating per
- * message: re-scoring the same turn replaces the entry. `source` names the
- * surface the vote was cast on ('inapp' | 'telegram' | 'whatsapp' | 'mobile'),
- * kept as a plain string because the phone only ever displays the score and a
- * desktop newer than this build may name a surface it has never heard of.
- */
-export type ConversationRating = {
-  messageId: string
-  /** Integer 0-10. */
-  score: number
-  at: number
-  source: string
-}
-
 /** The persisted conversation shape (desktop conv-<id>.json). */
 export type ConversationFile = {
   id: string
@@ -306,8 +290,6 @@ export type ConversationFile = {
   sealed?: boolean
   stats?: ConversationStats | null
   summary?: string | null
-  /** Per-turn 0-10 user scores, keyed by assistant message id. */
-  ratings?: ConversationRating[]
 }
 
 /** Listing row — mirrors the desktop's ConversationMeta. */

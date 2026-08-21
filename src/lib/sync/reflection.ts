@@ -28,7 +28,6 @@ export type ReflectionPatch = {
   quietHours?: number
   /** Whether a running reflection draws its floating card, on both surfaces. */
   cards?: boolean
-  scoring?: Partial<{ inapp: boolean; telegram: boolean; whatsapp: boolean }>
 }
 
 /** The desktop's answer: its complete post-write reflection config. */
@@ -36,26 +35,13 @@ type ReflectionAnswer = {
   hour?: unknown
   quietHours?: unknown
   cards?: unknown
-  scoring?: { inapp?: unknown; telegram?: unknown; whatsapp?: unknown }
-}
-
-const SCORING_SURFACES = ['inapp', 'telegram', 'whatsapp'] as const
-type ScoringSurface = (typeof SCORING_SURFACES)[number]
-
-const SCORING_KEY: Record<ScoringSurface, keyof DemoConfigValues> = {
-  inapp: 'reflectionScoringInapp',
-  telegram: 'reflectionScoringTelegram',
-  whatsapp: 'reflectionScoringWhatsapp'
 }
 
 /** Every flat store key a reflection answer settles. */
 const REFLECTION_KEYS: ReadonlyArray<keyof DemoConfigValues> = [
   'reflectionHour',
   'reflectionQuietHours',
-  'reflectionCards',
-  'reflectionScoringInapp',
-  'reflectionScoringTelegram',
-  'reflectionScoringWhatsapp'
+  'reflectionCards'
 ]
 
 /** The flat store keys one patch touches — what to mark dirty for it. */
@@ -64,9 +50,6 @@ function patchKeys(patch: ReflectionPatch): Array<keyof DemoConfigValues> {
   if (patch.hour !== undefined) keys.push('reflectionHour')
   if (patch.quietHours !== undefined) keys.push('reflectionQuietHours')
   if (patch.cards !== undefined) keys.push('reflectionCards')
-  for (const surface of SCORING_SURFACES) {
-    if (patch.scoring?.[surface] !== undefined) keys.push(SCORING_KEY[surface])
-  }
   return keys
 }
 
@@ -76,8 +59,7 @@ function mergePatch(base: ReflectionPatch, next: ReflectionPatch): ReflectionPat
     ...base,
     ...(next.hour !== undefined ? { hour: next.hour } : {}),
     ...(next.quietHours !== undefined ? { quietHours: next.quietHours } : {}),
-    ...(next.cards !== undefined ? { cards: next.cards } : {}),
-    ...(base.scoring || next.scoring ? { scoring: { ...base.scoring, ...next.scoring } } : {})
+    ...(next.cards !== undefined ? { cards: next.cards } : {})
   }
 }
 
@@ -87,10 +69,6 @@ function applyAnswer(answer: ReflectionAnswer): void {
   if (typeof answer.hour === 'number') setValue('reflectionHour', answer.hour)
   if (typeof answer.quietHours === 'number') setValue('reflectionQuietHours', answer.quietHours)
   if (typeof answer.cards === 'boolean') setValue('reflectionCards', answer.cards)
-  for (const surface of SCORING_SURFACES) {
-    const flag = answer.scoring?.[surface]
-    if (typeof flag === 'boolean') setValue(SCORING_KEY[surface], flag)
-  }
 }
 
 let pending: ReflectionPatch | null = null

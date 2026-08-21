@@ -1,4 +1,26 @@
-## v1.0.37 — 2026-08-16 `Latest`
+## v1.0.38 — 2026-08-21 `Latest`
+
+### The Composer Is One Card
+
+The message field and the loose buttons around it have become what they always were on the desktop: **one card**. The field rides on top, and every control sits in a row inside — the chat controls at the start beside something this screen never had before, **the model about to answer**, worn as a chip you can read at a glance and tap to change; expand, attach, the mic and the red stop at the end. Same controls, less of your screen, and the model is never a mystery again.
+
+### Choosing a Model Is One Tap
+
+The provider and model pickers used to open a dialog that showed one choice at a time and trimmed long names mid-word. Each is now a **row of chips** — the whole list on one line you can slide, every name written out in full, the current choice lit. Tap a chip and it is chosen; switch provider and its models slide in with the right one already picked. A model your provider's list does not carry still gets its chip, so what is chosen is always the one lit up.
+
+### The Keyboard Has a Way Down
+
+The iPhone keyboard ships with no way to put it away — every app is expected to bring its own, and this one finally does: a small **chevron floating just above the keyboard**, riding it as it comes and goes. One tap drops the keyboard and **keeps every word of your draft**. Android needs nothing here — its navigation bar has carried this chevron all along — so nothing doubles up.
+
+### Reconnecting Interrupts Once, and Less Often
+
+When the link to your desktop wobbled mid-use, two cards used to take turns interrupting: *reconnecting…* vanishing the instant the link formed, then *syncing…* blinking in over the same spot a beat later. They were always one event — the app is busy with your desktop — so they are **one card** now: it appears once, walks through whichever phases the episode actually has, **counts the seconds you have really been waiting**, and leaves once. *Continue offline* dismisses the whole episode, not half of it. And the episodes themselves are rarer: a phone busy decrypting a file no longer mistakes its own full hands for a dead connection — the link is **asked twice before being replaced** — and glancing at the notification shade or Control Centre no longer sets off a pointless check-and-catch-up on a connection that was never in danger.
+
+### The Turn Rating Bar Retires
+
+The 0–10 score bar that appeared under finished replies is gone, along with its switches on Settings → Knowledge. Scoring every turn asked more of you than it gave back: the nightly reflection reads the conversations themselves — what worked, what failed, what you corrected — and the lessons land in its playbook either way. One less thing between you and the next message.
+
+## v1.0.37 — 2026-08-16
 
 ### The Floating Run Card Is Now Yours to Switch Off
 

@@ -86,6 +86,23 @@ const PING_ANSWER_MS = 10_000
  */
 const WAKE_ANSWER_MS = 2_500
 
+/**
+ * The second ask, after a first deadline passes in silence.
+ *
+ * One missed answer is not proof of death. Both runtimes can sit on a busy
+ * thread long enough for a deadline to fire with its answer already queued
+ * behind it — after a stall, expired timers run ahead of unprocessed socket
+ * messages on Node and Hermes alike — and a phone decrypting a file chunk or
+ * a desktop mid-run is exactly when that happens. Killing a healthy link on
+ * that evidence is what turned a busy moment into a reconnect-and-resync in
+ * the middle of active use. So the deadlines that guard a standing link ask
+ * twice: a fresh keepalive on this short fuse, and only silence to BOTH is
+ * fatal. A genuinely dead socket costs three extra seconds to catch — nothing
+ * against a backstop of a minute — and a live one stops being executed for
+ * the crime of being busy.
+ */
+const ANSWER_RETRY_MS = 3_000
+
 /** Ceiling on the reconnect backoff when a caller names none. */
 const MAX_BACKOFF_MS = 30_000
 
@@ -508,7 +525,10 @@ export class Tunnel {
       // And hold it to an answer. The silence rule above is the backstop; on
       // its own it can take the best part of two minutes to fire, because the
       // window it measures started at the last frame rather than at this ping.
-      this.expectAnswer(socket, PING_ANSWER_MS, 'the relay did not answer its keepalive')
+      // Two strikes, not one: nobody is waiting on this deadline, so the
+      // seconds a retry costs are free, and a busy thread must not read as a
+      // dead relay — see ANSWER_RETRY_MS.
+      this.expectAnswer(socket, PING_ANSWER_MS, 'the relay did not answer its keepalive', true)
     }, KEEPALIVE_MS)
   }
 
@@ -521,14 +541,35 @@ export class Tunnel {
    * bytes, not which bytes. One deadline is outstanding at a time: a later
    * call supersedes an earlier one, which is what lets the wake probe ask the
    * same question on a much shorter fuse.
+   *
+   * `retryOnce` makes the verdict two-strike: a first silence sends one more
+   * keepalive on a short fuse instead of tearing down, and only silence to
+   * both is fatal. The frames a stall left queued are processed before the
+   * retry fuse burns, so a link that was merely busy answers for itself.
    */
-  private expectAnswer(socket: WebSocket, withinMs: number, reason: string): void {
+  private expectAnswer(
+    socket: WebSocket,
+    withinMs: number,
+    reason: string,
+    retryOnce = false
+  ): void {
     this.clearAnswerDeadline()
     const before = this.inbound
     this.answerTimer = setTimeout(() => {
       this.answerTimer = null
       if (this.stopped || this.ws !== socket) return
       if (this.inbound !== before) return
+      if (retryOnce && socket.readyState === 1) {
+        this.log(`${reason} — asking once more before giving up`)
+        try {
+          socket.send(KEEPALIVE_REQUEST)
+        } catch {
+          this.dropAndDial(reason)
+          return
+        }
+        this.expectAnswer(socket, ANSWER_RETRY_MS, reason)
+        return
+      }
       this.log(`${reason} — reconnecting`)
       this.dropAndDial(reason)
     }, withinMs)
@@ -1045,8 +1086,16 @@ export class Tunnel {
    * So: skip a queued backoff (the user being here is evidence the network is
    * back), replace a tunnel that is not working on anything, and hold an open
    * socket to a fast answer. All three are cheap and none of them wait.
+   *
+   * `patient` widens the probe's verdict to two strikes (see ANSWER_RETRY_MS)
+   * for the callers nobody is watching — a network-type flap, an RPC that
+   * failed. Those fire in the middle of active use, where a busy thread can
+   * miss one fuse and a false kill costs a visible reconnect-and-resync. The
+   * foreground return stays one-strike: the user is looking at the screen,
+   * and the socket in question is the one iOS habitually kills — grace there
+   * would mostly be spent waiting on a zombie.
    */
-  refresh(): void {
+  refresh(patient = false): void {
     if (this.stopped) return
     // A retry queued behind a backoff: the wait is now pointless.
     if (this.reconnectTimer !== null) {
@@ -1068,7 +1117,7 @@ export class Tunnel {
       this.dropAndDial('the socket refused a keepalive')
       return
     }
-    this.expectAnswer(socket, WAKE_ANSWER_MS, 'no answer to the wake probe')
+    this.expectAnswer(socket, WAKE_ANSWER_MS, 'no answer to the wake probe', patient)
   }
 }
 

@@ -5,7 +5,6 @@ import { ChatSkeleton } from '@/components/chat/ChatSkeleton'
 import { Composer, type ComposerSubmit } from '@/components/chat/Composer'
 import { ConversationsSheet } from '@/components/chat/ConversationsSheet'
 import { FLOATING_AREA, FLOATING_GAP, FloatingChrome } from '@/components/chat/FloatingChrome'
-import { TurnRating } from '@/components/chat/TurnRating'
 import type { QueuedPrompt } from '@/components/chat/QueuedPrompts'
 import { buildFeed, LIVE_KEY } from '@/lib/conversations/feed'
 import { failedTurnEnd } from '@/lib/conversations/segments'
@@ -17,13 +16,12 @@ import type { PickedFile } from '@/lib/files/pickAttachments'
 import { DEFAULT_PROJECT_ICON } from '@/components/workspace/ProjectDialog'
 import { PromptPreview } from '@/components/workspace/PromptSheet'
 import { useChatRuntime } from '@/state/chatRuntime'
-import { useConfigValue, useSettingsReadOnly } from '@/state/demoConfig'
+import { useConfigValue } from '@/state/demoConfig'
 import { Image } from 'expo-image'
 import { useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { clearConversationBadges, setActiveConversation } from '@/lib/notifications/push'
 import { useActiveProject } from '@/lib/sync/projects'
 import { abortTurn, beginTurn, sendPrompt } from '@/lib/sync/prompt'
-import { rateTurn } from '@/lib/sync/rating'
 import {
   discardStaged,
   fileLocally,
@@ -213,14 +211,6 @@ export default function ChatScreen(): React.JSX.Element {
   // One flag for both ends: the desktop's `inapp.verbose`. The feed is a
   // display preference of the workspace, not of the device rendering it.
   const verbose = useConfigValue('inappVerbose')
-  // The same switch that gates the desktop's own rating bar — Settings →
-  // Knowledge → Reflection. It is the workspace's preference, so flipping it
-  // on either screen moves both.
-  const scoringEnabled = useConfigValue('reflectionScoringInapp')
-  // Paired and offline there is nowhere for a vote to go, and this app refuses
-  // writes it cannot land (see setConfigValue). Absent rather than dead: a
-  // control that swallows taps is worse than one that is not there.
-  const writable = !useSettingsReadOnly()
 
   const streaming = live?.status === 'streaming' || sending
 
@@ -249,27 +239,20 @@ export default function ChatScreen(): React.JSX.Element {
    * What is deliberately NOT idle is an overlay that merely stopped streaming.
    * The reconnect re-settle clears the streaming flag on every turn it might
    * have missed the end of (attachTurnStream), which is a guess — and while
-   * that guess stood, a "rate this turn" appeared over a turn the desktop was
+   * that guess stood, end-of-turn chrome flashed over a turn the desktop was
    * still writing and vanished again on its next frame. That is the flash this
    * closes, and a backgrounded phone coming back mid-turn hits it every time.
    */
   const idle = !live || (live.status !== 'streaming' && live.ended === 'desktop')
 
-  /**
-   * The turn the rating bar scores: the last row of an idle feed, when it is a
-   * finished assistant message with an id to file the score under. Read from
-   * the FEED, not from the stored transcript — the desktop's bar appears the
-   * moment its turn ends, and on the phone the finished turn is still the live
-   * overlay for the beat before its saved copy takes over.
-   */
   const lastItem = feed[feed.length - 1]
   /**
    * The desktop's Try Again gate, ported: is the feed's last row a failed
    * assistant turn? Failure is read from the message itself — its turn_end or
    * error string — or, for the live row, from the stream the desktop marked
    * failed, which can end a turn before any segment reaches this phone.
-   * A failed turn offers the retry instead of the rating bar; the desktop's
-   * card replaces its bubble the same way.
+   * A failed turn offers the retry; the desktop's card replaces its bubble
+   * the same way.
    */
   const lastFailed =
     !!lastItem &&
@@ -278,37 +261,6 @@ export default function ChatScreen(): React.JSX.Element {
     (!!lastItem.message.error ||
       !!failedTurnEnd(lastItem.message) ||
       (lastItem.key === LIVE_KEY && live?.status === 'error'))
-  const completedId =
-    scoringEnabled &&
-    writable &&
-    !streaming &&
-    idle &&
-    !lastFailed &&
-    conversationId !== null &&
-    lastItem &&
-    !lastItem.streaming &&
-    lastItem.message.role === 'assistant' &&
-    lastItem.message.id
-      ? lastItem.message.id
-      : null
-  /**
-   * ...and only for as long as it has NO score. The bar retires on the vote
-   * rather than sitting there already-answered — the desktop's rule, and for
-   * the same reason: a standing prompt over a turn the user has answered
-   * reads as nagging.
-   *
-   * The score comes from `conversation.ratings` — the desktop's ratings[] as
-   * this phone stores it — so the bar retires for a vote cast on ANY surface:
-   * this phone (written locally the moment the finger lands, taken back down
-   * if the write never reaches the desktop), the desktop's own bar, or a
-   * bare-number Telegram/WhatsApp reply arriving on the `turn.scored` push.
-   * One source of truth, one condition.
-   */
-  const ratableId = useMemo(() => {
-    if (!completedId) return null
-    const scored = conversation?.ratings?.some((entry) => entry.messageId === completedId)
-    return scored ? null : completedId
-  }, [completedId, conversation])
 
   /**
    * A send that will not happen, taken back down. The live turn opened at the
@@ -931,19 +883,6 @@ export default function ChatScreen(): React.JSX.Element {
         </View>
 
         <View style={{ paddingBottom: insets.bottom }}>
-          {/* The score bar for the turn that just ended, above the composer
-              exactly as on the desktop. Mutually exclusive with the queued
-              rows in practice — those only exist while a turn runs. Always
-              unscored: a turn that has a score has no bar (see ratableId), so
-              the tap both records the vote and dismisses the bar. */}
-          {ratableId !== null && conversationId !== null && (
-            <TurnRating
-              score={null}
-              onRate={(score) => {
-                void rateTurn(conversationId, ratableId, score)
-              }}
-            />
-          )}
           <Composer
             streaming={streaming}
             conversation={conversation}

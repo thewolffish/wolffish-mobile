@@ -35,6 +35,7 @@ jest.mock('expo-audio', () => ({
 }))
 
 import { Composer, type ComposerSubmit } from '@/components/chat/Composer'
+import { KEYBOARD_DISMISS_BAR_ID } from '@/components/core/KeyboardDismissBar'
 import { queryClient } from '@/lib/query/queryClient'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ToastProvider } from '@/providers/toast/ToastProvider'
@@ -159,6 +160,26 @@ describe('handing a message over', () => {
       press('Queue message')
     })
     expect(onSubmit).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('the keyboard dismiss bar', () => {
+  /**
+   * The iPhone keyboard has no dismiss control of its own, so the composer
+   * docks one above it: the field names the accessory bar, and the bar's
+   * chevron puts the keyboard away — without touching the draft, which is the
+   * difference between hiding the keyboard and abandoning the message.
+   */
+  it('links the field to the bar, and the chevron drops the keyboard only', async () => {
+    await mount()
+    expect(view.getByLabelText('Message Wolffish').props.inputAccessoryViewID).toBe(
+      KEYBOARD_DISMISS_BAR_ID
+    )
+    await type('Message Wolffish', 'still writing')
+    await act(async () => press('Hide keyboard'))
+    expect(dismissed).toHaveBeenCalled()
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(fieldValue()).toBe('still writing')
   })
 })
 

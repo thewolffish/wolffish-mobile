@@ -1,4 +1,6 @@
+import { cn } from '@/lib/utils/cn'
 import type { ComponentType } from 'react'
+import { Text, View } from 'react-native'
 import Svg, { Path, Polygon } from 'react-native-svg'
 import {
   BrowserIcon,
@@ -270,6 +272,35 @@ export const PROVIDER_LOGOS: Record<string, ComponentType<IconProps>> = {
   qwen: QwenLogo,
   stepfun: StepFunLogo,
   zai: ZaiLogo
+}
+
+/**
+ * A provider's mark with a fallback: the logo when the catalog has one, else
+ * the id's first letter in a bordered square — so an unknown provider still
+ * shows SOMETHING identifiable wherever marks render (the model switch tabs,
+ * the composer's model chip).
+ */
+export function ProviderMark({
+  provider,
+  size,
+  className
+}: {
+  provider: string
+  size: number
+  className?: string
+}): React.JSX.Element {
+  const Logo = PROVIDER_LOGOS[provider]
+  if (Logo) return <Logo size={size} className={className} />
+  return (
+    <View
+      className="border-border items-center justify-center rounded border"
+      style={{ width: size, height: size }}
+    >
+      <Text className={cn('font-sans-semibold text-[8px]', className)}>
+        {(provider[0] ?? '?').toUpperCase()}
+      </Text>
+    </View>
+  )
 }
 
 /** Service key → mark — mirrors the desktop's SERVICE_ICONS map. */

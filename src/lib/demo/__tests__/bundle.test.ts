@@ -282,19 +282,6 @@ describe('voice showcase', () => {
     expect(paths.length).toBeGreaterThan(0)
     for (const relPath of paths) expect(sampleExtFor(relPath)).not.toBeNull()
   })
-
-  it('scores turns from the surface they happened on', () => {
-    expect(conversation.ratings?.length).toBeGreaterThan(0)
-    const ids = new Set(conversation.messages.map((message) => message.id))
-    for (const rating of conversation.ratings ?? []) {
-      // A score filed under a message id the body does not carry is a score
-      // that never appears on the bar.
-      expect(ids.has(rating.messageId)).toBe(true)
-      expect(rating.score).toBeGreaterThanOrEqual(0)
-      expect(rating.score).toBeLessThanOrEqual(10)
-      expect(Number.isInteger(rating.score)).toBe(true)
-    }
-  })
 })
 
 describe('the dataset as a whole', () => {
@@ -303,33 +290,6 @@ describe('the dataset as a whole', () => {
 
   it('is the size the bundle expects', () => {
     expect(dataset.length).toBeGreaterThan(150)
-  })
-
-  it('files every rating under a message the conversation carries', () => {
-    // A score keyed to an id the body does not hold never reaches the bar —
-    // chat.tsx looks the rating up by the last turn's message id.
-    let scored = 0
-    for (const { file, conversation } of dataset) {
-      const ids = new Set(conversation.messages.map((message) => message.id))
-      for (const rating of conversation.ratings ?? []) {
-        expect(`${file}:${rating.messageId}`).toBe(
-          `${file}:${ids.has(rating.messageId) ? rating.messageId : 'MISSING'}`
-        )
-        expect(Number.isInteger(rating.score)).toBe(true)
-        expect(rating.score).toBeGreaterThanOrEqual(0)
-        expect(rating.score).toBeLessThanOrEqual(10)
-        scored += 1
-      }
-    }
-    expect(scored).toBeGreaterThanOrEqual(15)
-  })
-
-  it('scores a spread rather than a wall of tens', () => {
-    const scores = dataset.flatMap((entry) =>
-      (entry.conversation.ratings ?? []).map((rating) => rating.score)
-    )
-    expect(new Set(scores).size).toBeGreaterThanOrEqual(5)
-    expect(scores.some((score) => score <= 6)).toBe(true)
   })
 
   it('names only channels the badge can draw', () => {

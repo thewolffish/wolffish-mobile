@@ -72,11 +72,12 @@ export type LiveStream = {
    *              while the phone was away — a guess that is right often enough
    *              to be worth making and wrong often enough to be worth marking.
    *
-   * Anything that reads a non-streaming turn as FINISHED has to check this. The
-   * rating bar is the one that taught us: it took 'not streaming' for 'done',
-   * so every reconnect during a live turn — a backgrounded phone coming back is
-   * the common one — flashed a "rate this turn" over a turn still being
-   * written, until the next frame arrived and put it away again.
+   * Anything that reads a non-streaming turn as FINISHED has to check this.
+   * The since-retired rating bar is the one that taught us: it took 'not
+   * streaming' for 'done', so every reconnect during a live turn — a
+   * backgrounded phone coming back is the common one — flashed end-of-turn
+   * chrome over a turn still being written, until the next frame arrived and
+   * put it away again.
    *
    * Undefined while streaming, and dropped by every putLive: a turn that is
    * being written again is not a turn that ended.

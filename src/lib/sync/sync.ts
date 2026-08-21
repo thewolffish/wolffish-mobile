@@ -1,6 +1,5 @@
 import { messageFilePaths } from '@/lib/conversations/segments'
-import type { ConversationMessage, ConversationRating } from '@/lib/conversations/types'
-import { foldFetchedRatings } from '@/lib/sync/rating'
+import type { ConversationMessage } from '@/lib/conversations/types'
 import { getDb } from '@/lib/db/database'
 import { resolveWorkspaceFile } from '@/lib/files/fileCache'
 import { tunnelClient } from '@/lib/tunnel/client'
@@ -564,7 +563,6 @@ export async function fetchConversationBody(id: string): Promise<boolean> {
 
   const body = (await tunnel.rpc(Rpc.conversationBody, { id })) as {
     updatedAt?: number
-    ratings?: ConversationRating[]
     messages?: Array<{
       id: string
       role: string
@@ -603,13 +601,6 @@ export async function fetchConversationBody(id: string): Promise<boolean> {
     // failed write can never leave the phone believing it is current.
     await tx.runAsync('UPDATE conversations SET body_synced_at = ? WHERE id = ?', [syncedTo, id])
   })
-  // The turn scores this transcript carries — the desktop's whole set for this
-  // conversation, applied like the rows above it (adds what is new, drops what
-  // is gone) except for a vote still on the wire from here. Only when the
-  // field is actually present: a desktop that predates it sends none at all,
-  // and reading that absence as "no scores" would wipe every one the phone
-  // holds on the next open.
-  if (Array.isArray(body?.ratings)) await foldFetchedRatings(id, body.ratings)
   // Every file this conversation shows, pulled into the cache now rather than
   // when its card scrolls into view — the difference between attachments that
   // are simply there and a screen of spinners resolving one by one. Fire and

@@ -163,7 +163,10 @@ class TunnelClient {
     // refresh() rather than retryNow(): the tunnel may have no retry queued at
     // all — an open socket with a dead session behind it answers nothing and
     // schedules nothing, which is precisely the state a failing RPC reports.
-    this.tunnel?.refresh()
+    // Patient: nobody is watching this probe, and the thread that just timed
+    // an RPC out may simply be busy — a false kill here costs a visible
+    // reconnect for nothing.
+    this.tunnel?.refresh(true)
   }
 
   subscribe(listener: ConnectionListener): () => void {
@@ -236,15 +239,20 @@ class TunnelClient {
    *
    * Safe to call as often as anything likes — launch, every foreground, after
    * a failed RPC. A connect already under way is joined rather than raced.
+   *
+   * `patient` is passed through to the probe (see Tunnel.refresh): true for
+   * callers nobody is watching — a network-type flap mid-use — false for the
+   * foreground return, where the user is looking and the socket is the one
+   * iOS habitually kills.
    */
-  async resume(): Promise<boolean> {
+  async resume(patient = false): Promise<boolean> {
     const joined = await this.joinConnect()
     if (joined !== null) return joined
     const existing = this.tunnel
     if (existing?.alive) {
       // Not merely "still trying": verify it, because the state that costs the
       // most is the one that looks healthiest — see Tunnel.refresh.
-      existing.refresh()
+      existing.refresh(patient)
       return true
     }
     const pairing = await loadPairing()
