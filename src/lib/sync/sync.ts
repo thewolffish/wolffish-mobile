@@ -3,7 +3,8 @@ import type { ConversationMessage } from '@/lib/conversations/types'
 import { getDb } from '@/lib/db/database'
 import { resolveWorkspaceFile } from '@/lib/files/fileCache'
 import { tunnelClient } from '@/lib/tunnel/client'
-import { Event, Rpc, type ConversationMeta } from '@/lib/tunnel/protocol'
+import { fromBase64Url } from '@/lib/tunnel/pairing'
+import { CHUNK_SIZE, Event, Rpc, type ConversationMeta } from '@/lib/tunnel/protocol'
 import {
   applyVariablesPush,
   refreshConfigSnapshot,
@@ -561,7 +562,13 @@ export async function fetchConversationBody(id: string): Promise<boolean> {
   // knew when it asked", and a push landing mid-fetch must not rewrite it.
   const askedAt = before?.updated_at ?? 0
 
-  const body = (await tunnel.rpc(Rpc.conversationBody, { id })) as {
+  // `chunked: true` says this build can pull an oversize body in windows. A
+  // finished tool-heavy turn can outgrow the relay's one-frame record cap,
+  // and an inline answer past it does not arrive late — it CLOSES the
+  // tunnel, after which every open of the conversation kills the link again.
+  // The desktop answers inline when the body fits (the ordinary case) and
+  // with a spool handle when it does not.
+  let answer = (await tunnel.rpc(Rpc.conversationBody, { id, chunked: true })) as {
     updatedAt?: number
     messages?: Array<{
       id: string
@@ -571,6 +578,17 @@ export async function fetchConversationBody(id: string): Promise<boolean> {
       payload?: unknown
     }>
   }
+  if ((answer as { chunked?: unknown } | null)?.chunked === true) {
+    const pulled = await pullChunkedBody(
+      (method, params) => tunnel.rpc(method, params),
+      answer as { bodyId?: unknown; sizeBytes?: unknown }
+    )
+    // A broken pull leaves the copy in hand untouched, exactly as a
+    // malformed inline answer does below.
+    if (pulled === null || typeof pulled !== 'object') return false
+    answer = pulled as typeof answer
+  }
+  const body = answer
   const served = body?.updatedAt
   const syncedTo = typeof served === 'number' && Number.isFinite(served) ? served : askedAt
   // No messages array is a failed lookup, not an empty conversation. The old
@@ -608,6 +626,56 @@ export async function fetchConversationBody(id: string): Promise<boolean> {
   // this via the cache's in-flight map, so a slow prefetch delays nothing.
   void prefetchConversationFiles(id, referencedFilePaths(messages))
   return true
+}
+
+/** Sanity ceiling on a chunked body — far above any real conversation, and
+ *  the guard that a corrupt `sizeBytes` can never drive an unbounded pull. */
+const CHUNKED_BODY_MAX_BYTES = 64 * 1024 * 1024
+
+/**
+ * Pull an oversize conversation body the desktop spooled for chunked pickup —
+ * base64url windows on the fileRead contract, reassembled and parsed here.
+ * Returns the parsed wire conversation, or null on ANY failure (expired
+ * spool, short read, malformed JSON): the caller then keeps its cached copy
+ * untouched, exactly as it does for a malformed inline answer.
+ *
+ * Takes the rpc function rather than the tunnel so tests can drive it
+ * without a transport.
+ */
+export async function pullChunkedBody(
+  rpc: (method: string, params: Record<string, unknown>) => Promise<unknown>,
+  meta: { bodyId?: unknown; sizeBytes?: unknown }
+): Promise<unknown | null> {
+  const bodyId = typeof meta.bodyId === 'string' ? meta.bodyId : ''
+  const sizeBytes =
+    typeof meta.sizeBytes === 'number' && Number.isFinite(meta.sizeBytes) ? meta.sizeBytes : 0
+  if (!bodyId || sizeBytes <= 0 || sizeBytes > CHUNKED_BODY_MAX_BYTES) return null
+  try {
+    const parts: Uint8Array[] = []
+    let offset = 0
+    while (offset < sizeBytes) {
+      const chunk = (await rpc(Rpc.conversationBodyChunk, {
+        bodyId,
+        offset,
+        length: CHUNK_SIZE
+      })) as { data?: unknown } | null
+      const bytes = fromBase64Url(typeof chunk?.data === 'string' ? chunk.data : '')
+      // An empty window before the promised end means the spool expired or
+      // shrank — a truncated transcript must never parse as a complete one.
+      if (bytes.length === 0) return null
+      parts.push(bytes)
+      offset += bytes.length
+    }
+    const whole = new Uint8Array(offset)
+    let at = 0
+    for (const part of parts) {
+      whole.set(part, at)
+      at += part.length
+    }
+    return JSON.parse(new TextDecoder().decode(whole))
+  } catch {
+    return null
+  }
 }
 
 /**

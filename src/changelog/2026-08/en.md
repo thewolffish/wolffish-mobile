@@ -1,4 +1,18 @@
-## v1.0.38 — 2026-08-21 `Latest`
+## v1.0.39 — 2026-08-22 `Latest`
+
+### A Run You Come Back To Is Still There
+
+iOS reclaims a sleeping app whenever it wants the memory back, and returning to one that was left mid-run used to cost you the whole turn on screen: the reply already written, the tool cards, the question it was waiting on — all of it replaced by the bare thinking words, as though the run had only just begun. Nothing was ever lost on your desktop, but nothing would redraw it either, and across a long tool call the next update can be **minutes** away. The app now **asks your desktop for the turn exactly as it stands** the moment it reconnects, and puts it back: the reply so far, the message it answers, and — the one that mattered most — **any question or approval the run is parked on**. That card is the reason you came back, it is never sent twice, and until now returning to the app was enough to lose it for good, leaving your desktop waiting on an answer nobody could give it any more.
+
+### A Long Conversation No Longer Closes the Link
+
+A conversation heavy with tool work eventually outgrows what a single message on the link can carry — and an oversized reply does not arrive late, it **drops the connection**. Worse, it did it every time: the conversation was still sitting in your list, so opening it took the link down again, and again. Transcripts past that size now arrive **in pieces and are put back together on the phone**, so a conversation can run as long as your work needs it to. If a piece fails to arrive, the copy already on your phone is left exactly as it was rather than replaced with half a transcript.
+
+### The Feed Stays at the End
+
+Watching a reply arrive could strand you partway up it, with everything new piling up below the fold and nothing bringing you back down. The feed is meant to follow what grows only while you mean to be at the end — and it had been **mistaking its own scrolling for yours**, letting go halfway through the very glide that was carrying you there. It also aimed at where the end was when that glide **began**, so anything arriving during it landed you short, with nothing coming back for the rest. Both are fixed: the feed now knows its own motion from yours, and **keeps going until it truly reaches the end**. Streamed lines are glued on instantly; a whole message glides. And the end now survives the screen changing under you — **the keyboard rising**, or the composer growing a few lines, used to leave the newest message hidden behind it while the feed believed itself pinned.
+
+## v1.0.38 — 2026-08-21
 
 ### The Composer Is One Card
 

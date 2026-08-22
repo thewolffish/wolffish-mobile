@@ -87,7 +87,15 @@ jest.mock('@/state/demoConfig', () => ({
   }
 }))
 
-import { fetchConversationBody, isBodyStale, refreshSync, reconcile } from '@/lib/sync/sync'
+import {
+  fetchConversationBody,
+  isBodyStale,
+  pullChunkedBody,
+  refreshSync,
+  reconcile
+} from '@/lib/sync/sync'
+import { toBase64Url } from '@/lib/tunnel/pairing'
+import { Rpc } from '@/lib/tunnel/protocol'
 
 beforeEach(() => {
   mockState.rows = []
@@ -324,5 +332,88 @@ describe('fetchConversationBody', () => {
 
     expect(await fetchConversationBody('c')).toBe(true)
     expect(mockState.messages['c']).toBeUndefined()
+  })
+})
+
+/**
+ * Oversize bodies arrive in windows. A finished tool-heavy turn can outgrow
+ * the relay's one-frame record cap, and an inline answer past it does not
+ * arrive late — it CLOSES the tunnel, after which every open of the
+ * conversation kills the link again (the 2026-08-22 sweep finished 12% under
+ * that cliff). The desktop spools the serialized body instead and this side
+ * reassembles it; every failure shape must leave the cached copy untouched,
+ * exactly like a malformed inline answer.
+ */
+describe('chunked body pulls', () => {
+  const wireBody = {
+    updatedAt: 500,
+    messages: [
+      { id: 'u1', role: 'user', content: 'sweep my inbox', timestamp: 1 },
+      { id: 'a1', role: 'assistant', content: 'done: ' + 'x'.repeat(200), timestamp: 2 }
+    ]
+  }
+  const encoded = new TextEncoder().encode(JSON.stringify(wireBody))
+  // Deliberately tiny windows — the loop must advance by the bytes actually
+  // served, not by the length it asked for.
+  const serveWindows = (windowSize: number): void => {
+    mockRpc.mockImplementation((method: string, params?: { offset?: number }) => {
+      if (method === Rpc.conversationBody) {
+        return Promise.resolve({ chunked: true, bodyId: 'b1', sizeBytes: encoded.length })
+      }
+      if (method === Rpc.conversationBodyChunk) {
+        const offset = params?.offset ?? 0
+        const window = encoded.subarray(offset, offset + windowSize)
+        return Promise.resolve({ data: toBase64Url(window), sizeBytes: encoded.length })
+      }
+      return Promise.resolve(null)
+    })
+  }
+
+  it('reassembles a spooled body end-to-end and stores it', async () => {
+    mockState.rows = [{ id: 'big', updated_at: 100, body_synced_at: null }]
+    serveWindows(7)
+
+    expect(await fetchConversationBody('big')).toBe(true)
+    const inserts = mockRunCalls.filter(({ sql }) => sql.startsWith('INSERT INTO messages'))
+    expect(inserts).toHaveLength(2)
+    expect(inserts[1].args).toContain('done: ' + 'x'.repeat(200))
+    // The stamp is the SERVED updatedAt, carried through the chunked shape.
+    expect(mockState.rows[0].body_synced_at).toBe(500)
+  })
+
+  it('a spool that dies mid-pull leaves the cached copy untouched', async () => {
+    mockState.rows = [{ id: 'big', updated_at: 100, body_synced_at: 42 }]
+    mockState.messages['big'] = 9
+    let served = 0
+    mockRpc.mockImplementation((method: string) => {
+      if (method === Rpc.conversationBody) {
+        return Promise.resolve({ chunked: true, bodyId: 'b1', sizeBytes: encoded.length })
+      }
+      // First window lands, then the spool expires: empty data.
+      served += 1
+      return Promise.resolve({
+        data: served === 1 ? toBase64Url(encoded.subarray(0, 5)) : '',
+        sizeBytes: encoded.length
+      })
+    })
+
+    expect(await fetchConversationBody('big')).toBe(false)
+    expect(mockState.messages['big']).toBe(9)
+    expect(mockState.rows[0].body_synced_at).toBe(42)
+  })
+
+  it('pullChunkedBody refuses junk meta without touching the wire', async () => {
+    const rpc = jest.fn()
+    expect(await pullChunkedBody(rpc, {})).toBeNull()
+    expect(await pullChunkedBody(rpc, { bodyId: 'b', sizeBytes: 0 })).toBeNull()
+    expect(await pullChunkedBody(rpc, { bodyId: 'b', sizeBytes: Number.NaN })).toBeNull()
+    expect(await pullChunkedBody(rpc, { bodyId: 'b', sizeBytes: 65 * 1024 * 1024 })).toBeNull()
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('pullChunkedBody yields null for bytes that do not parse', async () => {
+    const junk = new TextEncoder().encode('not json at all')
+    const rpc = jest.fn(async () => ({ data: toBase64Url(junk), sizeBytes: junk.length }))
+    expect(await pullChunkedBody(rpc, { bodyId: 'b', sizeBytes: junk.length })).toBeNull()
   })
 })

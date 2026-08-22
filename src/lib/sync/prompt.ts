@@ -7,7 +7,7 @@ import {
   refetchConversation
 } from '@/lib/conversations/cache'
 import { mintMessageId } from '@/lib/conversations/types'
-import { attachCardStream } from '@/lib/sync/cards'
+import { attachCardStream, seedTurnCards } from '@/lib/sync/cards'
 import { fetchConversationBody } from '@/lib/sync/sync'
 import { tunnelClient } from '@/lib/tunnel/client'
 import { Event, Rpc } from '@/lib/tunnel/protocol'
@@ -192,6 +192,22 @@ function mirroredPrompt(value: unknown): ConversationMessage | null {
 }
 
 /**
+ * A full assistant mirror off the wire — the desktop's snapshot of the turn
+ * it is writing — or null if the payload is not one. The id is mandatory for
+ * the same reason the prompt's is: it is what lets the stored copy replace
+ * this snapshot instead of joining it. One definition, shared by the push
+ * handler and the turn-so-far recovery, so "what counts as a mirror" cannot
+ * drift between the live path and the late-join path.
+ */
+function mirroredAssistant(value: unknown): ConversationMessage | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Partial<ConversationMessage>
+  if (raw.role !== 'assistant') return null
+  if (typeof raw.id !== 'string' || !raw.id) return null
+  return raw as ConversationMessage
+}
+
+/**
  * Open a live turn before anything has come back from the desktop, so the
  * prompt and the thinking words are on screen from the tap. Called by the send
  * path, by `turn.status: started` for turns begun on another surface — an open
@@ -283,11 +299,72 @@ export async function seedActiveRuns(): Promise<void> {
         // would have opened one had this phone been connected to hear it.
         putLive(id, { base: blankAssistant(), tail: '', status: 'streaming' })
       }
+      // A row with no snapshot behind it is a PLACEHOLDER — bare thinking
+      // words over however much of the turn already happened. That is all a
+      // phone ever had here, and it is exactly wrong for the one that
+      // relaunched mid-turn (iOS reclaiming a backgrounded app): its user is
+      // looking at a conversation that had prose, cards and maybe an open
+      // question a moment ago, and the next mirror tick that would redraw
+      // them can be minutes away across a long tool call. Ask the desktop
+      // for the turn-so-far instead of waiting for it.
+      if (!liveFor(id)?.base?.id) await recoverTurnSoFar(id, issuedAt)
     }
   } catch {
     // Silent, and deliberately not reportRpcFailure: a desktop that predates
     // this method is not a sick tunnel, and nothing the user asked for failed.
   }
+}
+
+/**
+ * Pull one running conversation's turn-so-far (Rpc.turnMirror) and lay it
+ * over the placeholder row seedActiveRuns just opened: the newest mirror
+ * snapshot as the live base, the prompt it answers, and the ask/approval
+ * cards the turn is still parked on — which for a relaunched phone are
+ * otherwise LOST, with the desktop parked on a promise nothing can answer.
+ *
+ * Everything about it is defensive, because it races the live push stream it
+ * is catching up to:
+ *  - applied only while the row is still streaming AND still base-less — a
+ *    mirror push that lands during the round trip is newer than the answer
+ *    and wins by simply having set the base first;
+ *  - re-checked against the run store, so a turn that ended mid-flight is
+ *    not re-drawn as running;
+ *  - never throws, and an older desktop (no such method) leaves the phone
+ *    exactly where it was: the placeholder row, as before this existed.
+ */
+async function recoverTurnSoFar(conversationId: string, issuedAt: number): Promise<void> {
+  const tunnel = tunnelClient.active
+  if (!tunnel || !tunnelClient.connected) return
+  let answer: unknown
+  try {
+    answer = await tunnel.rpc(Rpc.turnMirror, { conversationId })
+  } catch {
+    return
+  }
+  if (!answer || typeof answer !== 'object') return
+  const snapshot = answer as {
+    message?: unknown
+    userMessage?: unknown
+    asks?: unknown
+    approvals?: unknown
+  }
+  const ended = useRunStatus.getState().runs[conversationId]
+  if (ended && ended.at >= issuedAt) return
+  const live = liveFor(conversationId)
+  if (!live || live.status !== 'streaming') return
+  if (live.base?.id) return
+  seedTurnCards(conversationId, snapshot.asks, snapshot.approvals)
+  const message = mirroredAssistant(snapshot.message)
+  const prompt = mirroredPrompt(snapshot.userMessage ?? null)
+  if (!message && !prompt) return
+  putLive(conversationId, {
+    // A snapshot contains every delta up to the moment it was cached, so the
+    // tail resets with it — at worst the last throttle-window of text repaints
+    // one tick later. No snapshot ⇒ whatever streamed since reconnect stays.
+    ...(message ? { base: message, tail: '' } : { tail: live.tail ?? '' }),
+    ...(prompt ? { user: prompt } : {}),
+    status: 'streaming'
+  })
 }
 
 // ------------------------------------------------------------- settling
@@ -429,15 +506,10 @@ export function attachTurnStream(): void {
     // of the turn it is writing — prose, tool cards and task cards, exactly as
     // they stand right now. It replaces the live row's base, and the deltas
     // that built the text it already contains are dropped with it.
-    const mirrored = message as { id?: unknown; role?: unknown } | undefined
-    if (
-      mirrored &&
-      typeof mirrored === 'object' &&
-      typeof mirrored.id === 'string' &&
-      mirrored.role === 'assistant'
-    ) {
+    const mirrored = mirroredAssistant(message)
+    if (mirrored) {
       putLive(conversationId, {
-        base: message as ConversationMessage,
+        base: mirrored,
         tail: '',
         status: 'streaming'
       })

@@ -95,8 +95,25 @@ export const Rpc = {
   variablesSet: 'desktop.variables.set',
   /** Conversation index — metadata only, never message bodies. */
   conversationIndex: 'desktop.conversations.index',
-  /** One conversation's messages, fetched when the user opens it. */
+  /**
+   * One conversation's messages, fetched when the user opens it. Params
+   * `{ id, chunked? }`. The answer is normally the wire conversation inline;
+   * a body too large for one frame answers `{ chunked: true, bodyId,
+   * sizeBytes, updatedAt }` when the caller passed `chunked: true` — the
+   * caller then pulls the complete JSON through `conversationBodyChunk` —
+   * and is served trimmed to one frame otherwise (a caller that never asks
+   * for chunks is a build that predates them).
+   */
   conversationBody: 'desktop.conversations.body',
+  /**
+   * One window of a chunked conversation body. Params `{ bodyId, offset,
+   * length? }` → `{ data, sizeBytes }` — base64url bytes of the serialized
+   * wire conversation, windows capped at CHUNK_SIZE, exactly the fileRead
+   * contract. The spool behind a bodyId lives for a couple of minutes and
+   * every read refreshes it; an expired or unknown id is an error and the
+   * caller re-requests the conversation.
+   */
+  conversationBodyChunk: 'desktop.conversations.bodyChunk',
   /**
    * File one conversation under a project, or unfile it with null. Params:
    * `{ conversationId, projectId }` → `{ ok, projectId }` with the binding
@@ -161,6 +178,23 @@ export const Rpc = {
    * about the run when the desktop next mirrors it.
    */
   activeRuns: 'desktop.chat.activeRuns',
+  /**
+   * The turn-so-far for one conversation with a run in flight. Params:
+   * `{ conversationId }` → `{ message, userMessage?, asks, approvals }` —
+   * the newest live-mirror snapshot of the assistant message being written
+   * (null when the turn has produced nothing yet), the prompt it answers,
+   * and the ask/approval cards the turn is still parked on, each shaped as
+   * its original push event was.
+   *
+   * This exists for the phone that JOINS a run late: pushes only describe
+   * what happens next, the assistant message reaches disk only when the turn
+   * folds, and across a long tool call the next mirror tick is minutes away.
+   * A phone that pairs mid-turn, or relaunches after iOS reclaimed it, calls
+   * this once per active run it has no live state for (see seedActiveRuns)
+   * and redraws the turn instead of a blank thinking row. An older desktop
+   * answers with an error and the phone keeps the blank row it always had.
+   */
+  turnMirror: 'desktop.chat.turnMirror',
   /**
    * The user answered an ask-the-user card. Params: `{ id, response }` where
    * `response` is the desktop's AskUserResponse — `{ kind: 'answered',

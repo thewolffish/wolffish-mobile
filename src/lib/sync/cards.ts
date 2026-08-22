@@ -137,6 +137,54 @@ export function attachCardStream(): void {
 }
 
 /**
+ * Re-seed the cards a turn is still parked on, from the desktop's own record
+ * of them (Rpc.turnMirror) — the recovery path for a phone that joined the
+ * turn late. The original pushes are gone for such a phone: a card lives in
+ * memory and nothing re-sends it, so a relaunch while a question was open
+ * left the desktop parked on a promise this phone could no longer see, let
+ * alone answer.
+ *
+ * Same sanitizers as the push handlers — the wire is data, not policy — and
+ * strictly additive: a card already up (with the user's optimistic answer on
+ * it, perhaps) is never replaced by the desktop's still-pending copy.
+ */
+export function seedTurnCards(conversationId: string, asks: unknown, approvals: unknown): void {
+  const store = useChatRuntime.getState()
+  const current = store.cards[conversationId]
+  if (Array.isArray(asks)) {
+    for (const raw of asks) {
+      if (!raw || typeof raw !== 'object') continue
+      const { id, toolCallId, questions } = raw as Record<string, unknown>
+      if (typeof id !== 'string' || typeof toolCallId !== 'string') continue
+      if (current?.asks[toolCallId]) continue
+      const parsed = sanitizeQuestions(questions)
+      if (parsed.length === 0) continue
+      store.putAsk(conversationId, { askId: id, toolCallId, questions: parsed })
+    }
+  }
+  if (Array.isArray(approvals)) {
+    for (const raw of approvals) {
+      if (!raw || typeof raw !== 'object') continue
+      const { id, toolCallId, tool, args, level, reason, description } = raw as Record<
+        string,
+        unknown
+      >
+      if (typeof id !== 'string' || typeof toolCallId !== 'string') continue
+      if (current?.approvals[toolCallId]) continue
+      store.putApproval(conversationId, {
+        approvalId: id,
+        toolCallId,
+        tool: typeof tool === 'string' ? tool : 'unknown',
+        args: args && typeof args === 'object' ? (args as Record<string, unknown>) : {},
+        reason: typeof reason === 'string' ? reason : '',
+        level: DANGER_LEVELS.includes(level as DangerLevel) ? (level as DangerLevel) : 'confirm',
+        description: sanitizeDescription(description)
+      })
+    }
+  }
+}
+
+/**
  * Answer a question card. The card shows the answers immediately and the turn
  * on the desktop resumes when this lands; a response the desktop no longer
  * recognises takes the card down instead, and a failed send puts it back the
