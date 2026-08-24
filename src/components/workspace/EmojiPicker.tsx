@@ -1,8 +1,9 @@
 import { Modal } from '@/components/core/Modal'
 import { INPUT_TEXT_ALIGN, WRITING_DIRECTION, rtlPlaceholder } from '@/components/core/Input'
+import { KeyboardDismissAccessory } from '@/components/core/KeyboardDismissBar'
 import { EMOJI_GROUPS } from '@/lib/emoji/emojiData'
 import { useTokens } from '@/providers/theme/useTheme'
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FlatList, Pressable, Text, TextInput, View, useWindowDimensions } from 'react-native'
 
@@ -41,6 +42,8 @@ export function EmojiPicker({
   const tokens = useTokens()
   const { height } = useWindowDimensions()
   const [query, setQuery] = useState('')
+  // The search field's own iOS keyboard-dismiss chevron.
+  const accessoryID = useId()
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -59,6 +62,7 @@ export function EmojiPicker({
   return (
     <Modal open={open} onClose={close} title={t('projects.pickIcon')}>
       <View className="bg-bg border-border rounded-lg border px-3">
+        <KeyboardDismissAccessory nativeID={accessoryID} />
         <TextInput
           value={query}
           onChangeText={setQuery}
@@ -70,6 +74,7 @@ export function EmojiPicker({
           className={`text-fg h-10 w-full py-0 font-sans text-sm ${INPUT_TEXT_ALIGN}`}
           style={WRITING_DIRECTION}
           accessibilityLabel={t('projects.emojiSearch')}
+          inputAccessoryViewID={accessoryID}
         />
       </View>
       {groups.length === 0 ? (

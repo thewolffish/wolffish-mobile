@@ -9,7 +9,7 @@ import {
   Tick02Icon
 } from '@/components/core/icons'
 import { INPUT_TEXT_ALIGN, WRITING_DIRECTION, rtlPlaceholder } from '@/components/core/Input'
-import { KEYBOARD_DISMISS_BAR_ID, KeyboardDismissBar } from '@/components/core/KeyboardDismissBar'
+import { KeyboardDismissAccessory } from '@/components/core/KeyboardDismissBar'
 import type { ConversationFile } from '@/lib/conversations/types'
 import { pickDocuments, pickMedia, type PickedFile } from '@/lib/files/pickAttachments'
 import { MAX_FILES_PER_MESSAGE, uploadErrorMessage, validateUpload } from '@/lib/files/uploadPolicy'
@@ -23,7 +23,7 @@ import {
   useAudioRecorder,
   useAudioRecorderState
 } from 'expo-audio'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Keyboard, Pressable, Text, TextInput, View } from 'react-native'
 import { AttachSheet, AttachmentTray } from '@/components/chat/AttachmentPicker'
@@ -101,6 +101,8 @@ export function Composer({
   const { t } = useTranslation()
   const tokens = useTokens()
   const toast = useToast()
+  // The field's own iOS keyboard-dismiss chevron, paired by id below.
+  const accessoryID = useId()
   const [draft, setDraft] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [projectOpen, setProjectOpen] = useState(false)
@@ -279,6 +281,10 @@ export function Composer({
 
   return (
     <View className="bg-bg border-border-soft border-t">
+      {/* Renders nothing inline — the accessory lives in the keyboard's
+          window, shown whenever the field below names it. Before the field
+          in tree order so even an auto-focused mount finds it registered. */}
+      <KeyboardDismissAccessory nativeID={accessoryID} />
       {streaming && <RainbowBorder />}
       {/* Queued messages sit above everything else in the composer, as they do
           on the desktop — above the staged files, never in the feed. */}
@@ -345,7 +351,7 @@ export function Composer({
                 // The dismiss chevron docked above the iPhone keyboard — the
                 // OS gives that keyboard no way down of its own. iOS-only
                 // prop; Android's navigation bar already carries the chevron.
-                inputAccessoryViewID={KEYBOARD_DISMISS_BAR_ID}
+                inputAccessoryViewID={accessoryID}
               />
             </View>
           )}
@@ -495,9 +501,6 @@ export function Composer({
         </View>
       </View>
 
-      {/* Renders nothing inline — the bar lives in the keyboard's window,
-          shown whenever the field above names it. */}
-      <KeyboardDismissBar />
       <AttachSheet
         open={attachOpen}
         onClose={() => setAttachOpen(false)}

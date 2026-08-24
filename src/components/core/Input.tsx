@@ -1,7 +1,8 @@
 import { EyeIcon, ViewOffIcon } from '@/components/core/icons'
+import { KeyboardDismissAccessory } from '@/components/core/KeyboardDismissBar'
 import { useTokens } from '@/providers/theme/useTheme'
 import { cn } from '@/lib/utils/cn'
-import { forwardRef, useState } from 'react'
+import { forwardRef, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { I18nManager, Pressable, Text, TextInput, View, type TextInputProps } from 'react-native'
 
@@ -62,10 +63,15 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
   const tokens = useTokens()
   const [focused, setFocused] = useState(false)
   const [revealed, setRevealed] = useState(false)
+  // Every field gets its own iOS dismiss chevron, paired by a per-instance
+  // id — which is what makes it show on pushed screens and inside RN Modal
+  // dialogs alike (see KeyboardDismissBar).
+  const accessoryID = useId()
   const disabled = editable === false
   const field = (
     <TextInput
       ref={ref}
+      inputAccessoryViewID={accessoryID}
       editable={editable}
       secureTextEntry={secureTextEntry && !revealed}
       placeholder={rtlPlaceholder(placeholder)}
@@ -92,6 +98,10 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
   )
   return (
     <View className={cn('flex-col gap-1.5', containerClassName)}>
+      {/* Before the field in tree order, so a field that autoFocuses on
+          mount still finds its accessory registered (see KeyboardDismissBar).
+          Zero-size — it never earns the column gap. */}
+      <KeyboardDismissAccessory nativeID={accessoryID} />
       {/* text-left = start alignment: React Native swaps left/right in RTL,
           matching the desktop app's dir-driven alignment. */}
       {label && <Text className="text-muted font-sans-medium text-left text-sm">{label}</Text>}

@@ -1,7 +1,8 @@
 import { INPUT_TEXT_ALIGN, WRITING_DIRECTION, rtlPlaceholder } from '@/components/core/Input'
+import { KeyboardDismissAccessory } from '@/components/core/KeyboardDismissBar'
 import { useTokens } from '@/providers/theme/useTheme'
 import { cn } from '@/lib/utils/cn'
-import { forwardRef, useState } from 'react'
+import { forwardRef, useId, useState } from 'react'
 import { Text, TextInput, View, type TextInputProps } from 'react-native'
 
 export type TextareaProps = TextInputProps & {
@@ -32,13 +33,19 @@ export const Textarea = forwardRef<TextInput, TextareaProps>(function Textarea(
 ) {
   const tokens = useTokens()
   const [focused, setFocused] = useState(false)
+  // Same contract as Input: the field's own iOS dismiss chevron.
+  const accessoryID = useId()
   const disabled = editable === false
   return (
     <View className={cn('flex-col gap-1.5', containerClassName)}>
+      {/* Before the field in tree order, so a field that autoFocuses on
+          mount still finds its accessory registered (see KeyboardDismissBar). */}
+      <KeyboardDismissAccessory nativeID={accessoryID} />
       {label && <Text className="text-muted font-sans-medium text-left text-sm">{label}</Text>}
       <TextInput
         ref={ref}
         multiline
+        inputAccessoryViewID={accessoryID}
         editable={editable}
         textAlignVertical="top"
         placeholder={rtlPlaceholder(placeholder)}

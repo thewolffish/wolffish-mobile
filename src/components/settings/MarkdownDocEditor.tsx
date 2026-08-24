@@ -1,9 +1,10 @@
 import { Button } from '@/components/core/Button'
 import { INPUT_TEXT_ALIGN, WRITING_DIRECTION, rtlPlaceholder } from '@/components/core/Input'
+import { KeyboardDismissAccessory } from '@/components/core/KeyboardDismissBar'
 import { cn } from '@/lib/utils/cn'
 import { useTokens } from '@/providers/theme/useTheme'
 import { CUSTOMIZATION_MAX_BYTES, utf8Bytes } from '@/state/demoConfig'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   KeyboardAvoidingView,
@@ -66,6 +67,9 @@ export function MarkdownDocEditor({
   const { t } = useTranslation()
   const tokens = useTokens()
   const insets = useSafeAreaInsets()
+  // Parking the keyboard to read the document is not Close — the chevron
+  // only puts the keys away.
+  const accessoryID = useId()
   const [value, setValue] = useState(initialValue)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -111,6 +115,10 @@ export function MarkdownDocEditor({
           Taking `bg-surface` for the whole sheet keeps the document on the
           same paper it was just being read on, header and field included. */}
       <View className="bg-surface flex-1" style={{ paddingTop: insets.top }}>
+        {/* BEFORE the field in tree order: the field autoFocuses on mount,
+            and an accessory that registers after that focus is never looked
+            up again — the keyboard would rise bare. */}
+        <KeyboardDismissAccessory nativeID={accessoryID} />
         <View className="border-border-soft flex-row items-center gap-2 border-b px-3 pb-2">
           <View className="flex-1 flex-col">
             <Text numberOfLines={1} className="text-fg font-sans-semibold text-left text-base">
@@ -199,6 +207,7 @@ export function MarkdownDocEditor({
               className={cn('text-fg bg-surface flex-1 px-4 py-3 font-mono', INPUT_TEXT_ALIGN)}
               style={[{ fontSize: FONT_SIZE, lineHeight: LINE_HEIGHT }, WRITING_DIRECTION]}
               accessibilityLabel={title}
+              inputAccessoryViewID={accessoryID}
             />
           </ScrollView>
         </KeyboardAvoidingView>

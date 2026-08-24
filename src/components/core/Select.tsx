@@ -1,9 +1,10 @@
 import { ArrowDown01Icon, Tick02Icon } from '@/components/core/icons'
 import { INPUT_TEXT_ALIGN, WRITING_DIRECTION, rtlPlaceholder } from '@/components/core/Input'
+import { KeyboardDismissAccessory } from '@/components/core/KeyboardDismissBar'
 import { useTheme, useTokens } from '@/providers/theme/useTheme'
 import { cn } from '@/lib/utils/cn'
 import { BlurView } from 'expo-blur'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useId, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
@@ -46,6 +47,8 @@ export function Select<T extends string>({
   const tokens = useTokens()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  // The search field's own iOS keyboard-dismiss chevron.
+  const accessoryID = useId()
 
   const close = (): void => {
     setOpen(false)
@@ -129,6 +132,9 @@ export function Select<T extends string>({
             )}
             {searchable && (
               <View className="border-border border-b px-4 py-2">
+                {/* Before the field: it autoFocuses, and an accessory that
+                    registers after that focus is never looked up again. */}
+                <KeyboardDismissAccessory nativeID={accessoryID} />
                 <TextInput
                   value={query}
                   onChangeText={setQuery}
@@ -136,6 +142,7 @@ export function Select<T extends string>({
                   placeholder={rtlPlaceholder(searchPlaceholder ?? t('common.search'))}
                   placeholderTextColor={tokens.muted}
                   selectionColor={tokens.accent}
+                  inputAccessoryViewID={accessoryID}
                   className={cn(
                     'text-fg h-9 w-full bg-transparent py-0 font-sans text-sm',
                     INPUT_TEXT_ALIGN

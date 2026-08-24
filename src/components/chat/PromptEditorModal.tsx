@@ -1,8 +1,9 @@
 import { Button } from '@/components/core/Button'
 import { INPUT_TEXT_ALIGN, WRITING_DIRECTION, rtlPlaceholder } from '@/components/core/Input'
+import { KeyboardDismissAccessory } from '@/components/core/KeyboardDismissBar'
 import { cn } from '@/lib/utils/cn'
 import { useTokens } from '@/providers/theme/useTheme'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   KeyboardAvoidingView,
@@ -56,6 +57,9 @@ export function PromptEditorModal({
   const { t } = useTranslation()
   const tokens = useTokens()
   const insets = useSafeAreaInsets()
+  // Parking the keyboard to read a long draft is not exiting — Done commits
+  // and closes; the chevron only puts the keys away.
+  const accessoryID = useId()
   const [value, setValue] = useState(initialValue)
 
   // Reset local state each time the editor opens with a fresh draft.
@@ -74,6 +78,10 @@ export function PromptEditorModal({
   return (
     <RNModal visible={open} animationType="slide" onRequestClose={() => onDone(value)}>
       <View className="bg-bg flex-1" style={{ paddingTop: insets.top }}>
+        {/* BEFORE the field in tree order: the field autoFocuses on mount,
+            and an accessory that registers after that focus is never looked
+            up again — the keyboard would rise bare. */}
+        <KeyboardDismissAccessory nativeID={accessoryID} />
         <View className="border-border-soft flex-row items-center gap-2 border-b px-3 pb-2">
           <Text numberOfLines={1} className="text-fg font-sans-semibold flex-1 text-left text-base">
             {t('chat.editor.title')}
@@ -122,6 +130,7 @@ export function PromptEditorModal({
               className={cn('text-fg flex-1 px-4 py-3 font-sans', INPUT_TEXT_ALIGN)}
               style={[{ fontSize: FONT_SIZE, lineHeight: LINE_HEIGHT }, WRITING_DIRECTION]}
               accessibilityLabel={t('chat.editor.title')}
+              inputAccessoryViewID={accessoryID}
             />
           </ScrollView>
         </KeyboardAvoidingView>

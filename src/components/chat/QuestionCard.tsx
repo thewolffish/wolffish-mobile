@@ -1,11 +1,12 @@
 import { CheckmarkCircle02Icon, MessageQuestionIcon, SentIcon } from '@/components/core/icons'
 import { INPUT_TEXT_ALIGN, WRITING_DIRECTION, rtlPlaceholder } from '@/components/core/Input'
+import { KeyboardDismissAccessory } from '@/components/core/KeyboardDismissBar'
 import type { ToolCallInfo, ToolResultInfo } from '@/lib/conversations/segments'
 import type { AskUserAnswer, AskUserOption, AskUserResponse } from '@/lib/conversations/types'
 import { cn } from '@/lib/utils/cn'
 import { useTokens } from '@/providers/theme/useTheme'
 import type { AskCardState } from '@/state/chatRuntime'
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 
@@ -181,6 +182,8 @@ export const QuestionCard = memo(function QuestionCard({
   const [draft, setDraft] = useState<(AskUserAnswer | undefined)[]>([])
   // Per-question free-text drafts, keyed by question index.
   const [otherTexts, setOtherTexts] = useState<Record<number, string>>({})
+  // The free-text answer field's own iOS keyboard-dismiss chevron.
+  const accessoryID = useId()
   // The chip row scrolls horizontally (it never wraps) — keep the active
   // question's chip in view as answering auto-advances past the edge.
   const chipsRef = useRef<ScrollView | null>(null)
@@ -429,8 +432,10 @@ export const QuestionCard = memo(function QuestionCard({
               ) : null
             ) : live ? (
               <View className="mt-2 flex-row items-center gap-2">
+                <KeyboardDismissAccessory nativeID={accessoryID} />
                 <TextInput
                   multiline
+                  inputAccessoryViewID={accessoryID}
                   value={otherText}
                   onChangeText={(value) => setOtherTexts((prev) => ({ ...prev, [current]: value }))}
                   placeholder={rtlPlaceholder(t('chat.questionCard.otherPlaceholder'))}
