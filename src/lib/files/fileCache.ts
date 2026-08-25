@@ -114,8 +114,21 @@ export function seedWorkspaceFile(relPath: string, content: string): boolean {
   }
 }
 
+/**
+ * What a resolution amounts to. `missing` is AUTHORITATIVE absence — the
+ * source of truth answered and said the path does not exist (the desktop's
+ * fileStat, or a demo file type with no published sample). A transient
+ * failure — the tunnel busy, a timeout, a flap mid-transfer, a full disk —
+ * is `{ uri: null, missing: false }`: the file may be fine at the source,
+ * and the caller should try again rather than tell the user it was deleted.
+ */
+export type ResolvedWorkspaceFile = { uri: string | null; missing: boolean }
+
+const TRANSIENT: ResolvedWorkspaceFile = { uri: null, missing: false }
+const ABSENT_AT_SOURCE: ResolvedWorkspaceFile = { uri: null, missing: true }
+
 /** In-flight downloads, keyed by workspace-relative path. */
-const inFlight = new Map<string, Promise<string | null>>()
+const inFlight = new Map<string, Promise<ResolvedWorkspaceFile>>()
 
 /**
  * Download a path's bytes into the cache. The download lands in scratch space
@@ -127,7 +140,10 @@ const inFlight = new Map<string, Promise<string | null>>()
  * single choke point every workspace download passes through, so wrapping it
  * here is what gives every file card in the feed a real progress bar.
  */
-async function fetchIntoCache(relPath: string, conversationId?: string): Promise<string | null> {
+async function fetchIntoCache(
+  relPath: string,
+  conversationId?: string
+): Promise<ResolvedWorkspaceFile> {
   beginDownload(relPath)
   try {
     new Directory(Paths.cache, DOWNLOAD_DIR).create({ intermediates: true, idempotent: true })
@@ -136,13 +152,14 @@ async function fetchIntoCache(relPath: string, conversationId?: string): Promise
     if (useAppStore.getState().paired) {
       // Paired: the desktop is the only honest source for this path.
       const received = (bytes: number, total: number): void => reportDownload(relPath, bytes, total)
-      if (!(await fetchDesktopFileInto(relPath, scratch, received))) {
-        throw new Error('desktop fetch failed')
-      }
+      const outcome = await fetchDesktopFileInto(relPath, scratch, received)
+      if (outcome === 'absent') return ABSENT_AT_SOURCE
+      if (outcome === 'failed') throw new Error('desktop fetch failed')
     } else {
-      // Demo: the published sample for this path's file type.
+      // Demo: the published sample for this path's file type. No sample for
+      // the type is this mode's authoritative absence.
       const url = sampleUrlFor(relPath)
-      if (!url) return null
+      if (!url) return ABSENT_AT_SOURCE
       await File.downloadFileAsync(url, scratch, {
         idempotent: true,
         // totalBytes is -1 when the server sent no Content-Length; the store
@@ -157,10 +174,11 @@ async function fetchIntoCache(relPath: string, conversationId?: string): Promise
     await scratch.move(target, { overwrite: true })
     await record(relPath, target.size ?? 0, conversationId)
     void enforceCacheBudget()
-    return target.uri
+    return { uri: target.uri, missing: false }
   } catch {
-    // Offline, an unpublished type, a full disk — the viewer shows its per-type
-    // unavailable state and the next mount retries. A fresh handle, because
+    // Offline, a timed-out transfer, a full disk — transient by definition:
+    // the viewer keeps its loading card and retries, and only a source that
+    // ANSWERS "not here" may ever render as deleted. A fresh handle, because
     // move() repoints the one it was given at the destination.
     try {
       const leftover = scratchFile(relPath)
@@ -168,7 +186,7 @@ async function fetchIntoCache(relPath: string, conversationId?: string): Promise
     } catch {
       // Nothing to clean up.
     }
-    return null
+    return TRANSIENT
   } finally {
     endDownload(relPath)
   }
@@ -202,22 +220,26 @@ export function statCachedFile(relPath: string): { uri: string; sizeBytes: numbe
 
 /**
  * Resolve a workspace-relative path to a local file URI, fetching it into the
- * cache if needed. Returns null when the file is unavailable (renderers show
- * their per-type missing state).
+ * cache if needed. `missing: true` in the answer means the SOURCE said the
+ * file does not exist — the only case a renderer may show its per-type
+ * deleted state; a null uri without it is a transient failure the caller
+ * retries (see useWorkspaceFile).
  */
 export async function resolveWorkspaceFile(
   relPath: string,
   conversationId?: string
-): Promise<string | null> {
+): Promise<ResolvedWorkspaceFile> {
   try {
     const cached = fileAt(workspaceRoot(), relPath)
     if (cached.exists) {
       void touch(relPath)
-      return cached.uri
+      return { uri: cached.uri, missing: false }
     }
 
     // A card and its expanded sheet mount together and ask for the same path;
-    // one download serves both.
+    // one download serves both. A FAILURE is shared the same way — and that
+    // is fine now, because a shared failure retries instead of being written
+    // on every joined card as "deleted".
     const running = inFlight.get(relPath)
     if (running) return await running
 
@@ -227,7 +249,7 @@ export async function resolveWorkspaceFile(
     inFlight.set(relPath, fetching)
     return await fetching
   } catch {
-    return null
+    return TRANSIENT
   }
 }
 

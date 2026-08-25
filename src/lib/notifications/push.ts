@@ -138,6 +138,13 @@ export function setActiveConversation(conversationId: string | null): void {
   activeConversationId = conversationId
 }
 
+/** The conversation on screen right now, or null. Read by the sync layer to
+ *  keep background body refreshes from prefetching files nobody is looking
+ *  at — bandwidth the visible conversation's own cards are waiting on. */
+export function getActiveConversation(): string | null {
+  return activeConversationId
+}
+
 /** The conversation a notification's deeplink names, if any. `current` is the
  *  desktop-side placeholder and must never key a bucket here. */
 function conversationTarget(url: unknown): string | null {

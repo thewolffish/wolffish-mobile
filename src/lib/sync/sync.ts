@@ -20,7 +20,7 @@ import { invalidateProjects } from '@/lib/sync/projects'
 import { useAppStore } from '@/state/appStore'
 import { useBadges } from '@/state/badges'
 import { useChatRuntime } from '@/state/chatRuntime'
-import { clearConversationBadges } from '@/lib/notifications/push'
+import { clearConversationBadges, getActiveConversation } from '@/lib/notifications/push'
 import { clearConversationDirty } from '@/lib/sync/dirty'
 import { invalidateConversation, invalidateConversationList } from '@/lib/conversations/cache'
 import { beginSync } from '@/lib/sync/activity'
@@ -751,7 +751,18 @@ async function fetchConversationBodyOnce(id: string): Promise<boolean> {
   // are simply there and a screen of spinners resolving one by one. Fire and
   // forget: the viewers resolve the same paths themselves and dedupe against
   // this via the cache's in-flight map, so a slow prefetch delays nothing.
-  void prefetchConversationFiles(id, referencedFilePaths(messages))
+  //
+  // Only for the conversation on screen (or an open that outran the focus
+  // report). Body fetches also run in the BACKGROUND now — settle retries,
+  // reconcile's catch-up, the upsert push — and their file prefetches were
+  // contending on the one socket with the transfers the visible cards were
+  // waiting on; a starved transfer times out, and a timed-out card used to
+  // read as "deleted". Background conversations keep fresh transcripts and
+  // download their files on open, exactly as before the catch-up existed.
+  const active = getActiveConversation()
+  if (active === null || active === id) {
+    void prefetchConversationFiles(id, referencedFilePaths(messages))
+  }
   return true
 }
 

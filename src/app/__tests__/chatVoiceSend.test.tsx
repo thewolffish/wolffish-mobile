@@ -101,7 +101,10 @@ jest.mock('@/lib/conversations/hooks', () => ({
  */
 jest.mock('@/lib/files/fileCache', () => ({
   statCachedFile: jest.fn(() => ({ uri: 'file:///workspace/cached.m4a', sizeBytes: 1234 })),
-  resolveWorkspaceFile: jest.fn(async () => 'file:///workspace/cached.m4a'),
+  resolveWorkspaceFile: jest.fn(async () => ({
+    uri: 'file:///workspace/cached.m4a',
+    missing: false
+  })),
   stageOutgoingFile: jest.fn(async (_uri: string, id: string, name: string) => ({
     relPath: `uploads/.staging/${id}/${name}`,
     uri: `file:///workspace/uploads/.staging/${id}/${name}`,

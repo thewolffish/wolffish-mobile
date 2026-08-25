@@ -28,10 +28,27 @@ export type DesktopAttachment = {
 }
 
 /**
- * Download a workspace file into `scratch`, chunk by chunk. Returns true when
- * the whole file landed; false when the desktop is unreachable, the path is
- * unknown, or the transfer broke — the caller keeps its cache untouched then,
- * and the next resolution simply tries again.
+ * How a desktop file transfer ended. The distinction between the last two is
+ * load-bearing for every file card on screen:
+ *
+ *   'done'    the whole file landed in `scratch`;
+ *   'absent'  the DESKTOP ANSWERED and said the path does not exist — the one
+ *             outcome that may render as "deleted";
+ *   'failed'  the transfer broke — not connected, an RPC timed out under a
+ *             busy link, the socket flapped mid-file, the file shrank. The
+ *             file may be perfectly fine on the desktop; the only honest next
+ *             move is to try again.
+ *
+ * Collapsing 'failed' into 'absent' was how a transient stall during a busy
+ * sync pass painted "file was deleted or unavailable" over files that were
+ * fine, permanently, until the conversation was reopened.
+ */
+export type DesktopFileFetch = 'done' | 'absent' | 'failed'
+
+/**
+ * Download a workspace file into `scratch`, chunk by chunk. See
+ * DesktopFileFetch for the outcomes; on anything but 'done' the caller keeps
+ * its cache untouched.
  *
  * `onProgress` is called with the size before the first chunk and after every
  * one after it, which is what lets a file card show a real bar rather than a
@@ -42,13 +59,13 @@ export async function fetchDesktopFileInto(
   relPath: string,
   scratch: File,
   onProgress?: (receivedBytes: number, totalBytes: number) => void
-): Promise<boolean> {
+): Promise<DesktopFileFetch> {
   const tunnel = tunnelClient.active
-  if (!tunnel || !tunnelClient.connected) return false
+  if (!tunnel || !tunnelClient.connected) return 'failed'
 
   try {
     const stat = (await tunnel.rpc(Rpc.fileStat, { path: relPath })) as FileStat
-    if (!stat?.exists) return false
+    if (!stat?.exists) return 'absent'
     // The size is known a full round-trip before any bytes are — publish it
     // now so the bar is sized correctly from its first frame.
     onProgress?.(0, stat.sizeBytes)
@@ -66,18 +83,18 @@ export async function fetchDesktopFileInto(
         const bytes = fromBase64Url(chunk?.data ?? '')
         // An empty window before the end means the file shrank mid-transfer —
         // a truncated cache entry would read as a valid hit forever, so bail.
-        if (bytes.length === 0) return false
+        if (bytes.length === 0) return 'failed'
         handle.writeBytes(bytes)
         offset += bytes.length
         onProgress?.(offset, stat.sizeBytes)
       }
-      return true
+      return 'done'
     } finally {
       handle.close()
     }
   } catch (error) {
     tunnelClient.reportRpcFailure(error)
-    return false
+    return 'failed'
   }
 }
 

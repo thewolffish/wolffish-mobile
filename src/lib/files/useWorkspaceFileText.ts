@@ -1,6 +1,7 @@
 import { File } from 'expo-file-system'
 import { useEffect, useMemo, useState } from 'react'
 import { resolveWorkspaceFile, statCachedFile } from '@/lib/files/fileCache'
+import { useFileRetry } from '@/lib/files/useFileRetry'
 
 /**
  * Read a workspace file's text through the file cache, with the desktop's
@@ -74,6 +75,7 @@ export function useWorkspaceFileText(
   )
   // Tagged with its path — see the same note in useWorkspaceFile.
   const [fetched, setFetched] = useState<{ path: string; state: WorkspaceTextState } | null>(null)
+  const { nonce, scheduleRetry, settle: settleRetry } = useFileRetry(relPath)
 
   useEffect(() => {
     if (!relPath || cached) return
@@ -83,12 +85,22 @@ export function useWorkspaceFileText(
       const settle = (state: WorkspaceTextState): void => {
         if (alive) setFetched({ path: relPath, state })
       }
-      const uri = await resolveWorkspaceFile(relPath, conversationId)
+      const resolved = await resolveWorkspaceFile(relPath, conversationId)
       if (!alive) return
-      if (!uri) {
+      if (!resolved.uri) {
+        if (!resolved.missing) {
+          // Transient — keep the loading card and let the retry cadence
+          // re-run this effect; `missing` is reserved for a source that
+          // answered "not here". See useWorkspaceFile.
+          scheduleRetry()
+          return
+        }
+        settleRetry()
         settle({ ...INITIAL, loading: false, missing: true })
         return
       }
+      settleRetry()
+      const uri = resolved.uri
       try {
         const file = new File(uri)
         const sizeBytes = file.size ?? 0
@@ -108,7 +120,7 @@ export function useWorkspaceFileText(
     return () => {
       alive = false
     }
-  }, [relPath, conversationId, maxBytes, cached])
+  }, [relPath, conversationId, maxBytes, cached, nonce, scheduleRetry, settleRetry])
 
   if (!relPath) return { ...INITIAL, loading: false }
   if (cached) return cached

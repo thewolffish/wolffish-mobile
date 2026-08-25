@@ -9,6 +9,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import type { ReactElement } from 'react'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+)
+
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }))
 
 /** relPath → body. Anything absent from this map is a missing file. */
@@ -53,10 +57,12 @@ jest.mock('@/lib/files/fileCache', () => ({
       : null
   ),
   resolveWorkspaceFile: jest.fn(async (relPath: string) => {
-    if (!(relPath in FILES)) return null
+    // Authoritative absence — the source answered "not here". Transient
+    // failures never say missing; they retry (see useFileRetry).
+    if (!(relPath in FILES)) return { uri: null, missing: true }
     // Fetched once, cached from then on — what makes the second view sync.
     if (!CACHED.includes(relPath)) CACHED.push(relPath)
-    return `file:///cache/${relPath}`
+    return { uri: `file:///cache/${relPath}`, missing: false }
   })
 }))
 
