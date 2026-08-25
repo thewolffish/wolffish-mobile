@@ -67,7 +67,7 @@ function ready(over: Partial<DiagnosticResult> = {}): DiagnosticResult {
 beforeEach(() => {
   jest.clearAllMocks()
   mockConnected = true
-  mockFetchInto.mockResolvedValue(true)
+  mockFetchInto.mockResolvedValue('done')
 })
 
 describe('exportDiagnostics', () => {
@@ -122,7 +122,7 @@ describe('exportDiagnostics', () => {
 
   it('keeps a successful export whose transfer failed — the bundle still exists', async () => {
     mockRpc.mockResolvedValue(ready())
-    mockFetchInto.mockResolvedValue(false)
+    mockFetchInto.mockResolvedValue('failed')
 
     const done = await exportDiagnostics('conv-1', () => undefined)
 

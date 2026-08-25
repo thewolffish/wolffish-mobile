@@ -1,4 +1,10 @@
-## v1.0.41 — 2026-08-25 `Latest`
+## v1.0.42 — 2026-08-25 `Latest`
+
+### A File Is Only "Deleted" When It Is Actually Gone
+
+An image, a document or a voice note could show up as **"file was deleted or unavailable"** when nothing of the sort had happened — the download behind it simply had a bad moment on a busy connection, and the card treated that one failed attempt as a final verdict until you reopened the conversation or restarted the app. The two are now kept apart: that message appears only when your desktop **actually answers that the file no longer exists**. A download that merely failed keeps its loading card and **quietly tries again** — a few times over the next seconds, and once more whenever the connection comes back — so the file appears on its own, with nothing to reopen. Background catch-up also stopped pre-downloading files for conversations you are not looking at, which is bandwidth the files on your screen were waiting on.
+
+## v1.0.41 — 2026-08-25
 
 ### A Finished Turn Always Lands
 

@@ -131,5 +131,8 @@ export async function exportDiagnostics(
   const landed = await fetchDesktopFileInto(result.relativePath, target, (received, total) =>
     onPhase({ kind: 'downloading', receivedBytes: received, totalBytes: total })
   )
-  return { result, uri: landed ? target.uri : null }
+  // 'done' alone means the archive is on the device — 'absent' and 'failed'
+  // are strings and truthy, so a bare truthiness check here would hand the
+  // share sheet a path with nothing at it.
+  return { result, uri: landed === 'done' ? target.uri : null }
 }
