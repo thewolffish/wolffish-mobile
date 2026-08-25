@@ -532,6 +532,13 @@ async function upsertConversations(
   rows: ConversationMeta[],
   onProgress?: (done: number) => void
 ): Promise<void> {
+  // A row without a string id is not a conversation, it is a malformed
+  // frame — and INSERTed it becomes a NULL-keyed ghost: pruneMissing can
+  // never select it (`NULL NOT IN (...)` is never true), every list keyed
+  // by id trips over it, and it renders as an untitled row nothing can
+  // delete. Found the hard way: a test harness once pushed a wrapped
+  // payload and four such ghosts survived every reconcile since.
+  rows = rows.filter((row) => typeof row?.id === 'string' && row.id.length > 0)
   if (!rows.length) return
   const db = await getDb()
   let done = 0

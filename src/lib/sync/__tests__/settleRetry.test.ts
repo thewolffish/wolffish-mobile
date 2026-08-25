@@ -164,4 +164,47 @@ describe('settle retries', () => {
 
     expect(mockFetchBody).toHaveBeenCalledTimes(1)
   })
+
+  it('an id-less streamed turn keeps refetching after its overlay released', async () => {
+    // The degraded-mirror shape: an oversize mirror falls back to a bare
+    // nudge, so the phone streams deltas but never learns the message id.
+    // At `done` the settle has nothing to match, releases the overlay against
+    // a body that may predate the save — and the streamed reply vanishes.
+    // The bounded net must go on refetching anyway; the save it is waiting
+    // for has no other way to reach the screen.
+    attachTurnStream()
+    mockHandlers.get(Event.turnStatus)?.({ conversationId: CONV, state: 'started' })
+    mockHandlers.get(Event.messageDelta)?.({ conversationId: CONV, text: 'streamed without an id' })
+    mockHandlers.get(Event.turnStatus)?.({ conversationId: CONV, state: 'done' })
+    await jest.advanceTimersByTimeAsync(0)
+
+    // Released immediately — nothing to match — but the debt stays.
+    expect(mockFetchBody).toHaveBeenCalledTimes(1)
+    expect(useChatRuntime.getState().streams[CONV]).toBeUndefined()
+
+    // Each retry refetches with no overlay to guard it, then chains the next.
+    await jest.advanceTimersByTimeAsync(1_500)
+    expect(mockFetchBody).toHaveBeenCalledTimes(2)
+    await jest.advanceTimersByTimeAsync(3_000)
+    expect(mockFetchBody).toHaveBeenCalledTimes(3)
+    await jest.advanceTimersByTimeAsync(6_000)
+    expect(mockFetchBody).toHaveBeenCalledTimes(4)
+
+    // Bounded: the net runs out rather than polling forever.
+    await jest.advanceTimersByTimeAsync(60_000)
+    expect(mockFetchBody).toHaveBeenCalledTimes(4)
+  })
+
+  it('a blank id-less turn releases without any retry churn', async () => {
+    // Aborted before a word streamed: nothing vanished, nothing to recover.
+    attachTurnStream()
+    mockHandlers.get(Event.turnStatus)?.({ conversationId: CONV, state: 'started' })
+    mockHandlers.get(Event.turnStatus)?.({ conversationId: CONV, state: 'canceled' })
+    await jest.advanceTimersByTimeAsync(0)
+    expect(mockFetchBody).toHaveBeenCalledTimes(1)
+
+    await jest.advanceTimersByTimeAsync(60_000)
+
+    expect(mockFetchBody).toHaveBeenCalledTimes(1)
+  })
 })

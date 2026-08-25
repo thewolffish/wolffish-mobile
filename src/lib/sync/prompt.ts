@@ -423,13 +423,26 @@ function scheduleSettleRetry(conversationId: string): void {
   clearSettleRetry(conversationId)
   const timer = setTimeout(() => {
     settleRetries.set(conversationId, { attempt: attempt + 1, timer: null })
-    const live = liveFor(conversationId)
-    // Only a turn still waiting on its stored copy retries. Gone means it
-    // settled; streaming means a NEW turn took the conversation, and a fetch
-    // now would be the forbidden mid-turn body read.
-    if (!live || live.status === 'streaming') return
+    // A NEW turn owns the conversation now — a fetch would be the forbidden
+    // mid-turn body read, and beginTurn cleared this turn's debt anyway.
+    if (liveFor(conversationId)?.status === 'streaming') return
     if (!tunnelClient.connected) return
-    void settleTurn(conversationId)
+    if (liveFor(conversationId)) {
+      // Overlay still up: the settle owns the fetch, the id match and the
+      // scheduling of the next attempt.
+      void settleTurn(conversationId)
+      return
+    }
+    // Overlay already RELEASED — the id-less case, dropped on faith before
+    // the save it knows is coming. settleTurn would return before its own
+    // re-schedule (nothing left to match), so this chain fetches and keeps
+    // itself alive until the net runs out: with no id there is no
+    // convergence signal to stop on, and three small body fetches are the
+    // price of the streamed reply reaching the screen without one.
+    void fetchConversationBody(conversationId)
+      .catch(() => false)
+      .then(() => refetchConversation(conversationId))
+      .then(() => scheduleSettleRetry(conversationId))
   }, SETTLE_RETRY_DELAYS_MS[attempt])
   settleRetries.set(conversationId, { attempt, timer })
 }
@@ -486,7 +499,18 @@ function settleTurn(conversationId: string): Promise<void> {
       // ended unanswered was failed closed on the desktop; the transcript is
       // where the truth about that lives.
       useChatRuntime.getState().clearCards(conversationId)
-      clearSettleRetry(conversationId)
+      // An id-less turn that STREAMED something is the one release made on
+      // faith: nothing can match the save (every desktop mirror carries the
+      // id, but an oversize mirror degrades to a bare nudge and leaves the
+      // overlay id-less), so the overlay just dropped against a body that
+      // may predate the save — the streamed reply vanishes from screen.
+      // `done` on a turn that produced text means that save is landing;
+      // keep refetching on the same bounded net until it does.
+      if (!id && (live.message.content ?? '').length > 0) {
+        scheduleSettleRetry(conversationId)
+      } else {
+        clearSettleRetry(conversationId)
+      }
       return
     }
     scheduleSettleRetry(conversationId)

@@ -1,4 +1,18 @@
-## v1.0.40 — 2026-08-25 `Latest`
+## v1.0.41 — 2026-08-25 `Latest`
+
+### A Finished Turn Always Lands
+
+A conversation could finish its work on your desktop and keep showing the old transcript here — the reply existed, the phone had simply missed the one signal that said "go get it", and nothing ever asked again. You noticed it as a chat stuck in yesterday until you left and came back, or relaunched the app. The phone now **refuses to take silence for an answer**: when a turn ends, it keeps checking until the finished reply is actually in hand, and your desktop now announces every saved conversation the moment it reaches disk. Between the two, **a completed turn shows up on its own** — watching the screen, returning to it, or arriving cold, no restart required.
+
+### Coming Back Catches Everything Up
+
+Opening the app after time away now brings the conversation you are looking at level with your desktop, not just the list around it. Whatever changed while the phone slept — a turn that finished, an automation that wrote into a chat — is **fetched in the background the moment the connection returns**, so the transcript on screen corrects itself without being reopened. A **notification tap** is treated as the evidence it is: the conversation it names refreshes no matter what the phone thinks it already knows, so the tap lands on the message that caused it, even from a cold start.
+
+### Big Conversations Open Faster
+
+A transcript heavy with tool work arrives in pieces, and those pieces used to queue one behind another — each paying its own full round trip to your desktop before the next could leave. They now travel **several at a time**, and the app no longer downloads the same conversation twice when two parts of it ask at once. Long conversations open in a fraction of the time they took, and the connection does the same work once instead of three times.
+
+## v1.0.40 — 2026-08-25
 
 ### The Keyboard's Way Down Is Everywhere Now
 

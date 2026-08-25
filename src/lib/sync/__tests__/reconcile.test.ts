@@ -534,6 +534,22 @@ describe('aggressive catch-up', () => {
     expect(cacheMock.invalidateConversation).toHaveBeenCalledWith('b')
   })
 
+  it('a row without an id never reaches the store', async () => {
+    // A malformed frame INSERTed under a NULL key is a ghost: pruneMissing's
+    // `NOT IN` can never select it, and every id-keyed list trips on it.
+    mockRpc.mockResolvedValue({
+      rows: [{ title: 'ghost', updatedAt: 300 }, null, { id: '', updatedAt: 200 }],
+      at: 400
+    })
+
+    await refreshSync(false)
+
+    expect(mockRunCalls.filter(({ sql }) => sql.startsWith('INSERT INTO conversations'))).toEqual(
+      []
+    )
+    expect(cacheMock.invalidateConversation).not.toHaveBeenCalled()
+  })
+
   it('reconcile refetches the newest stale cached bodies, capped', async () => {
     // Six conversations changed while the phone slept; all have cached,
     // now-stale bodies. Only the four newest download — the rest heal on open.
