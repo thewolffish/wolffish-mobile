@@ -19,7 +19,9 @@ import { invalidateProcedures } from '@/lib/sync/procedures'
 import { invalidateProjects } from '@/lib/sync/projects'
 import { useAppStore } from '@/state/appStore'
 import { useBadges } from '@/state/badges'
+import { useChatRuntime } from '@/state/chatRuntime'
 import { clearConversationBadges } from '@/lib/notifications/push'
+import { clearConversationDirty } from '@/lib/sync/dirty'
 import { invalidateConversation, invalidateConversationList } from '@/lib/conversations/cache'
 import { beginSync } from '@/lib/sync/activity'
 
@@ -146,9 +148,11 @@ function nextPhase(phase: SyncPhase): SyncPhase {
  * still exists, so without this a conversation deleted while the phone was
  * away would survive on the phone indefinitely.
  */
-export async function refreshSync(withIds = false): Promise<{ changed: number; removed: number }> {
+export async function refreshSync(
+  withIds = false
+): Promise<{ changed: number; removed: number; changedIds: string[] }> {
   const tunnel = tunnelClient.active
-  if (!tunnel) return { changed: 0, removed: 0 }
+  if (!tunnel) return { changed: 0, removed: 0, changedIds: [] }
   const since = await getSyncCursor()
 
   const startedAt = Date.now()
@@ -168,9 +172,25 @@ export async function refreshSync(withIds = false): Promise<{ changed: number; r
     useBadges.getState().prune(index.ids, startedAt)
   }
   if (rows.length || removed) invalidateConversationList()
+  // Every changed conversation's own query too, not just the list. The one
+  // on screen is the one that matters: its query re-ran on the connected
+  // edge, BEFORE this pull moved updated_at, judged its cached body current
+  // and pinned it (staleTime: Infinity) — which is how a phone that slept
+  // through a finished turn kept showing the old transcript until the user
+  // left and came back. Invalidated here, the mounted screen re-reads
+  // against the fresh metadata and fetches exactly when it is behind.
+  for (const row of rows) {
+    if (row?.id) invalidateConversation(row.id)
+  }
   await setSyncCursor(index.at ?? Date.now())
   noteSynced()
-  return { changed: rows.length, removed }
+  // Newest first, so a caller refreshing bodies under a cap spends it on the
+  // conversations the user is most likely to open next.
+  const changedIds = rows
+    .filter((row): row is ConversationMeta => Boolean(row?.id))
+    .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+    .map((row) => row.id)
+  return { changed: rows.length, removed, changedIds }
 }
 
 /**
@@ -188,21 +208,77 @@ export async function reconcile(): Promise<void> {
   const progress = beginSync()
   let settings = false
   let conversations = false
+  let changedIds: string[] = []
   try {
     await Promise.allSettled([
       refreshConfig().finally(() => {
         settings = true
         progress.step({ settings, conversations })
       }),
-      refreshSync(true).finally(() => {
-        conversations = true
-        progress.step({ settings, conversations })
-      })
+      refreshSync(true)
+        .then((result) => {
+          changedIds = result.changedIds
+        })
+        .finally(() => {
+          conversations = true
+          progress.step({ settings, conversations })
+        })
     ])
   } finally {
     // Always, including on failure: an overlay left up after a sync that
     // gave up is worse than the failed sync.
     progress.end()
+  }
+  // Bodies, for the conversations that moved while the phone was away — the
+  // half a metadata pull cannot deliver, and the reason a finished turn used
+  // to sit stale until the next open. Bounded and newest-first: only
+  // conversations whose body is already on the device refetch (the rest
+  // download on open, as ever), and a week of catch-up must not become a
+  // download storm on the connect edge. After progress.end(), deliberately —
+  // this is background freshening, not the sync the overlay reports.
+  for (const id of changedIds.slice(0, RECONCILE_BODY_REFRESH_MAX)) {
+    await refreshChangedBody(id).catch(() => undefined)
+  }
+}
+
+/** How many changed conversations a single reconcile refreshes the bodies
+ *  of. The rest stay metadata-fresh and download on open. */
+const RECONCILE_BODY_REFRESH_MAX = 4
+
+/**
+ * The settle path for a conversation whose turn just ended — registered by
+ * sync/prompt.ts (which owns live turns and cannot be imported from here
+ * without a cycle). Routing through it rather than fetching directly is what
+ * releases the live overlay once the stored copy holds the turn's message.
+ */
+let settleHook: ((conversationId: string) => void) | null = null
+
+export function setConversationSettleHook(hook: (conversationId: string) => void): void {
+  settleHook = hook
+}
+
+/**
+ * Bring one changed conversation's BODY level with the desktop, respecting
+ * the live-turn contract. One rule set, shared by the upsert push handler and
+ * reconcile's catch-up pass, so the two signals cannot disagree:
+ *
+ *  - a turn still streaming fetches nothing — the assistant message is not on
+ *    disk yet, and a mid-turn body is the transcript from BEFORE the turn;
+ *  - a turn just ended routes through the settle path, which fetches AND
+ *    releases the live overlay against the stored copy;
+ *  - otherwise, a cached-but-stale body refetches. A conversation never
+ *    opened has nothing here to go stale and downloads on open, as ever.
+ */
+async function refreshChangedBody(id: string): Promise<void> {
+  const live = useChatRuntime.getState().streams[id]
+  if (live?.status === 'streaming') return
+  if (live) {
+    settleHook?.(id)
+    return
+  }
+  if ((await hasCachedBody(id)) && (await isBodyStale(id))) {
+    const fetched = await fetchConversationBody(id).catch(() => false)
+    if (fetched) invalidateConversation(id)
   }
 }
 
@@ -334,14 +410,20 @@ export function attachLiveUpdates(): () => void {
     const meta = payload as ConversationMeta
     void upsertConversations([meta]).then(async () => {
       invalidateConversationList()
+      if (!meta?.id) return
+      // Unconditionally, before any staleness verdict: a mounted screen
+      // showing this conversation must re-read against the metadata that
+      // just landed. The old gate only invalidated when a cached body was
+      // refetched, so a screen sitting on an empty or failed first fetch
+      // (opened while the tunnel was still dialing) never re-ran its query
+      // and stayed blank-or-stale for the session.
+      invalidateConversation(meta.id)
       // A run on the desktop, or from Telegram, moves this conversation's
       // updated_at. If its body is already on the phone it is now behind, so
       // pull it — otherwise the list would show a new message count against
-      // a transcript that stops short of it.
-      if (meta?.id && (await hasCachedBody(meta.id)) && (await isBodyStale(meta.id))) {
-        await fetchConversationBody(meta.id).catch(() => false)
-        invalidateConversation(meta.id)
-      }
+      // a transcript that stops short of it. Shared with reconcile's
+      // catch-up pass: mid-turn fetches nothing, a just-ended turn settles.
+      await refreshChangedBody(meta.id)
     })
   })
 
@@ -524,8 +606,43 @@ async function deleteConversation(id: string): Promise<void> {
 /**
  * Fetch one conversation's messages. Called when the user opens it, never up
  * front — this is the whole reason the index carries metadata alone.
+ *
+ * Single-flight per conversation, with a trailing rerun. Three callers can
+ * want the same body inside one second — the open query, the settle after a
+ * finished turn, the upsert push that follows the save — and un-coordinated
+ * they raced whole-transcript downloads on one socket, with the LOSER's
+ * DELETE+INSERT committing last: an older copy could overwrite a newer one,
+ * and the duplicate download is exactly the "opening feels slower" tax. A
+ * caller arriving mid-fetch now joins the flight and asks for one rerun
+ * after it — its signal may describe a save the running fetch predates — so
+ * everyone resolves against the freshest copy, downloaded once.
  */
-export async function fetchConversationBody(id: string): Promise<boolean> {
+export function fetchConversationBody(id: string): Promise<boolean> {
+  const active = bodyFetches.get(id)
+  if (active) {
+    active.again = true
+    return active.run
+  }
+  const entry = { again: false, run: Promise.resolve(false) }
+  entry.run = (async () => {
+    try {
+      let fetched = false
+      do {
+        entry.again = false
+        fetched = await fetchConversationBodyOnce(id)
+      } while (entry.again)
+      return fetched
+    } finally {
+      bodyFetches.delete(id)
+    }
+  })()
+  bodyFetches.set(id, entry)
+  return entry.run
+}
+
+const bodyFetches = new Map<string, { again: boolean; run: Promise<boolean> }>()
+
+async function fetchConversationBodyOnce(id: string): Promise<boolean> {
   const tunnel = tunnelClient.active
   if (!tunnel) return false
   const db = await getDb()
@@ -619,6 +736,9 @@ export async function fetchConversationBody(id: string): Promise<boolean> {
     // failed write can never leave the phone believing it is current.
     await tx.runAsync('UPDATE conversations SET body_synced_at = ? WHERE id = ?', [syncedTo, id])
   })
+  // The copy in hand is fresh — whatever evidence a notification carried
+  // about this conversation is answered by it.
+  clearConversationDirty(id)
   // Every file this conversation shows, pulled into the cache now rather than
   // when its card scrolls into view — the difference between attachments that
   // are simply there and a screen of spinners resolving one by one. Fire and
@@ -632,12 +752,25 @@ export async function fetchConversationBody(id: string): Promise<boolean> {
  *  the guard that a corrupt `sizeBytes` can never drive an unbounded pull. */
 const CHUNKED_BODY_MAX_BYTES = 64 * 1024 * 1024
 
+/** Chunk pulls in flight at once. The tunnel multiplexes RPCs on one socket,
+ *  so the win is pipelining: each serial window paid a full relay round trip
+ *  of dead air, which on a big transcript was the whole "opening this
+ *  conversation got slower". Three keeps under a megabyte of base64 in
+ *  flight — comfortably inside the relay's per-record cap per answer. */
+const CHUNK_PULL_CONCURRENCY = 3
+
 /**
  * Pull an oversize conversation body the desktop spooled for chunked pickup —
  * base64url windows on the fileRead contract, reassembled and parsed here.
  * Returns the parsed wire conversation, or null on ANY failure (expired
  * spool, short read, malformed JSON): the caller then keeps its cached copy
  * untouched, exactly as it does for a malformed inline answer.
+ *
+ * Windows are pulled CONCURRENTLY at fixed offsets, which is safe because the
+ * desktop serves exactly the window asked for (capped only by CHUNK_SIZE and
+ * the end of the spool). A server that answers short anyway — some other
+ * implementation of the contract — drops this to the sequential pull below,
+ * which advances by the bytes actually served, exactly as before.
  *
  * Takes the rpc function rather than the tunnel so tests can drive it
  * without a transport.
@@ -650,23 +783,98 @@ export async function pullChunkedBody(
   const sizeBytes =
     typeof meta.sizeBytes === 'number' && Number.isFinite(meta.sizeBytes) ? meta.sizeBytes : 0
   if (!bodyId || sizeBytes <= 0 || sizeBytes > CHUNKED_BODY_MAX_BYTES) return null
+  const fast = await pullWindowsParallel(rpc, bodyId, sizeBytes)
+  if (fast !== 'short') return fast
+  return pullWindowsSequential(rpc, bodyId, sizeBytes)
+}
+
+/** One window off the wire, or null on any transport/shape failure. */
+async function pullWindow(
+  rpc: (method: string, params: Record<string, unknown>) => Promise<unknown>,
+  bodyId: string,
+  offset: number
+): Promise<Uint8Array | null> {
   try {
-    const parts: Uint8Array[] = []
-    let offset = 0
-    while (offset < sizeBytes) {
-      const chunk = (await rpc(Rpc.conversationBodyChunk, {
-        bodyId,
-        offset,
-        length: CHUNK_SIZE
-      })) as { data?: unknown } | null
-      const bytes = fromBase64Url(typeof chunk?.data === 'string' ? chunk.data : '')
-      // An empty window before the promised end means the spool expired or
-      // shrank — a truncated transcript must never parse as a complete one.
-      if (bytes.length === 0) return null
-      parts.push(bytes)
-      offset += bytes.length
+    const chunk = (await rpc(Rpc.conversationBodyChunk, {
+      bodyId,
+      offset,
+      length: CHUNK_SIZE
+    })) as { data?: unknown } | null
+    return fromBase64Url(typeof chunk?.data === 'string' ? chunk.data : '')
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The fast path: every window at its computed offset, a few in flight at a
+ * time. `'short'` means a window came back smaller than the contract promises
+ * — not an error, a server this path does not understand — and the caller
+ * falls back to the sequential pull. Empty windows and transport failures are
+ * final: the spool expired, and a truncated transcript must never parse as a
+ * complete one.
+ */
+async function pullWindowsParallel(
+  rpc: (method: string, params: Record<string, unknown>) => Promise<unknown>,
+  bodyId: string,
+  sizeBytes: number
+): Promise<unknown | null | 'short'> {
+  const offsets: number[] = []
+  for (let at = 0; at < sizeBytes; at += CHUNK_SIZE) offsets.push(at)
+  const parts = new Array<Uint8Array | null>(offsets.length).fill(null)
+  let failed = false
+  let short = false
+  let next = 0
+  const worker = async (): Promise<void> => {
+    while (!failed && !short) {
+      const index = next
+      next += 1
+      if (index >= offsets.length) return
+      const offset = offsets[index]
+      const bytes = await pullWindow(rpc, bodyId, offset)
+      if (bytes === null || bytes.length === 0) {
+        failed = true
+        return
+      }
+      const expected = Math.min(CHUNK_SIZE, sizeBytes - offset)
+      if (bytes.length !== expected) {
+        short = true
+        return
+      }
+      parts[index] = bytes
     }
-    const whole = new Uint8Array(offset)
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(CHUNK_PULL_CONCURRENCY, offsets.length) }, worker)
+  )
+  if (failed) return null
+  if (short) return 'short'
+  return assembleBody(parts as Uint8Array[], sizeBytes)
+}
+
+/** The tolerant path: advance by the bytes actually served, whatever their
+ *  size — the original contract, kept for any peer that windows differently. */
+async function pullWindowsSequential(
+  rpc: (method: string, params: Record<string, unknown>) => Promise<unknown>,
+  bodyId: string,
+  sizeBytes: number
+): Promise<unknown | null> {
+  const parts: Uint8Array[] = []
+  let offset = 0
+  while (offset < sizeBytes) {
+    const bytes = await pullWindow(rpc, bodyId, offset)
+    // An empty window before the promised end means the spool expired or
+    // shrank — a truncated transcript must never parse as a complete one.
+    if (bytes === null || bytes.length === 0) return null
+    parts.push(bytes)
+    offset += bytes.length
+  }
+  return assembleBody(parts, offset)
+}
+
+function assembleBody(parts: Uint8Array[], totalBytes: number): unknown | null {
+  try {
+    const whole = new Uint8Array(totalBytes)
     let at = 0
     for (const part of parts) {
       whole.set(part, at)

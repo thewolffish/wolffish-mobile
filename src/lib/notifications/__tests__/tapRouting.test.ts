@@ -5,6 +5,14 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 const mockRouterPush = jest.fn()
 jest.mock('expo-router', () => ({ router: { push: mockRouterPush } }))
 
+const mockMarkDirty = jest.fn()
+jest.mock('@/lib/sync/dirty', () => ({ markConversationDirty: mockMarkDirty }))
+
+const mockInvalidateConversation = jest.fn()
+jest.mock('@/lib/conversations/cache', () => ({
+  invalidateConversation: mockInvalidateConversation
+}))
+
 let mockLastResponse: unknown = null
 const mockListeners: ((response: unknown) => void)[] = []
 jest.mock('expo-notifications', () => ({
@@ -48,6 +56,8 @@ function tap(identifier: string, url: unknown): Record<string, unknown> {
 
 beforeEach(() => {
   mockRouterPush.mockClear()
+  mockMarkDirty.mockClear()
+  mockInvalidateConversation.mockClear()
   mockListeners.length = 0
   mockLastResponse = null
 })
@@ -136,5 +146,42 @@ describe('a tap while the app is running', () => {
     mockListeners.forEach((listener) => listener(tap('n6', 'wolffish://history')))
 
     expect(mockRouterPush).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('what a tap tells the sync', () => {
+  // The tap is evidence the conversation changed, and often arrives on a cold
+  // start whose local metadata still predates the change — a timestamp check
+  // alone would happily serve the stale transcript. The mark forces the next
+  // open's body fetch; the invalidation re-reads a copy already mounted.
+  it('marks the tapped conversation dirty so its next open must fetch', () => {
+    const push = loadPush()
+    push.initNotifications()
+
+    mockListeners.forEach((listener) =>
+      listener(tap('n7', 'wolffish://chat?id=2026-08-25_09-00-00'))
+    )
+
+    expect(mockMarkDirty).toHaveBeenCalledWith('2026-08-25_09-00-00')
+    expect(mockInvalidateConversation).toHaveBeenCalledWith('2026-08-25_09-00-00')
+  })
+
+  it('the launch tap marks it too, before anything navigates', () => {
+    mockLastResponse = tap('n8', 'wolffish://chat?id=2026-08-25_10-00-00')
+    const push = loadPush()
+
+    push.launchDeeplink()
+
+    expect(mockMarkDirty).toHaveBeenCalledWith('2026-08-25_10-00-00')
+  })
+
+  it('marks nothing for links that do not name a conversation', () => {
+    const push = loadPush()
+    push.initNotifications()
+
+    mockListeners.forEach((listener) => listener(tap('n9', 'wolffish://settings/usage')))
+    mockListeners.forEach((listener) => listener(tap('n10', 'wolffish://chat?id=current')))
+
+    expect(mockMarkDirty).not.toHaveBeenCalled()
   })
 })

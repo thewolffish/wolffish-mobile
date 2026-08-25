@@ -17,6 +17,8 @@ import {
 } from '@/lib/tunnel/protocol'
 import { toHex } from '@/lib/tunnel/pairing'
 import type { Tunnel } from '@/lib/tunnel/tunnel'
+import { invalidateConversation } from '@/lib/conversations/cache'
+import { markConversationDirty } from '@/lib/sync/dirty'
 import { badgeTotal, useBadges, whenBadgesHydrated } from '@/state/badges'
 
 /**
@@ -291,6 +293,17 @@ function installForegroundHandler(): void {
       // while the app was up). In-band renders pass through here too and the
       // store's id dedupe folds them into their earlier count.
       if (id) recordNotification(id, data?.url)
+      // The arrival is evidence: something changed in the conversation it
+      // names, whatever this phone's sync bookkeeping believes — a remote
+      // push reaching a foreground app usually MEANS the tunnel missed the
+      // events that would have said so. Marked dirty, the next body fetch is
+      // unconditional; invalidated, a mounted copy of that conversation
+      // re-reads now rather than at its next mount.
+      const changed = conversationTarget(data?.url)
+      if (changed) {
+        markConversationDirty(changed)
+        invalidateConversation(changed)
+      }
       return {
         shouldShowBanner: !duplicate,
         shouldShowList: !duplicate,
@@ -350,6 +363,15 @@ function takeResponseHref(response: Notifications.NotificationResponse | null): 
   const id = data?.notificationId
   if (typeof id === 'string') useBadges.getState().markHandled(id)
   const target = parseDeeplink(data?.url)
+  // The tap is the strongest freshness signal there is: the user is about to
+  // look at this conversation BECAUSE the desktop said it changed — often
+  // from a cold start, where the phone's own metadata still predates the
+  // change and a timestamp comparison would happily serve the stale copy.
+  // Marked dirty, the open that follows fetches the body regardless.
+  if (target?.route === 'chat' && target.conversationId && target.conversationId !== 'current') {
+    markConversationDirty(target.conversationId)
+    invalidateConversation(target.conversationId)
+  }
   return target ? hrefFor(target) : null
 }
 

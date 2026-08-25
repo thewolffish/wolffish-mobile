@@ -63,10 +63,16 @@ const mockDb = {
 jest.mock('@/lib/db/database', () => ({ getDb: () => Promise.resolve(mockDb) }))
 
 const mockRpc = jest.fn()
+const mockHandlers = new Map<string, (payload: unknown) => void>()
 jest.mock('@/lib/tunnel/client', () => ({
   tunnelClient: {
     get active() {
-      return { rpc: mockRpc }
+      return {
+        rpc: mockRpc,
+        onEvent: (topic: string, handler: (payload: unknown) => void) => {
+          mockHandlers.set(topic, handler)
+        }
+      }
     },
     connected: true
   }
@@ -76,6 +82,10 @@ jest.mock('@/lib/conversations/cache', () => ({
   invalidateConversation: jest.fn(),
   invalidateConversationList: jest.fn()
 }))
+const cacheMock = jest.requireMock('@/lib/conversations/cache') as {
+  invalidateConversation: jest.Mock
+  invalidateConversationList: jest.Mock
+}
 
 jest.mock('@/state/demoConfig', () => ({
   useDemoConfig: { getState: () => ({ applySnapshot: jest.fn() }) },
@@ -88,21 +98,59 @@ jest.mock('@/state/demoConfig', () => ({
 }))
 
 import {
+  attachLiveUpdates,
   fetchConversationBody,
   isBodyStale,
   pullChunkedBody,
   refreshSync,
-  reconcile
+  reconcile,
+  setConversationSettleHook
 } from '@/lib/sync/sync'
+import { isConversationDirty, markConversationDirty } from '@/lib/sync/dirty'
 import { toBase64Url } from '@/lib/tunnel/pairing'
-import { Rpc } from '@/lib/tunnel/protocol'
+import { CHUNK_SIZE, Event, Rpc } from '@/lib/tunnel/protocol'
+import { useChatRuntime } from '@/state/chatRuntime'
+import type { ConversationMessage } from '@/lib/conversations/types'
 
 beforeEach(() => {
   mockState.rows = []
   mockState.messages = {}
   mockRunCalls.length = 0
   mockRpc.mockReset()
+  mockHandlers.clear()
+  cacheMock.invalidateConversation.mockClear()
+  cacheMock.invalidateConversationList.mockClear()
+  useChatRuntime.getState().reset()
+  setConversationSettleHook(() => undefined)
 })
+
+/** Let the fire-and-forget handler chains drain. */
+const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
+
+/** Conversation ids the desktop was asked bodies for, in call order. */
+const bodyCalls = (): string[] =>
+  mockRpc.mock.calls
+    .filter(([method]) => method === Rpc.conversationBody)
+    .map(([, params]) => (params as { id: string }).id)
+
+const liveMessage = (id: string): ConversationMessage => ({
+  id,
+  role: 'assistant',
+  content: 'streaming',
+  timestamp: 1
+})
+
+/** A live overlay in the runtime store, as beginTurn/turnStatus would leave it. */
+const putStream = (conversationId: string, status: 'streaming' | 'complete'): void => {
+  useChatRuntime.getState().putStream(conversationId, {
+    base: liveMessage('m-live'),
+    tail: '',
+    status,
+    channel: null,
+    message: liveMessage('m-live'),
+    ...(status === 'complete' ? { ended: 'desktop' as const } : {})
+  })
+}
 
 describe('refreshSync deletion reconciliation', () => {
   it('drops local conversations the desktop no longer lists', async () => {
@@ -415,5 +463,209 @@ describe('chunked body pulls', () => {
     const junk = new TextEncoder().encode('not json at all')
     const rpc = jest.fn(async () => ({ data: toBase64Url(junk), sizeBytes: junk.length }))
     expect(await pullChunkedBody(rpc, { bodyId: 'b', sizeBytes: junk.length })).toBeNull()
+  })
+
+  it('pulls a multi-window body at full contract windows and reassembles it in order', async () => {
+    // Big enough for three windows, so the parallel path actually spans them.
+    const big = {
+      updatedAt: 700,
+      messages: [
+        { id: 'm1', role: 'assistant', content: 'y'.repeat(CHUNK_SIZE * 2 + 500), timestamp: 1 }
+      ]
+    }
+    const bytes = new TextEncoder().encode(JSON.stringify(big))
+    const rpc = jest.fn(async (_method: string, params: Record<string, unknown>) => {
+      const offset = params.offset as number
+      return {
+        data: toBase64Url(bytes.subarray(offset, offset + CHUNK_SIZE)),
+        sizeBytes: bytes.length
+      }
+    })
+
+    const pulled = (await pullChunkedBody(rpc, { bodyId: 'b', sizeBytes: bytes.length })) as {
+      updatedAt: number
+      messages: Array<{ content: string }>
+    }
+
+    expect(pulled.updatedAt).toBe(700)
+    expect(pulled.messages[0].content).toHaveLength(CHUNK_SIZE * 2 + 500)
+    // One request per window, each at its computed offset — no serial re-walk.
+    const offsets = rpc.mock.calls
+      .map(([, params]) => (params as { offset: number }).offset)
+      .sort((a, b) => a - b)
+    expect(offsets).toEqual([0, CHUNK_SIZE, CHUNK_SIZE * 2])
+  })
+
+  it('an empty window inside a parallel pull is final — the cached copy stays', async () => {
+    const bytes = new TextEncoder().encode('z'.repeat(CHUNK_SIZE + 100))
+    const rpc = jest.fn(async (_method: string, params: Record<string, unknown>) => {
+      const offset = params.offset as number
+      // The first window serves; the spool is gone by the second.
+      if (offset === 0) {
+        return { data: toBase64Url(bytes.subarray(0, CHUNK_SIZE)), sizeBytes: bytes.length }
+      }
+      return { data: '', sizeBytes: bytes.length }
+    })
+
+    expect(await pullChunkedBody(rpc, { bodyId: 'b', sizeBytes: bytes.length })).toBeNull()
+  })
+})
+
+/**
+ * The aggressive half of catch-up, added 2026-08-25: metadata alone cannot
+ * un-stale a transcript, and the pushes that normally would were exactly what
+ * the phone slept through. These pin the three rules — changed conversations
+ * re-read, cached-and-stale bodies refetch under a cap, and live-turn
+ * conversations are left to the turn machinery.
+ */
+describe('aggressive catch-up', () => {
+  it('refreshSync invalidates every changed conversation, not just the list', async () => {
+    mockRpc.mockResolvedValue({
+      rows: [
+        { id: 'a', updatedAt: 300 },
+        { id: 'b', updatedAt: 200 }
+      ],
+      at: 400
+    })
+
+    await refreshSync(false)
+
+    expect(cacheMock.invalidateConversation).toHaveBeenCalledWith('a')
+    expect(cacheMock.invalidateConversation).toHaveBeenCalledWith('b')
+  })
+
+  it('reconcile refetches the newest stale cached bodies, capped', async () => {
+    // Six conversations changed while the phone slept; all have cached,
+    // now-stale bodies. Only the four newest download — the rest heal on open.
+    const ids = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6']
+    mockState.rows = ids.map((id, i) => ({ id, updated_at: (i + 1) * 100, body_synced_at: 1 }))
+    for (const id of ids) mockState.messages[id] = 2
+    mockRpc.mockImplementation(async (method: string) => {
+      if (method === 'desktop.config.snapshot') return {}
+      if (method === Rpc.conversationIndex) {
+        return { rows: ids.map((id, i) => ({ id, updatedAt: (i + 1) * 100 })), at: 999, ids }
+      }
+      if (method === Rpc.conversationBody) {
+        return { updatedAt: 999, messages: [{ id: 'm', role: 'user', content: 'x', timestamp: 1 }] }
+      }
+      return null
+    })
+
+    await reconcile()
+
+    expect(bodyCalls()).toEqual(['c6', 'c5', 'c4', 'c3'])
+  })
+
+  it('reconcile leaves a conversation with a running turn to the turn machinery', async () => {
+    mockState.rows = [
+      { id: 'busy', updated_at: 500, body_synced_at: 1 },
+      { id: 'idle', updated_at: 400, body_synced_at: 1 }
+    ]
+    mockState.messages['busy'] = 2
+    mockState.messages['idle'] = 2
+    putStream('busy', 'streaming')
+    mockRpc.mockImplementation(async (method: string) => {
+      if (method === 'desktop.config.snapshot') return {}
+      if (method === Rpc.conversationIndex) {
+        return {
+          rows: [
+            { id: 'busy', updatedAt: 500 },
+            { id: 'idle', updatedAt: 400 }
+          ],
+          at: 999,
+          ids: ['busy', 'idle']
+        }
+      }
+      if (method === Rpc.conversationBody) {
+        return { updatedAt: 999, messages: [{ id: 'm', role: 'user', content: 'x', timestamp: 1 }] }
+      }
+      return null
+    })
+
+    await reconcile()
+
+    expect(bodyCalls()).toEqual(['idle'])
+  })
+})
+
+/**
+ * The upsert push, re-pinned after its 2026-08-25 rework: it must invalidate
+ * the conversation UNCONDITIONALLY (a mounted screen sitting on an empty or
+ * failed first fetch re-reads only through that), fetch a cached-stale body,
+ * and hand a just-ended turn to the settle path instead of racing it.
+ */
+describe('conversationUpserted push', () => {
+  const emitUpserted = async (meta: Record<string, unknown>): Promise<void> => {
+    attachLiveUpdates()
+    mockHandlers.get(Event.conversationUpserted)?.(meta)
+    await flush()
+  }
+
+  it('always invalidates the conversation, cached body or not', async () => {
+    await emitUpserted({ id: 'never-opened', updatedAt: 100 })
+
+    expect(cacheMock.invalidateConversation).toHaveBeenCalledWith('never-opened')
+    expect(bodyCalls()).toEqual([])
+  })
+
+  it('refetches a cached body the push just made stale', async () => {
+    mockState.rows = [{ id: 'c', updated_at: 500, body_synced_at: 100 }]
+    mockState.messages['c'] = 3
+    mockRpc.mockResolvedValue({
+      updatedAt: 500,
+      messages: [{ id: 'm', role: 'user', content: 'x', timestamp: 1 }]
+    })
+
+    await emitUpserted({ id: 'c', updatedAt: 500 })
+
+    expect(bodyCalls()).toEqual(['c'])
+  })
+
+  it('fetches nothing mid-turn — the body on disk predates the turn', async () => {
+    mockState.rows = [{ id: 'c', updated_at: 500, body_synced_at: 100 }]
+    mockState.messages['c'] = 3
+    putStream('c', 'streaming')
+
+    await emitUpserted({ id: 'c', updatedAt: 500 })
+
+    expect(bodyCalls()).toEqual([])
+    expect(cacheMock.invalidateConversation).toHaveBeenCalledWith('c')
+  })
+
+  it('routes a just-ended turn through the settle path, not a bare fetch', async () => {
+    mockState.rows = [{ id: 'c', updated_at: 500, body_synced_at: 100 }]
+    mockState.messages['c'] = 3
+    putStream('c', 'complete')
+    const settle = jest.fn()
+    setConversationSettleHook(settle)
+
+    await emitUpserted({ id: 'c', updatedAt: 500 })
+
+    expect(settle).toHaveBeenCalledWith('c')
+    // The settle owns the fetch — a second one here would race its own.
+    expect(bodyCalls()).toEqual([])
+  })
+})
+
+describe('notification evidence', () => {
+  it('a successful body fetch pays off the dirty mark', async () => {
+    mockState.rows = [{ id: 'c', updated_at: 400, body_synced_at: null }]
+    mockRpc.mockResolvedValue({
+      messages: [{ id: 'm', role: 'user', content: 'x', timestamp: 1 }]
+    })
+    markConversationDirty('c')
+
+    await fetchConversationBody('c')
+
+    expect(isConversationDirty('c')).toBe(false)
+  })
+
+  it('a failed fetch keeps the debt', async () => {
+    mockState.rows = [{ id: 'c', updated_at: 400, body_synced_at: null }]
+    mockRpc.mockResolvedValue({})
+    markConversationDirty('c')
+
+    expect(await fetchConversationBody('c')).toBe(false)
+    expect(isConversationDirty('c')).toBe(true)
   })
 })

@@ -1,5 +1,6 @@
 import { conversationKeys, invalidateConversation } from '@/lib/conversations/cache'
 import { queryClient } from '@/lib/query/queryClient'
+import { isConversationDirty } from '@/lib/sync/dirty'
 import { fetchConversationBody, isBodyStale, refreshSync } from '@/lib/sync/sync'
 import { tunnelClient } from '@/lib/tunnel/client'
 import { useAppStore } from '@/state/appStore'
@@ -99,10 +100,16 @@ export function useConversation(id: string | null): UseQueryResult<ConversationF
       // Paired mode syncs metadata only, so a conversation never opened has
       // no messages here yet. Emptiness is not the whole test though: a body
       // pulled last week is just as wrong once the desktop has added to it,
-      // and the phone learns that from updated_at. Demo mode has bodies
-      // already and no tunnel, so neither branch fires there.
+      // and the phone learns that from updated_at — plus one signal that
+      // outranks the timestamps entirely: a notification NAMED this
+      // conversation. That arrives outside the tunnel, so it knows about
+      // changes the phone's own metadata may not yet, and a tap on it must
+      // land on the fresh transcript, not on whatever the timestamps
+      // believed. The flag clears when a fetch succeeds, so it costs one
+      // download, once.
       if (tunnelClient.connected) {
-        const needsBody = local.messages.length === 0 || (await isBodyStale(id))
+        const needsBody =
+          local.messages.length === 0 || isConversationDirty(id) || (await isBodyStale(id))
         if (needsBody) {
           const fetched = await fetchConversationBody(id).catch(() => false)
           // Only re-read on success. A refused or malformed answer leaves the

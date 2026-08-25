@@ -8,7 +8,7 @@ import {
 } from '@/lib/conversations/cache'
 import { mintMessageId } from '@/lib/conversations/types'
 import { attachCardStream, seedTurnCards } from '@/lib/sync/cards'
-import { fetchConversationBody } from '@/lib/sync/sync'
+import { fetchConversationBody, setConversationSettleHook } from '@/lib/sync/sync'
 import { tunnelClient } from '@/lib/tunnel/client'
 import { Event, Rpc } from '@/lib/tunnel/protocol'
 import { useChatRuntime, type LiveStream } from '@/state/chatRuntime'
@@ -234,6 +234,10 @@ export function beginTurn(
   // turn reports done — BEFORE its settle fetch returns — and a card left in
   // the store would ride the new live row's tail, below the new prompt.
   useChatRuntime.getState().clearCards(conversationId)
+  // The previous turn's unfinished settle business dies with it: a retry
+  // firing into the new turn would fetch a mid-turn body, which is exactly
+  // what the live-turn contract forbids.
+  clearSettleRetry(conversationId)
   putLive(conversationId, { base: blankAssistant(), tail: '', user, status: 'streaming', channel })
 }
 
@@ -385,11 +389,64 @@ async function recoverTurnSoFar(conversationId: string, issuedAt: number): Promi
  */
 const settling = new Map<string, { again: boolean; run: Promise<void> }>()
 
+/**
+ * The settle's own safety net, for the tail nobody pushes about.
+ *
+ * The fetch after `done` can predate the desktop's disk write, and the signal
+ * that follows the save — the post-save nudge, the metadata push — rides a
+ * tunnel that may blink at exactly that moment. Before this existed, a settle
+ * whose fetch came back pre-save simply STOPPED: the live overlay stayed up
+ * forever (its message never matched the stored copy) and the stored
+ * transcript stayed one turn short until something else happened to re-open
+ * the conversation. A few bounded retries close that tail: the first lands
+ * roughly when the renderer's save does, and a turn still unmatched after the
+ * last is back to waiting for a real signal, exactly as before.
+ */
+const SETTLE_RETRY_DELAYS_MS = [1_500, 3_000, 6_000]
+const settleRetries = new Map<
+  string,
+  { attempt: number; timer: ReturnType<typeof setTimeout> | null }
+>()
+
+function clearSettleRetry(conversationId: string): void {
+  const pending = settleRetries.get(conversationId)
+  if (pending?.timer) clearTimeout(pending.timer)
+  settleRetries.delete(conversationId)
+}
+
+function scheduleSettleRetry(conversationId: string): void {
+  const attempt = settleRetries.get(conversationId)?.attempt ?? 0
+  if (attempt >= SETTLE_RETRY_DELAYS_MS.length) return
+  // A phone with no tunnel has nothing to retry against; the reconnect
+  // re-settles every open turn anyway (see attachTurnStream).
+  if (!tunnelClient.connected) return
+  clearSettleRetry(conversationId)
+  const timer = setTimeout(() => {
+    settleRetries.set(conversationId, { attempt: attempt + 1, timer: null })
+    const live = liveFor(conversationId)
+    // Only a turn still waiting on its stored copy retries. Gone means it
+    // settled; streaming means a NEW turn took the conversation, and a fetch
+    // now would be the forbidden mid-turn body read.
+    if (!live || live.status === 'streaming') return
+    if (!tunnelClient.connected) return
+    void settleTurn(conversationId)
+  }, SETTLE_RETRY_DELAYS_MS[attempt])
+  settleRetries.set(conversationId, { attempt, timer })
+}
+
 function settleTurn(conversationId: string): Promise<void> {
   const active = settling.get(conversationId)
   if (active) {
     active.again = true
     return active.run
+  }
+  // Whatever retry was queued, this settle IS it now — a real signal and a
+  // timer must not race two fetches. The attempt count survives the clear so
+  // the net stays bounded per turn end.
+  const pendingRetry = settleRetries.get(conversationId)
+  if (pendingRetry?.timer) {
+    clearTimeout(pendingRetry.timer)
+    pendingRetry.timer = null
   }
   const entry = { again: false, run: Promise.resolve() }
   entry.run = (async () => {
@@ -429,10 +486,23 @@ function settleTurn(conversationId: string): Promise<void> {
       // ended unanswered was failed closed on the desktop; the transcript is
       // where the truth about that lives.
       useChatRuntime.getState().clearCards(conversationId)
+      clearSettleRetry(conversationId)
+      return
     }
+    scheduleSettleRetry(conversationId)
   })()
   settling.set(conversationId, entry)
   return entry.run
+}
+
+// The upsert push and reconcile's catch-up route a just-ended turn's body
+// refresh through the settle, so the overlay releases against the copy they
+// fetched. Registered at module scope: sync.ts cannot import this module
+// (prompt already imports sync — that pair would be a require cycle). The
+// typeof guard is for the tests that stub sync.ts down to the one function
+// they drive — a missing setter must cost the hook, not the module.
+if (typeof setConversationSettleHook === 'function') {
+  setConversationSettleHook((conversationId) => void settleTurn(conversationId))
 }
 
 // --------------------------------------------------------------- events
