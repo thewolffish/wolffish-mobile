@@ -1,4 +1,10 @@
-## v1.0.39 — 2026-08-22 `Latest`
+## v1.0.40 — 2026-08-25 `Latest`
+
+### The Keyboard's Way Down Is Everywhere Now
+
+The chevron that floats above the keyboard arrived last version knowing only one field — the message you were writing. Everywhere else you type, the iPhone keyboard still had no way down: a variable's value in Settings, the search line inside a picker, the confirmation a dialog asks you to type out, the full-screen editor holding a long draft. The same **chevron now rides above every keyboard in the app**, wherever one opens — one tap puts the keys away and **keeps every character you typed**. It earns its keep best in the editors: putting the keyboard down to **read the whole draft** is no longer the same thing as closing the editor. Android stays as it was — its navigation bar has carried this chevron all along.
+
+## v1.0.39 — 2026-08-22
 
 ### A Run You Come Back To Is Still There
 
