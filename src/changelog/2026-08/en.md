@@ -1,4 +1,10 @@
-## v1.0.42 — 2026-08-25 `Latest`
+## v1.0.43 — 2026-08-26 `Latest`
+
+### The Open Conversation Can No Longer Go Blank
+
+A conversation could vanish from under you — most often while a file was downloading — leaving a blank screen until you switched away and back. The transcript was never gone from your desktop; the phone was believing one of two momentary illusions a busy sync can produce: a catch-up sweep that missed the conversation for a single pass and took that as a deletion, or a fetch that caught a brand-new conversation's file in the instant before its first reply was saved and took the emptiness as fact. Neither is ever real — nothing empties a conversation in place — so the phone now **refuses both**: the conversation you are looking at is never dropped by a background sweep, and an empty answer never overwrites messages already in hand. What is on your screen **stays on your screen**, and a truly deleted conversation still leaves exactly as it should.
+
+## v1.0.42 — 2026-08-25
 
 ### A File Is Only "Deleted" When It Is Actually Gone
 
