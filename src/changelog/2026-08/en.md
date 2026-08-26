@@ -1,4 +1,10 @@
-## v1.0.43 — 2026-08-26 `Latest`
+## v1.0.44 — 2026-08-26 `Latest`
+
+### A Blank Screen Is No Longer Something the Chat Can Show
+
+Opening a conversation from a notification could land on nothing at all — no messages, no placeholders, just an empty page that stayed until you switched away and back. The screen's own logic had exactly one frame with nothing in it, reachable whenever a busy sync briefly emptied the copy on hand, and that frame is now gone: a transcript that disappears mid-view brings the **loading placeholders back over the gap** and repaints in place the moment the real copy returns, with nothing to reopen. The catch-up itself got stricter in the same breath — an empty answer caught in the instant before a running turn saves is **recognized as premature and set aside**, so it can no longer erase what your screen already holds. A conversation that is genuinely new, or genuinely deleted, still looks exactly as it should.
+
+## v1.0.43 — 2026-08-26
 
 ### The Open Conversation Can No Longer Go Blank
 
