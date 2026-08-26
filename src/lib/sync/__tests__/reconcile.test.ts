@@ -107,6 +107,7 @@ import {
   setConversationSettleHook
 } from '@/lib/sync/sync'
 import { isConversationDirty, markConversationDirty } from '@/lib/sync/dirty'
+import { setActiveConversation } from '@/lib/notifications/push'
 import { toBase64Url } from '@/lib/tunnel/pairing'
 import { CHUNK_SIZE, Event, Rpc } from '@/lib/tunnel/protocol'
 import { useChatRuntime } from '@/state/chatRuntime'
@@ -122,6 +123,7 @@ beforeEach(() => {
   cacheMock.invalidateConversationList.mockClear()
   useChatRuntime.getState().reset()
   setConversationSettleHook(() => undefined)
+  setActiveConversation(null)
 })
 
 /** Let the fire-and-forget handler chains drain. */
@@ -193,6 +195,33 @@ describe('refreshSync deletion reconciliation', () => {
     expect(mockRpc.mock.calls[0][1]).toMatchObject({ withIds: false })
     await refreshSync(true)
     expect(mockRpc.mock.calls[1][1]).toMatchObject({ withIds: true })
+  })
+
+  it('never prunes the conversation on screen — an absent id there is a race, not a deletion', async () => {
+    // A desktop index read can catch a conversation file mid-life and omit its
+    // id for one sweep. Pruning on that yanked the transcript out from under
+    // the open chat (the blank-chat report, 2026-08-25). Real deletions arrive
+    // as conversation.deleted pushes; the sweep only takes the open one after
+    // the user has left it.
+    mockState.rows = [
+      { id: 'on-screen', updated_at: 1, body_synced_at: 1 },
+      { id: 'elsewhere', updated_at: 1, body_synced_at: 1 }
+    ]
+    mockState.messages['on-screen'] = 4
+    setActiveConversation('on-screen')
+    mockRpc.mockResolvedValue({ rows: [], at: 200, ids: [] })
+
+    const result = await refreshSync(true)
+
+    expect(result.removed).toBe(1)
+    expect(mockState.rows.map((r) => r.id)).toEqual(['on-screen'])
+    expect(mockState.messages['on-screen']).toBe(4)
+
+    // The user walks away; the next sweep is free to take it.
+    setActiveConversation(null)
+    mockRpc.mockResolvedValue({ rows: [], at: 300, ids: [] })
+    expect((await refreshSync(true)).removed).toBe(1)
+    expect(mockState.rows).toEqual([])
   })
 })
 
@@ -373,13 +402,26 @@ describe('fetchConversationBody', () => {
     }
   })
 
-  it('honours a genuinely emptied conversation', async () => {
+  it('refuses an empty answer over a transcript this phone holds', async () => {
+    // Nothing in the product empties a conversation in place — the one real
+    // producer of a served [] for a known conversation is a NEW conversation's
+    // titled shell caught before its first turn folded. Honouring it deleted
+    // the local transcript under the open chat (the blank-chat report,
+    // 2026-08-25); the copy in hand stays, and the post-save signal refetches.
     mockState.rows = [{ id: 'c', updated_at: 1_000, body_synced_at: null }]
     mockState.messages['c'] = 3
     mockRpc.mockResolvedValue({ messages: [] })
 
+    expect(await fetchConversationBody('c')).toBe(false)
+    expect(mockState.messages['c']).toBe(3)
+  })
+
+  it('still syncs a conversation that is genuinely empty on both sides', async () => {
+    mockState.rows = [{ id: 'c', updated_at: 1_000, body_synced_at: null }]
+    mockRpc.mockResolvedValue({ updatedAt: 1_000, messages: [] })
+
     expect(await fetchConversationBody('c')).toBe(true)
-    expect(mockState.messages['c']).toBeUndefined()
+    expect(await isBodyStale('c')).toBe(false)
   })
 })
 

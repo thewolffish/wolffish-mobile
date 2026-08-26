@@ -590,10 +590,20 @@ async function upsertConversations(
  */
 async function pruneMissing(ids: string[]): Promise<number> {
   const db = await getDb()
+  // Everything except the conversation ON SCREEN. An id sweep that omits the
+  // open conversation is far more likely a desktop-side read race (its index
+  // skips a file it happened to catch mid-life) than a real deletion — and
+  // pruning it yanks the transcript out from under the user, which is how a
+  // chat went blank mid-file-download until it was reselected. Real deletions
+  // arrive as conversation.deleted pushes, which do take the open one down;
+  // a genuinely deleted conversation the user is sitting in goes on the first
+  // sweep after they leave it.
+  const active = getActiveConversation()
+  const keep = active && !ids.includes(active) ? [...ids, active] : ids
   // An empty desktop is a real state (everything deleted) and must prune all.
-  const placeholders = ids.map(() => '?').join(',')
-  const where = ids.length ? `WHERE id NOT IN (${placeholders})` : ''
-  const doomed = await db.getAllAsync<{ id: string }>(`SELECT id FROM conversations ${where}`, ids)
+  const placeholders = keep.map(() => '?').join(',')
+  const where = keep.length ? `WHERE id NOT IN (${placeholders})` : ''
+  const doomed = await db.getAllAsync<{ id: string }>(`SELECT id FROM conversations ${where}`, keep)
   if (!doomed.length) return 0
   await db.withExclusiveTransactionAsync(async (tx) => {
     for (const row of doomed) {
@@ -718,9 +728,19 @@ async function fetchConversationBodyOnce(id: string): Promise<boolean> {
   // No messages array is a failed lookup, not an empty conversation. The old
   // `?? []` turned any malformed answer into a DELETE of a good transcript —
   // the worst outcome available here, and invisible until the user scrolls.
-  // An explicit empty array still means emptied, and is honoured.
   const messages = Array.isArray(body?.messages) ? body.messages : null
   if (messages === null) return false
+  // An explicit empty answer over a NON-empty local copy is refused too.
+  // Nothing in the product empties a conversation in place — deletion removes
+  // it whole, and that arrives as conversation.deleted — so a served [] for a
+  // transcript this phone holds is a desktop-side race, not a fact: the one
+  // real producer is a NEW conversation's titled shell, on disk before its
+  // first turn folds, handed to a fetch that raced the fold. Honouring it
+  // deleted the local transcript, flipped the open chat to the empty state,
+  // and the user read that as the chat going blank. A conversation with no
+  // local messages still takes [] fine (there is nothing to lose), so a
+  // genuinely empty one syncs as it always did.
+  if (messages.length === 0 && (await hasCachedBody(id))) return false
   await db.withExclusiveTransactionAsync(async (tx) => {
     await tx.runAsync('DELETE FROM messages WHERE conversation_id = ?', [id])
     let seq = 0
