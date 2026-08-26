@@ -423,6 +423,19 @@ describe('fetchConversationBody', () => {
     expect(await fetchConversationBody('c')).toBe(true)
     expect(await isBodyStale('c')).toBe(false)
   })
+
+  it('refuses an empty answer while a live turn overlays the conversation', async () => {
+    // Nothing cached yet — a notification tap mid-run lands exactly here: the
+    // run is seeded before the first body fetch answers, and the served [] is
+    // that very turn's pre-fold shell. Stamping it as the synced body wasted a
+    // round on emptiness the settle then had to claw back.
+    mockState.rows = [{ id: 'c', updated_at: 1_000, body_synced_at: null }]
+    putStream('c', 'streaming')
+    mockRpc.mockResolvedValue({ updatedAt: 1_000, messages: [] })
+
+    expect(await fetchConversationBody('c')).toBe(false)
+    expect(await isBodyStale('c')).toBe(true)
+  })
 })
 
 /**

@@ -740,7 +740,17 @@ async function fetchConversationBodyOnce(id: string): Promise<boolean> {
   // and the user read that as the chat going blank. A conversation with no
   // local messages still takes [] fine (there is nothing to lose), so a
   // genuinely empty one syncs as it always did.
-  if (messages.length === 0 && (await hasCachedBody(id))) return false
+  //
+  // A LIVE overlay extends the same refusal to a conversation with nothing
+  // cached yet: a turn this phone is rendering (or settling) means the served
+  // [] IS that turn's pre-fold shell — a notification tap lands exactly in
+  // this window, with the run seeded before the first body fetch answers.
+  // Stamping the shell as the synced body cost a wasted round of emptiness;
+  // refused, the settle's own retries pull the folded transcript instead.
+  if (messages.length === 0) {
+    if (await hasCachedBody(id)) return false
+    if (useChatRuntime.getState().streams[id]) return false
+  }
   await db.withExclusiveTransactionAsync(async (tx) => {
     await tx.runAsync('DELETE FROM messages WHERE conversation_id = ?', [id])
     let seq = 0

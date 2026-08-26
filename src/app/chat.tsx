@@ -100,6 +100,9 @@ export default function ChatScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets()
   const params = useLocalSearchParams<{ id?: string }>()
   const feedRef = useRef<ChatFeedHandle>(null)
+  /** Whether the current `opened` has ever put rows on screen — what tells a
+   *  transcript that VANISHED apart from one still arriving. See `vanished`. */
+  const hadRowsRef = useRef(false)
   const [conversationId, setConversationId] = useState<string | null>(params.id ?? null)
   /**
    * The conversation this screen is OPEN ON — seeded from the route (History, a
@@ -128,6 +131,7 @@ export default function ChatScreen(): React.JSX.Element {
     generationRef.current += 1
     setConversationId(opened)
     setFeedRevealed(opened === null)
+    hadRowsRef.current = false
     // Nothing in flight follows the user out of the conversation they left. The
     // TURN does keep running — it lives in chatRuntime under its own id, and
     // walking away is not stopping — but this screen's copy of the last prompt,
@@ -750,6 +754,10 @@ export default function ChatScreen(): React.JSX.Element {
   // in flight is on screen whether or not anything has been saved for it yet,
   // and that is what keeps a fresh send out of both the hero and the skeleton.
   const empty = feed.length === 0
+  // Whether this screen has shown rows for the CURRENT `opened` (reset with
+  // the gate). A ref written during render, deliberately: the fact is needed
+  // in the same frame the rows appear, and it subscribes to nothing.
+  if (!empty) hadRowsRef.current = true
   // Reading the conversation out of SQLite is async, so an opened conversation
   // has no messages for a frame or two. Show placeholders rather than letting
   // it fall through to the new-chat hero and snap to the feed.
@@ -762,13 +770,25 @@ export default function ChatScreen(): React.JSX.Element {
   // genuinely empty stays empty while a background refresh runs.
   const loading =
     empty && conversationId !== null && (conversation === undefined || conversationFetching)
+  // A transcript that VANISHED: this screen showed rows for this conversation
+  // and now holds a present-but-empty copy. Nothing in the product empties a
+  // conversation in place, so this is always a sync transient mid-heal (a
+  // fetch that raced a desktop-side write) — never a state to draw as final.
+  // Without it, the one frame the machine had for this was the worst one: the
+  // hero needs `!loading`, the skeleton needed `!feedRevealed`, and a feed
+  // with no rows paints nothing — the pure-blank chat reported 2026-08-26,
+  // opened from a notification mid-run. A conversation the query answers
+  // `null` for is genuinely gone and falls through to the hero as ever.
+  const vanished = empty && hadRowsRef.current && conversation != null
 
   // The skeleton stands in for the whole opening sequence, not just the read:
   // it stays up while the body arrives AND while the laid-out feed is pinning
-  // itself to the end behind it (ChatFeed.onReady). A conversation that turns
-  // out to have no messages resolves to the hero instead — `loading` is false
-  // and there is nothing to lay out.
-  const showSkeleton = !feedRevealed && (loading || !empty)
+  // itself to the end behind it (ChatFeed.onReady) — and it comes BACK over
+  // any later empty-but-unsettled frame (`loading` after reveal, `vanished`),
+  // so no ordering of fetches and invalidations can ever paint a blank
+  // transcript. A conversation that settles as genuinely empty resolves to
+  // the hero — `loading` and `vanished` both false, nothing to lay out.
+  const showSkeleton = (!feedRevealed && !empty) || (empty && (loading || vanished))
 
   return (
     // No top padding, and no top bar: the transcript owns the whole column and
@@ -785,7 +805,7 @@ export default function ChatScreen(): React.JSX.Element {
           does on iOS. */}
       <KeyboardAvoidingView behavior="padding" className="flex-1" keyboardVerticalOffset={0}>
         <View className="flex-1">
-          {empty && !loading ? (
+          {empty && !loading && !vanished ? (
             // Project mode swaps the wolffish hero for the project's own
             // identity — emoji, title, and its instructions in the same
             // recessed block the cards use — because that IS what a new
