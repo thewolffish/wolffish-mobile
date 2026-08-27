@@ -1,4 +1,10 @@
-## v1.0.44 — 2026-08-26 `Latest`
+## v1.0.45 — 2026-08-27 `Latest`
+
+### Automation Transcripts Stop Weighing a Ton
+
+A conversation written by a busy automation — the daily meme run was the one that surfaced it — could arrive carrying thousands of tiny text fragments, one per instant of the reply being written, plus download cards for scratch files that only ever existed on your desktop's side of the work. The phone paid for all of it: a transcript many times its real size to store and redraw, and **downloads that could never finish** spinning beside the real ones. Both are gone. Fragments now **fold into whole paragraphs** the moment a conversation lands — the meme run's transcript dropped to about a quarter of its stored size — and a file the desktop cannot serve is written as plain text instead of a card, so nothing spins for it. Real attachments — the memes themselves included — download and **play exactly as before**.
+
+## v1.0.44 — 2026-08-26
 
 ### A Blank Screen Is No Longer Something the Chat Can Show
 
