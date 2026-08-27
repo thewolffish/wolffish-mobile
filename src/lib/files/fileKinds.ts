@@ -315,3 +315,34 @@ export function isTextual(kind: FileViewerKind): boolean {
     kind === 'markdown' || kind === 'text' || kind === 'code' || kind === 'html' || kind === 'sheet'
   )
 }
+
+/** Formats whose files animate when rendered — every frame stays decoded. */
+const ANIMATED_IMAGE_RE = /\.(gif|webp|apng)$/i
+
+/**
+ * Above this, an animated image's inline thumbnail plays its FIRST FRAME
+ * only; the full animation runs in the expanded sheet, one at a time.
+ *
+ * The ceiling exists because animation cost is not the file's bytes but its
+ * DECODED frames — a 1.8 MB meme GIF unpacks to tens of megabytes of RGBA,
+ * and a transcript carrying a few of them (a meme automation's morning
+ * output) mounted them all at once inside one non-virtualized feed. On real
+ * phones that is a memory cliff: iOS answers pressure by evicting the
+ * scroller's textures, and the whole transcript paints BLACK while the rest
+ * of the app stays alive — the "chat went blank while files loaded" report,
+ * 2026-08-27. Small stickers stay animated; the heavy ones become a tap.
+ */
+export const INLINE_ANIMATION_MAX_BYTES = 300 * 1024
+
+/** Whether this image should render inline as a still, animating only in
+ *  the expanded sheet. `declaredBytes` is the attachment's own metadata;
+ *  `cachedBytes` the on-disk size once downloaded — whichever is known. */
+export function isHeavyAnimation(
+  relPath: string,
+  declaredBytes?: number,
+  cachedBytes?: number
+): boolean {
+  if (!ANIMATED_IMAGE_RE.test(relPath)) return false
+  const bytes = declaredBytes ?? cachedBytes ?? 0
+  return bytes > INLINE_ANIMATION_MAX_BYTES
+}

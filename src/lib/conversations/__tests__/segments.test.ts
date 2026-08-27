@@ -27,6 +27,62 @@ describe('toWorkspaceRelative', () => {
   })
 })
 
+describe('paths outside the workspace', () => {
+  // Tool output sometimes names files the desktop cannot serve — /tmp scratch
+  // frames a meme pipeline inspected, absolute paths a shell tool printed.
+  // A card built for one sat as a loading placeholder retrying a download
+  // that can never exist; they stay prose instead (2026-08-27).
+  const toolPair = (output: string): Segment[] => [
+    {
+      kind: 'tool_call',
+      turnId: 't1',
+      segmentId: 'c1',
+      toolCallId: 'call1',
+      name: 'shell',
+      args: {}
+    },
+    {
+      kind: 'tool_result',
+      turnId: 't1',
+      segmentId: 'r1',
+      toolCallId: 'call1',
+      status: 'success',
+      output
+    }
+  ]
+
+  it('an output marker naming an unservable path emits no file card', () => {
+    const outside = message(toolPair('[wolffish-output: /tmp/frame_23.png (image)]'))
+    expect(buildRenderBlocks(outside).filter((b) => b.type === 'file')).toEqual([])
+
+    const inside = message(toolPair('[wolffish-output: uploads/memes/a.gif (image)]'))
+    expect(buildRenderBlocks(inside).filter((b) => b.type === 'file')).toMatchObject([
+      { relPath: 'uploads/memes/a.gif' }
+    ])
+  })
+
+  it('a media-only line for an unservable path renders as prose, not a card', () => {
+    const outside = message([textSeg('![frame](wolffish-media:///tmp/frame_23.png)', 's1')])
+    const blocks = buildRenderBlocks(outside)
+    expect(blocks.filter((b) => b.type === 'media')).toEqual([])
+    expect(blocks.filter((b) => b.type === 'text')).toHaveLength(1)
+
+    const inside = message([textSeg('![meme](wolffish-media://uploads/memes/a.gif)', 's1')])
+    expect(buildRenderBlocks(inside).filter((b) => b.type === 'media')).toMatchObject([
+      { relPath: 'uploads/memes/a.gif' }
+    ])
+  })
+
+  it('messageFilePaths never offers an unservable path to the prefetcher', () => {
+    const mixed = message(
+      toolPair(
+        '[wolffish-output: uploads/memes/a.gif (image)] and [wolffish-output: /tmp/b.png (image)]'
+      )
+    )
+    expect(messageFilePaths(mixed)).toEqual(['uploads/memes/a.gif'])
+  })
+})
+
 describe('coalesceTextSegments', () => {
   it('merges consecutive text runs and keeps boundaries', () => {
     const out = coalesceTextSegments([

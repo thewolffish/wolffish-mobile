@@ -88,6 +88,20 @@ export function toWorkspaceRelative(path: string): string {
   return path.replace(WORKSPACE_PREFIX_RE, '')
 }
 
+/**
+ * Whether a normalized path is one the desktop can actually serve — i.e. it
+ * landed inside the workspace and normalized to a relative path. Tool output
+ * sometimes names files OUTSIDE it (/tmp scratch frames a meme pipeline
+ * inspected, an absolute path a shell tool printed): the desktop's fileRead
+ * refuses anything not under its root, so a card built for such a path can
+ * never resolve — it sat as a loading placeholder retrying a download that
+ * will never exist. Those stay prose; the path is still readable in the tool
+ * card's own output.
+ */
+function isServableWorkspacePath(relPath: string): boolean {
+  return relPath.length > 0 && !relPath.startsWith('/')
+}
+
 /** `[wolffish-output: <path> (<kind>)]` — delivered-file markers, output only. */
 const OUTPUT_MARKER_RE =
   /\[wolffish-output:\s*([^\]]+?)\s*\((image|document|audio|video|file|chart)\)\]/g
@@ -138,7 +152,7 @@ function extractDeliveredFiles(
 
   const voicePath = parseVoiceResult(result.output)
   if (voicePath) {
-    if (!emitted.has(voicePath)) {
+    if (isServableWorkspacePath(voicePath) && !emitted.has(voicePath)) {
       emitted.add(voicePath)
       blocks.push({ type: 'file', key: `${key}:voice`, relPath: voicePath, kind: 'audio' })
     }
@@ -153,6 +167,7 @@ function extractDeliveredFiles(
     const kind = match[2] as DeliveredFileKind
     // Placeholder/self-referential markers (e.g. docs quoting the format).
     if (relPath === 'path' || relPath.includes('${')) continue
+    if (!isServableWorkspacePath(relPath)) continue
     if (emitted.has(relPath)) continue
     emitted.add(relPath)
     blocks.push({ type: 'file', key: `${key}:out${index}`, relPath, kind })
@@ -206,8 +221,13 @@ export function buildRenderBlocks(message: ConversationMessage): RenderBlock[] {
     if (!trimmed) return
     const mediaMatch = MEDIA_ONLY_RE.exec(trimmed)
     if (mediaMatch) {
-      blocks.push({ type: 'media', key: textKey, relPath: toWorkspaceRelative(mediaMatch[1]) })
-      return
+      const relPath = toWorkspaceRelative(mediaMatch[1])
+      if (isServableWorkspacePath(relPath)) {
+        blocks.push({ type: 'media', key: textKey, relPath })
+        return
+      }
+      // Falls through: a media reference outside the workspace renders as the
+      // prose it came in as rather than a card that can never load.
     }
     blocks.push({ type: 'text', key: textKey, markdown: trimmed })
   }
@@ -407,7 +427,9 @@ export function messageFilePaths(message: ConversationMessage): string[] {
       }
     }
   }
-  return [...paths]
+  // Only paths the desktop can serve: anything still absolute would spend
+  // the prefetch (and its retries) on downloads that can never exist.
+  return [...paths].filter(isServableWorkspacePath)
 }
 
 /** Concatenated assistant prose — the "copy message" payload. */

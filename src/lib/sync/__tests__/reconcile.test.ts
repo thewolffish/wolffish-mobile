@@ -718,6 +718,41 @@ describe('conversationUpserted push', () => {
   })
 })
 
+describe('store-boundary segment compaction', () => {
+  it('folds per-tick text confetti before it reaches SQLite', async () => {
+    // Until the desktop coalesces its own persists, a streamed reply can
+    // arrive as thousands of few-character text segments (one heartbeat
+    // answer carried 2,441). They fold to prose runs here, once, so the
+    // store and every later parse hold the compact shape.
+    mockState.rows = [{ id: 'c', updated_at: 400, body_synced_at: null }]
+    const confetti = Array.from({ length: 200 }, (_, i) => ({
+      kind: 'text',
+      turnId: 't1',
+      segmentId: `s${i}`,
+      delta: `w${i} `
+    }))
+    mockRpc.mockResolvedValue({
+      updatedAt: 400,
+      messages: [
+        {
+          id: 'm1',
+          role: 'assistant',
+          content: '',
+          timestamp: 1,
+          payload: { segments: confetti }
+        }
+      ]
+    })
+
+    await fetchConversationBody('c')
+
+    const insert = mockRunCalls.find(({ sql }) => sql.startsWith('INSERT INTO messages'))
+    const stored = JSON.parse(insert?.args[6] as string) as { segments: unknown[] }
+    expect(stored.segments).toHaveLength(1)
+    expect((stored.segments[0] as { delta: string }).delta.startsWith('w0 w1 ')).toBe(true)
+  })
+})
+
 describe('notification evidence', () => {
   it('a successful body fetch pays off the dirty mark', async () => {
     mockState.rows = [{ id: 'c', updated_at: 400, body_synced_at: null }]

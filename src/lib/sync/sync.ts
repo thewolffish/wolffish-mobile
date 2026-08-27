@@ -1,5 +1,5 @@
-import { messageFilePaths } from '@/lib/conversations/segments'
-import type { ConversationMessage } from '@/lib/conversations/types'
+import { coalesceTextSegments, messageFilePaths } from '@/lib/conversations/segments'
+import type { ConversationMessage, Segment } from '@/lib/conversations/types'
 import { getDb } from '@/lib/db/database'
 import { resolveWorkspaceFile } from '@/lib/files/fileCache'
 import { tunnelClient } from '@/lib/tunnel/client'
@@ -755,6 +755,17 @@ async function fetchConversationBodyOnce(id: string): Promise<boolean> {
     await tx.runAsync('DELETE FROM messages WHERE conversation_id = ?', [id])
     let seq = 0
     for (const message of messages) {
+      // Compact at the store boundary: the desktop streams prose as one text
+      // segment per model tick and (until it coalesces its own persists) can
+      // serve a single reply as THOUSANDS of few-character segments — one
+      // meme automation's answer arrived as 2,441 of them, ~250 KB of pure
+      // segment envelope on a 10 KB reply, re-parsed on every later read.
+      // Adjacent same-run text folds into one segment here, once, so SQLite
+      // and every render after it hold the compact shape.
+      let payload = message.payload as Record<string, unknown> | null | undefined
+      if (payload && Array.isArray(payload.segments)) {
+        payload = { ...payload, segments: coalesceTextSegments(payload.segments as Segment[]) }
+      }
       await tx.runAsync(
         `INSERT INTO messages (conversation_id, seq, id, role, content, timestamp, payload_json)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -765,7 +776,7 @@ async function fetchConversationBodyOnce(id: string): Promise<boolean> {
           message.role,
           message.content ?? '',
           message.timestamp ?? Date.now(),
-          message.payload ? JSON.stringify(message.payload) : null
+          payload ? JSON.stringify(payload) : null
         ]
       )
     }
