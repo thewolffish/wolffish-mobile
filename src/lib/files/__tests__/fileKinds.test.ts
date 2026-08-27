@@ -4,7 +4,6 @@ import {
   fileName,
   formatByteProgress,
   formatBytes,
-  isHeavyAnimation,
   isPlayable,
   isTextual,
   mimeTypeFor,
@@ -241,27 +240,5 @@ describe('isPlayable', () => {
 
   it('assumes playable on unknown platforms', () => {
     expect(isPlayable('audio', 'ogg', 'web')).toBe(true)
-  })
-})
-
-describe('isHeavyAnimation', () => {
-  // Animation cost is decoded FRAMES, not file bytes: a 1.8 MB meme GIF
-  // unpacks to tens of megabytes of RGBA, and a transcript mounting several
-  // at once is the memory cliff that blanked the chat on real phones
-  // (2026-08-27). Heavy animated images render inline as stills and animate
-  // in the expanded sheet, one at a time.
-  it('is heavy only for animated formats over the inline ceiling', () => {
-    expect(isHeavyAnimation('uploads/memes/a.gif', 1_800_000)).toBe(true)
-    expect(isHeavyAnimation('uploads/memes/a.webp', undefined, 900_000)).toBe(true)
-    expect(isHeavyAnimation('uploads/memes/sticker.gif', 120_000)).toBe(false)
-    expect(isHeavyAnimation('uploads/photos/a.jpg', 5_000_000)).toBe(false)
-    expect(isHeavyAnimation('uploads/photos/a.png', 5_000_000)).toBe(false)
-  })
-
-  it('prefers declared size, falls back to the cached file, then assumes light', () => {
-    expect(isHeavyAnimation('a.gif', 2_000_000, 100)).toBe(true)
-    expect(isHeavyAnimation('a.gif', undefined, 2_000_000)).toBe(true)
-    // Nothing known yet: stay animated rather than flashing a still first.
-    expect(isHeavyAnimation('a.gif')).toBe(false)
   })
 })

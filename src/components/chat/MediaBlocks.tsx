@@ -1,7 +1,7 @@
 import { PauseIcon, PlayIcon, Upload01Icon } from '@/components/core/icons'
 import { ExpandedSheet } from '@/components/core/ExpandedSheet'
 import { ZoomableImage } from '@/components/core/ZoomableImage'
-import { fileName, formatBytes, isHeavyAnimation } from '@/lib/files/fileKinds'
+import { fileName, formatBytes } from '@/lib/files/fileKinds'
 import { useWorkspaceFile } from '@/lib/files/useWorkspaceFile'
 import { cn } from '@/lib/utils/cn'
 import { useTokens } from '@/providers/theme/useTheme'
@@ -53,17 +53,8 @@ export function ImageBlock({
   // Natural ratio, known only once the decoder reports it — same deal as the
   // video track below, so the thumb holds its placeholder shape until then.
   const [aspectRatio, setAspectRatio] = useState<number | null>(null)
-  const {
-    uri,
-    loading,
-    missing,
-    sizeBytes: cachedBytes
-  } = useWorkspaceFile(relPath, conversationId)
+  const { uri, loading, missing } = useWorkspaceFile(relPath, conversationId)
   const name = displayName ?? fileName(relPath)
-  // A big animated image plays its first frame here and its animation in the
-  // expanded sheet — see isHeavyAnimation for why the transcript must never
-  // hold several decoded GIFs at once.
-  const stillOnly = isHeavyAnimation(relPath, sizeBytes, cachedBytes)
 
   if (loading) {
     // The thumbnail's starting footprint: the bytes landing swap the image in
@@ -93,7 +84,6 @@ export function ImageBlock({
         <Image
           source={{ uri }}
           contentFit="cover"
-          autoplay={!stillOnly}
           onLoad={({ source }) => {
             if (source.width > 0 && source.height > 0) {
               setAspectRatio(source.width / source.height)
@@ -105,11 +95,6 @@ export function ImageBlock({
               : { width: THUMB_WIDTH, aspectRatio, borderRadius: 16 }
           }
         />
-        {stillOnly && (
-          <View className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5">
-            <Text className="font-sans-medium text-[10px] text-white">GIF</Text>
-          </View>
-        )}
       </Pressable>
       <ExpandedSheet
         open={open}
