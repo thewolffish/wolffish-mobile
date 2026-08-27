@@ -860,6 +860,8 @@ export default function ChatScreen(): React.JSX.Element {
               // Clearance for the floating controls, which the transcript
               // scrolls under rather than stopping below.
               topInset={insets.top + FLOATING_AREA}
+              // Streamed growth is glued to the end, not eased — see ChatFeed.
+              streaming={streaming}
               onReady={() => setFeedRevealed(true)}
             >
               {feed.map((item) =>

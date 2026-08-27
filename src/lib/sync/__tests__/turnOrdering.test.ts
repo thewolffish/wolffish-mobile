@@ -109,6 +109,16 @@ async function flush(): Promise<void> {
   for (let i = 0; i < 8; i += 1) await Promise.resolve()
 }
 
+/**
+ * Let the inbound stream batching window close (prompt.ts pools deltas and
+ * mirrors for a few frames so a backlog fast-forwards instead of replaying
+ * word by word). A frame is what the eye gets AFTER the window; boundaries —
+ * nudges, turn.status, settles — flush it synchronously and need no wait.
+ */
+async function streamed(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 60))
+}
+
 // ------------------------------------------------------------------ render
 
 /**
@@ -264,6 +274,7 @@ describe('a turn started from this phone', () => {
     // Text streams in as deltas.
     for (const delta of ['Hel', 'lo ', 'there']) {
       emit('message.delta', { conversationId: CONVERSATION, text: delta })
+      await streamed()
       frames.push(render(screen))
     }
 
@@ -278,6 +289,7 @@ describe('a turn started from this phone', () => {
         segments: [textSegment('s1', 'Hello there')]
       }
     })
+    await streamed()
     frames.push(render(screen))
 
     // A bare nudge lands mid-turn — the video-task write-through sends one,
@@ -289,6 +301,7 @@ describe('a turn started from this phone', () => {
 
     // ... and more deltas after it.
     emit('message.delta', { conversationId: CONVERSATION, text: ', friend' })
+    await streamed()
     frames.push(render(screen))
 
     // The turn ends: the desktop saved first, then announced.
@@ -352,6 +365,7 @@ describe('a turn started from this phone', () => {
         segments: [textSegment('s1', 'the answer')]
       }
     })
+    await streamed()
     frames.push(render(screen))
 
     // done, but the disk write has not landed.
@@ -385,6 +399,7 @@ describe('a turn started from this phone', () => {
     seed([{ id: 'm_1_aaaaaa', role: 'user', content: 'hi', timestamp: 1 }])
     emit('turn.status', { conversationId: CONVERSATION, state: 'started' })
     emit('message.delta', { conversationId: CONVERSATION, text: 'half an ans' })
+    await streamed()
     const before = render(screen)
 
     emit('message.appended', { conversationId: CONVERSATION })
@@ -416,6 +431,7 @@ describe('a turn started from this phone', () => {
       })
 
     snapshot()
+    await streamed()
     expect(render(screen, true)).toEqual(['user(make a video)', 'assistant(text(On it.))'])
 
     segments.push({
@@ -427,6 +443,7 @@ describe('a turn started from this phone', () => {
       args: {}
     })
     snapshot()
+    await streamed()
     expect(render(screen, true)).toEqual([
       'user(make a video)',
       'assistant(text(On it.) + tool(video_generate:running))'
@@ -441,6 +458,7 @@ describe('a turn started from this phone', () => {
       output: 'queued'
     })
     snapshot()
+    await streamed()
     expect(render(screen, true)).toEqual([
       'user(make a video)',
       'assistant(text(On it.) + tool(video_generate:done))'
@@ -623,6 +641,7 @@ describe('a turn started on the desktop', () => {
         segments: [textSegment('s1', 'Building the PDF')]
       }
     })
+    await streamed()
     frames.push(render(screen))
 
     // THE ASSERTION. Without the prompt on the mirror this row is absent and
@@ -761,6 +780,7 @@ describe('a turn started on the desktop', () => {
         segments: [textSegment('s1', 'Building')]
       }
     })
+    await streamed()
     mockDesktop.messages.push({
       id: 'm_9_ccccc2',
       role: 'assistant',
@@ -788,6 +808,7 @@ describe('a turn started on the desktop', () => {
         segments: [textSegment('s1', 'Building the PDF')]
       }
     })
+    await streamed()
     frames.push(render(screen))
     expect(frames.at(-1)).toEqual(['user(make me a pdf)', 'assistant(text(Building the PDF))'])
 

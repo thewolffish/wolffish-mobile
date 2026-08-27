@@ -16,7 +16,8 @@ import { Pressable, ScrollView, Text, View } from 'react-native'
 /**
  * What's new — release notes for both ends of the pairing, one screen.
  *
- * Two sources behind one chip row, mirroring the Updates screen's two cards:
+ * Two sources behind one full-width switch (the LanguageToggle's segmented
+ * dress), mirroring the Updates screen's two cards:
  * THIS APP's notes are bundled with the binary (readChangelog — the page
  * works on a plane), the DESKTOP's are its own months synced in the config
  * snapshot with bodies fetched over the tunnel on open and rendered verbatim
@@ -26,7 +27,57 @@ import { Pressable, ScrollView, Text, View } from 'react-native'
 
 type Source = 'mobile' | 'desktop'
 
-/** One chip in a row of choices — months, and the two sources. */
+/**
+ * The source switch — This app | Desktop — in the LanguageToggle's exact
+ * dress: one full-width bordered track, equal segments, the active one
+ * filled. Two fixed sources are a switch; the months below stay a scrolling
+ * chip row, because a dozen months are a list, not a toggle.
+ */
+function SourceSwitch({
+  source,
+  onChange
+}: {
+  source: Source
+  onChange: (next: Source) => void
+}): React.JSX.Element {
+  const { t } = useTranslation()
+  const options: readonly { value: Source; label: string }[] = [
+    { value: 'mobile', label: t('settings.updates.thisAppTitle') },
+    { value: 'desktop', label: t('settings.updates.desktopTitle') }
+  ]
+  return (
+    <View className="border-border bg-bg h-10 w-full flex-row items-stretch rounded-lg border p-0.5">
+      {options.map((option) => {
+        const active = option.value === source
+        return (
+          <Pressable
+            key={option.value}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            disabled={active}
+            onPress={() => onChange(option.value)}
+            className={cn(
+              'flex-1 flex-row items-center justify-center rounded-md px-3',
+              active ? 'bg-primary' : 'bg-transparent'
+            )}
+          >
+            <Text
+              numberOfLines={1}
+              className={cn(
+                'text-xs',
+                active ? 'text-primary-fg font-sans-semibold' : 'text-muted font-sans'
+              )}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        )
+      })}
+    </View>
+  )
+}
+
+/** One chip in a row of choices — the months. */
 function Chip({
   label,
   active,
@@ -184,22 +235,7 @@ export default function ChangelogScreen(): React.JSX.Element {
 
   return (
     <PanelScreen title={t('settings.changelog.title')} subtitle={t('settings.changelog.subtitle')}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8 }}
-      >
-        <Chip
-          label={t('settings.updates.thisAppTitle')}
-          active={source === 'mobile'}
-          onPress={() => switchSource('mobile')}
-        />
-        <Chip
-          label={t('settings.updates.desktopTitle')}
-          active={source === 'desktop'}
-          onPress={() => switchSource('desktop')}
-        />
-      </ScrollView>
+      <SourceSwitch source={source} onChange={switchSource} />
 
       {months.length > 1 ? (
         <ScrollView

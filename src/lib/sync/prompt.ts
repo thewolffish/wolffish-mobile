@@ -448,6 +448,9 @@ function scheduleSettleRetry(conversationId: string): void {
 }
 
 function settleTurn(conversationId: string): Promise<void> {
+  // The settle judges the live row against the stored body — apply whatever
+  // the batching window still holds before judging (hoisted; defined below).
+  flushStream(conversationId)
   const active = settling.get(conversationId)
   if (active) {
     active.again = true
@@ -529,6 +532,84 @@ if (typeof setConversationSettleHook === 'function') {
   setConversationSettleHook((conversationId) => void settleTurn(conversationId))
 }
 
+// ------------------------------------------------- inbound stream batching
+
+/**
+ * How long inbound stream events may pool before they paint. Three frames —
+ * imperceptible against a live model, decisive against a backlog: a phone
+ * catching up on a queue the relay held (a slow link during a long turn, a
+ * return from background) receives hundreds of deltas and mirrors in a burst,
+ * and painting each one re-rendered the live row per event — the reply
+ * "streaming" a word at a time for minutes after the desktop had finished.
+ * Pooled, a burst collapses to at most ~20 store writes a second, each
+ * carrying everything that arrived since the last: the backlog fast-forwards
+ * instead of replaying.
+ */
+const STREAM_FLUSH_MS = 48
+
+type PendingStream = {
+  /** Newest full mirror received this window — supersedes any before it. */
+  mirror?: ConversationMessage
+  /** The prompt off the newest event that carried one. */
+  prompt?: ConversationMessage
+  /** Delta text received after `mirror` (or since the last flush). */
+  tail: string
+  timer: ReturnType<typeof setTimeout> | null
+}
+
+const pendingStreams = new Map<string, PendingStream>()
+
+/** The conversation's open pooling window, its flush armed. */
+function pendingFor(conversationId: string): PendingStream {
+  let entry = pendingStreams.get(conversationId)
+  if (!entry) {
+    entry = { tail: '', timer: null }
+    pendingStreams.set(conversationId, entry)
+  }
+  if (!entry.timer) {
+    entry.timer = setTimeout(() => flushStream(conversationId), STREAM_FLUSH_MS)
+  }
+  return entry
+}
+
+/**
+ * Apply everything a conversation's window pooled, as ONE store write. The
+ * fold is the same one the live row itself performs: a mirror supersedes the
+ * deltas before it (they are already inside it), deltas after it extend its
+ * tail. Order against everything that READS live state is preserved by the
+ * handlers below flushing before they read — a nudge, a turn boundary, a
+ * settle must see the events that arrived ahead of them applied, not pooled.
+ */
+function flushStream(conversationId: string): void {
+  const entry = pendingStreams.get(conversationId)
+  if (!entry) return
+  pendingStreams.delete(conversationId)
+  if (entry.timer) clearTimeout(entry.timer)
+  if (entry.prompt && liveFor(conversationId)?.user?.id !== entry.prompt.id) {
+    beginTurn(conversationId, entry.prompt)
+  }
+  if (entry.mirror) {
+    putLive(conversationId, { base: entry.mirror, tail: entry.tail, status: 'streaming' })
+    return
+  }
+  if (!entry.tail) return
+  const live = liveFor(conversationId)
+  putLive(conversationId, {
+    base: live?.base,
+    tail: (live?.tail ?? '') + entry.tail,
+    status: 'streaming'
+  })
+}
+
+/** Drop every pooled stream event — the socket they rode is gone, and a late
+ *  flush would re-open overlays the reconnect is about to re-settle. */
+function dropPendingStreams(): void {
+  for (const entry of pendingStreams.values()) {
+    if (entry.timer) clearTimeout(entry.timer)
+  }
+  pendingStreams.clear()
+}
+
 // --------------------------------------------------------------- events
 
 /**
@@ -539,6 +620,10 @@ if (typeof setConversationSettleHook === 'function') {
 export function attachTurnStream(): void {
   const tunnel = tunnelClient.active
   if (!tunnel) return
+
+  // Whatever the DEAD socket left pooled dies with it: a flush firing after
+  // the re-settle below would put a stale mirror back up as a running turn.
+  dropPendingStreams()
 
   // The parked-card topics ride the same stream: they are turn events, and a
   // turn that is waiting on the user is a turn state like any other.
@@ -569,12 +654,16 @@ export function attachTurnStream(): void {
       replace?: boolean
     }
     if (!conversationId || typeof text !== 'string') return
-    const live = liveFor(conversationId)
     // Turns this phone started arrive as increments; a mirror of a turn running
     // elsewhere arrives as the message so far. Appending the latter would print
     // the answer again on every tick.
-    const tail = replace === true ? text : (live?.tail ?? '') + text
-    putLive(conversationId, { base: live?.base, tail, status: 'streaming' })
+    if (replace === true) {
+      flushStream(conversationId)
+      const live = liveFor(conversationId)
+      putLive(conversationId, { base: live?.base, tail: text, status: 'streaming' })
+      return
+    }
+    pendingFor(conversationId).tail += text
   })
 
   tunnel.onEvent(Event.messageAppended, (payload) => {
@@ -585,29 +674,36 @@ export function attachTurnStream(): void {
     }
     if (!conversationId) return
 
-    // The prompt first, and before every early return below — a mirror whose
-    // assistant half was withheld for size still carries it, and the turns
-    // whose answers outgrow that budget are exactly the long ones where a
-    // missing question is most obvious. Applied once per turn rather than per
-    // tick: the id is the whole payload's identity, so an unchanged one means
-    // there is nothing to do and no reason to wake the feed.
     const prompt = mirroredPrompt(userMessage)
-    if (prompt && liveFor(conversationId)?.user?.id !== prompt.id) {
-      beginTurn(conversationId, prompt)
-    }
 
     // A FULL assistant message (stable id + role) is the desktop's live mirror
     // of the turn it is writing — prose, tool cards and task cards, exactly as
     // they stand right now. It replaces the live row's base, and the deltas
-    // that built the text it already contains are dropped with it.
+    // that built the text it already contains are dropped with it — pooled
+    // rather than painted, so a burst of snapshots is one store write of the
+    // newest. The prompt rides the pool and is applied at the flush, before
+    // the snapshot, exactly as it used to apply before the putLive here.
     const mirrored = mirroredAssistant(message)
     if (mirrored) {
-      putLive(conversationId, {
-        base: mirrored,
-        tail: '',
-        status: 'streaming'
-      })
+      const entry = pendingFor(conversationId)
+      entry.mirror = mirrored
+      entry.tail = ''
+      if (prompt) entry.prompt = prompt
       return
+    }
+
+    // A nudge reads live state below; the events that arrived ahead of it
+    // must be ON the live row by then, not pooled behind it.
+    flushStream(conversationId)
+
+    // The prompt, before every early return below — a mirror whose assistant
+    // half was withheld for size still carries it, and the turns whose
+    // answers outgrow that budget are exactly the long ones where a missing
+    // question is most obvious. Applied once per turn rather than per tick:
+    // the id is the whole payload's identity, so an unchanged one means
+    // there is nothing to do and no reason to wake the feed.
+    if (prompt && liveFor(conversationId)?.user?.id !== prompt.id) {
+      beginTurn(conversationId, prompt)
     }
 
     // Anything else is a nudge: some conversation's stored body changed. Mid
@@ -636,6 +732,10 @@ export function attachTurnStream(): void {
       detail?: unknown
     }
     if (!conversationId) return
+    // A boundary reads and rewrites live state: the stream events that
+    // arrived ahead of it must be applied first, or a pooled mirror would
+    // flush AFTER the settle and re-open the turn it just closed.
+    flushStream(conversationId)
     // Started anywhere — this app, the desktop, a channel. An open conversation
     // shows the turn from its first instant rather than its first token.
     if (state === 'started') {
@@ -855,6 +955,11 @@ export async function abortTurn(conversationId: string): Promise<void> {
   // button must not sit in its stop state through a round trip that may be
   // lost. Whatever streamed stays up until the desktop's saved copy of it
   // arrives, exactly as it does for a turn that ended on its own.
+  //
+  // The batching window first — a pooled delta flushing AFTER the mark would
+  // put the row back to 'streaming' and flip Send to Stop again. Same order
+  // as every other boundary: apply what arrived, then close.
+  flushStream(conversationId)
   const live = liveFor(conversationId)
   if (live) useChatRuntime.getState().putStream(conversationId, { ...live, status: 'complete' })
   void settleTurn(conversationId)

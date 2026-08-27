@@ -32,6 +32,16 @@ const THUMB_WIDTH = 260
 /** Placeholder height until the image's natural size reports in. */
 const THUMB_HEIGHT = 200
 
+/**
+ * Natural ratios already decoded this session, by workspace path. The ratio
+ * is component state, and the live row's card is REMOUNTED when the stored
+ * copy takes over at the end of a turn (a different feed key) — without this,
+ * every image in the reply snapped back to the 260×200 placeholder and grew
+ * again, a bounce the scroller then had to chase. A few bytes per image ever
+ * shown; the paths are workspace-relative and stable across the swap.
+ */
+const knownAspectRatios = new Map<string, number>()
+
 /** Shape of the video card until the track's natural size lands — desktop's loading aspect. */
 const DEFAULT_VIDEO_ASPECT = 16 / 9
 
@@ -52,7 +62,12 @@ export function ImageBlock({
   const [open, setOpen] = useState(false)
   // Natural ratio, known only once the decoder reports it — same deal as the
   // video track below, so the thumb holds its placeholder shape until then.
-  const [aspectRatio, setAspectRatio] = useState<number | null>(null)
+  // Seeded from the session cache so a remount (the live row handing over to
+  // the stored copy) mounts at true height instead of bouncing through the
+  // placeholder.
+  const [aspectRatio, setAspectRatio] = useState<number | null>(
+    () => knownAspectRatios.get(relPath) ?? null
+  )
   const { uri, loading, missing } = useWorkspaceFile(relPath, conversationId)
   const name = displayName ?? fileName(relPath)
 
@@ -86,6 +101,7 @@ export function ImageBlock({
           contentFit="cover"
           onLoad={({ source }) => {
             if (source.width > 0 && source.height > 0) {
+              knownAspectRatios.set(relPath, source.width / source.height)
               setAspectRatio(source.width / source.height)
             }
           }}

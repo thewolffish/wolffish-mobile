@@ -1,4 +1,18 @@
-## v1.0.45 — 2026-08-27 `Latest`
+## v1.0.46 — 2026-08-27 `Latest`
+
+### Catching Up No Longer Crawls
+
+A phone coming back to a busy conversation — after time in a pocket, on a slow connection, or while a long automation wrote away — could spend minutes replaying what it had missed **one word at a time**, long after your desktop had finished the reply. What arrives now pools for a blink and lands together: a backlog **fast-forwards to the present** instead of re-typing itself, and stopping a run settles it in the same breath as the tap. A reply streaming live reads exactly as it always did — word by word, at the speed it is being written.
+
+### The Newest Message Stays On Screen
+
+The feed's job is to hold the end while a reply grows, and it kept losing that grip in small ways that added up: growth arriving in half-second bursts turned the follow into a chase that ran a step behind the whole turn; a conversation heavy with images and charts opened at its end, then slid short as they finished sizing; a stray tap while the feed was moving counted as "scrolled away" and switched the following off; and scrolling back down could fail to switch it on again, because the end recedes faster than a finger while a reply streams. All of it is fixed: **streamed growth is glued to the end instantly**, opening a conversation **lands on the newest message and stays there** while its media settles, a tap is just a tap, and reaching the bottom **reliably hands the feed its job back**. Reading history is untouched — nothing pulls you down until you choose to return.
+
+### What's New Dresses Like the Rest of Settings
+
+The choice at the top of the What's New screen — this app's notes or the desktop's — now wears **the same full-width switch** the language picker in Appearance wears, instead of a loose pair of chips. The months keep their own row beneath it, exactly as before.
+
+## v1.0.45 — 2026-08-27
 
 ### Automation Transcripts Stop Weighing a Ton
 

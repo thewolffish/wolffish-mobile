@@ -45,8 +45,11 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
  *
  *  3. FOLLOWS GROWTH ALL THE WAY, IN TWO GAITS. Streamed lines arrive small
  *     and often, and are glued instantly — the same motion column-reverse
- *     gives the desktop, growth and scroll in the same frame. A whole message
- *     mounting is a jump worth easing, so it glides. But a glide's target is
+ *     gives the desktop, growth and scroll in the same frame. So is ANY
+ *     growth while a turn streams or in the beat after the reveal (async
+ *     media still sizing itself): easing those turned the follow into a
+ *     chase that ran behind the whole turn. A whole message mounting into a
+ *     quiet feed is the jump worth easing, so that one glides. But a glide's target is
  *     computed WHEN IT STARTS (iOS `setContentOffset:animated:`, Android's
  *     fixed-duration OverScroller), so anything that grows during its ~300ms
  *     lands it short — and nothing native ever says so: Android reports no
@@ -73,6 +76,24 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 
 /** Within this many points of the end still counts as "reading the newest". */
 const STICK_THRESHOLD = 64
+/**
+ * A touch whose whole travel is under this states no intent about the pin. A
+ * tap to still a moving feed, a graze while the follow is running — both used
+ * to pass through readStick mid-flight and read the FOLLOW'S position as "the
+ * user scrolled away", unpinning a reader who never left the end. Only a
+ * genuine displacement may re-decide the pin.
+ */
+const UNSTICK_MIN_DRAG = 12
+/**
+ * After the reveal, growth is followed with instant pins for this long. A
+ * heavy conversation always reveals mid-mount (the cap below sees to it), so
+ * its images, charts and viewers finish sizing AFTER the transcript is
+ * visible — easing each of those jumps chained 500ms glides while the newest
+ * message sat below the fold, which read as "opens scrolled short".
+ */
+const OPEN_FOLLOW_MS = 1500
+/** One deferred re-check per instant pin — see pinNow. */
+const PIN_VERIFY_MS = 80
 /** No content-size change for this long ⇒ the layout has settled. */
 const SETTLE_MS = 90
 /** Reveal regardless after this long — a streaming feed never goes quiet. */
@@ -104,6 +125,16 @@ export type ChatFeedProps = {
    */
   gated: boolean
   /**
+   * True while a turn is being written into this conversation. Streamed
+   * growth is followed with instant pins — the same motion column-reverse
+   * gives the desktop — where an idle feed eases a mounting message in with
+   * a glide. Without the distinction, mirror snapshots landing every 500ms
+   * cleared the glide threshold and the follow ran as a chase: each glide
+   * aimed at where the end used to be, settled 500ms later, re-aimed, and
+   * the newest line lived permanently below the fold while the turn wrote.
+   */
+  streaming?: boolean
+  /**
    * Whether there are rows to lay out yet. The gate may only open on a feed
    * pinned to REAL content, and an empty one lays out all the same — so this
    * is what separates "settled" from "still nothing here", not the measured
@@ -121,7 +152,7 @@ export type ChatFeedProps = {
 }
 
 export const ChatFeed = forwardRef<ChatFeedHandle, ChatFeedProps>(function ChatFeed(
-  { children, gated, hasContent, onReady, topInset = 0 },
+  { children, gated, hasContent, onReady, topInset = 0, streaming = false },
   ref
 ) {
   const scrollRef = useRef<ScrollView>(null)
@@ -130,6 +161,10 @@ export const ChatFeed = forwardRef<ChatFeedHandle, ChatFeedProps>(function ChatF
   const opacity = useSharedValue(gated ? 0 : 1)
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const capTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Read by the scroller closure between native events — a prop would be
+  // frozen at the closure's creation.
+  const streamingRef = useRef(streaming)
+  streamingRef.current = streaming
 
   /**
    * Guarantees 2 and 3, as one closure. Everything in here is plain mutable
@@ -148,6 +183,13 @@ export const ChatFeed = forwardRef<ChatFeedHandle, ChatFeedProps>(function ChatF
     /** An animated follow is in flight, its settle not yet run. */
     let gliding = false
     let glideTimer: ReturnType<typeof setTimeout> | null = null
+    let pinCheckTimer: ReturnType<typeof setTimeout> | null = null
+    /** Where the feed stood when the finger went down — the baseline every
+     *  stick reading of that gesture is judged against. */
+    const gesture = { startOffset: 0, startContent: 0 }
+    /** Until this instant, growth follows with instant pins even when it is
+     *  big enough to glide — the post-reveal window async media settles in. */
+    let hardFollowUntil = 0
     /**
      * The freshest geometry each event reported. Kept so the settle can ask
      * "did we actually land?" without waiting for another event to tell it —
@@ -162,11 +204,31 @@ export const ChatFeed = forwardRef<ChatFeedHandle, ChatFeedProps>(function ChatF
       glideTimer = null
     }
 
-    /** Land now. Instant, exact, and terminal — no settle to wait for. */
+    /**
+     * Land now. Instant — but not on faith: the jump is a request against
+     * geometry the native side may be about to restate (a stale content size,
+     * an MVCP adjustment in the same frame), and a pin that landed short used
+     * to be terminal, because scroll frames outside a drag are deliberately
+     * never re-read. One deferred check re-issues the jump if the feed is
+     * still pinned-in-intent but short-in-fact; a pin that landed asks for
+     * nothing more.
+     */
     const pinNow = (): void => {
       gliding = false
+      // The jump is programmatic motion; scroll frames it produces must not
+      // be read against a released gesture's baseline (an MVCP adjustment
+      // after a dead-stop release could otherwise re-stick a reader who
+      // deliberately scrolled away).
+      coasting = false
       clearGlideTimer()
       scrollRef.current?.scrollToEnd({ animated: false })
+      if (pinCheckTimer) return
+      pinCheckTimer = setTimeout(() => {
+        pinCheckTimer = null
+        if (stuck && !dragging && !gliding && distanceFromEnd() > LANDED_EPSILON) {
+          scrollRef.current?.scrollToEnd({ animated: false })
+        }
+      }, PIN_VERIFY_MS)
     }
 
     function glide(): void {
@@ -204,10 +266,37 @@ export const ChatFeed = forwardRef<ChatFeedHandle, ChatFeedProps>(function ChatF
       metrics.layout = layoutMeasurement.height
     }
 
-    /** The user's own position states their intent; nothing else may. */
+    /**
+     * The user's own position states their intent; nothing else may. Three
+     * refinements over the raw "near the end?" test, each closing a way the
+     * pin was lost or refused wrongly:
+     *
+     *  · A touch that barely traveled says nothing — a tap that stilled the
+     *    moving feed, a graze mid-follow. It keeps whatever intent held; the
+     *    feed's own motion under a still finger is not the user leaving.
+     *  · Motion TOWARD the end is judged against where the end stood when
+     *    the finger went down. During a streaming turn the true end recedes
+     *    by hundreds of points a second — faster than any finger — so the
+     *    raw test refused to re-stick a user deliberately returning to the
+     *    bottom, and the follow could never be re-armed. Reaching what WAS
+     *    the end when they started reaching for it is the intent that counts.
+     *  · Motion away from the end unpins exactly as it always did.
+     */
     const readStick = (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
       const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent
-      stuck = contentSize.height - contentOffset.y - layoutMeasurement.height <= STICK_THRESHOLD
+      const moved = contentOffset.y - gesture.startOffset
+      if (Math.abs(moved) < UNSTICK_MIN_DRAG) return
+      const distance = contentSize.height - contentOffset.y - layoutMeasurement.height
+      if (distance <= STICK_THRESHOLD) {
+        stuck = true
+        return
+      }
+      if (moved > 0) {
+        const distanceAtStart = gesture.startContent - contentOffset.y - layoutMeasurement.height
+        stuck = distanceAtStart <= STICK_THRESHOLD
+        return
+      }
+      stuck = false
     }
 
     return {
@@ -217,14 +306,28 @@ export const ChatFeed = forwardRef<ChatFeedHandle, ChatFeedProps>(function ChatF
         metrics.content = height
         // Mid-glide growth is not skipped, it is deferred: the settle re-aims
         // at the real end. Restarting the animation per event is the stutter
-        // this component used to have.
-        if (!stuck || gliding) return
+        // this component used to have. A finger on the feed owns it outright:
+        // a pin under a live drag both yanks the content and jumps the offset
+        // past the gesture's own baseline, after which every stick reading of
+        // that gesture is judged against motion the user never made.
+        if (!stuck || gliding || dragging) return
         if (!readyRef.current) {
           scrollRef.current?.scrollToEnd({ animated: false })
           return
         }
-        if (grewBy > GLIDE_MIN_DELTA) glide()
-        else pinNow()
+        // Streamed growth is glued, however large: mirror snapshots land
+        // every 500ms and easily clear the glide threshold, and easing each
+        // one turned the follow into a chase that ran a snapshot behind the
+        // whole turn. The same instant gait covers the post-reveal window,
+        // where async media (images finding their real height, charts
+        // settling) finishes sizing under a feed that just opened at its
+        // end. A glide is for the quiet feed's mounting message — the jump
+        // worth easing.
+        if (grewBy > GLIDE_MIN_DELTA && !streamingRef.current && Date.now() >= hardFollowUntil) {
+          glide()
+        } else {
+          pinNow()
+        }
       },
       /**
        * The viewport changed size — the keyboard rose, the composer grew, the
@@ -253,6 +356,10 @@ export const ChatFeed = forwardRef<ChatFeedHandle, ChatFeedProps>(function ChatF
         // running animation. The settle must not fire behind the finger.
         gliding = false
         clearGlideTimer()
+        // The gesture's baseline: every stick reading it produces is judged
+        // as displacement from HERE, against the end as it stood HERE.
+        gesture.startOffset = metrics.offset
+        gesture.startContent = metrics.content
       },
       dragEnded(event: NativeSyntheticEvent<NativeScrollEvent>): void {
         dragging = false
@@ -284,8 +391,15 @@ export const ChatFeed = forwardRef<ChatFeedHandle, ChatFeedProps>(function ChatF
         }
         glide()
       },
+      /** The reveal just ran: follow everything instantly for a beat, so the
+       *  media still sizing itself lands the open on the newest message. */
+      openFollow(): void {
+        hardFollowUntil = Date.now() + OPEN_FOLLOW_MS
+      },
       dispose(): void {
         clearGlideTimer()
+        if (pinCheckTimer) clearTimeout(pinCheckTimer)
+        pinCheckTimer = null
       }
     }
   }, [])
@@ -295,11 +409,15 @@ export const ChatFeed = forwardRef<ChatFeedHandle, ChatFeedProps>(function ChatF
     readyRef.current = true
     setRevealed(true)
     // One last pin on the frame the feed becomes visible: anything that
-    // settled during the reveal must not leave it a few points short.
+    // settled during the reveal must not leave it a few points short. And a
+    // follow window behind it: the cap below reveals heavy conversations
+    // while their media is still sizing, so the growth that follows is the
+    // open still landing, not a message arriving — glued, not glided.
     scrollRef.current?.scrollToEnd({ animated: false })
+    scroller.openFollow()
     opacity.value = withTiming(1, { duration: FEED_FADE_MS })
     onReady()
-  }, [onReady, opacity])
+  }, [onReady, opacity, scroller])
 
   useEffect(
     () => () => {

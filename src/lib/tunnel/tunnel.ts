@@ -1035,6 +1035,17 @@ export class Tunnel {
   }
 
   /**
+   * Bytes handed to the socket but not yet flushed out of this process — the
+   * local hop only. The relay forwards frames fire-and-forget, so whatever it
+   * is holding for a slow peer is invisible from here; a caller pacing its
+   * own sends must treat zero as "my uplink is clear", never "the peer has
+   * caught up". Zero whenever no socket is up.
+   */
+  get outboundBufferedBytes(): number {
+    return this.ws?.bufferedAmount ?? 0
+  }
+
+  /**
    * Is this tunnel still working on staying up?
    *
    * True while connected, while a retry is queued, and while a dial or
