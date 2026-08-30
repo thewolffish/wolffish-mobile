@@ -29,13 +29,53 @@ export const ModelChip = memo(function ModelChip({
   )
 })
 
+/**
+ * The model's thinking behind one stretch of a reply — collapsed by default,
+ * plain text when open. Renders the in-place `reasoning` blocks at their true
+ * position in the stream, and the legacy turn_end copy on conversations
+ * persisted before in-place reasoning existed (TurnEndCard below).
+ */
+export const ReasoningCard = memo(function ReasoningCard({
+  content
+}: {
+  content: string
+}): React.JSX.Element {
+  const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
+  const Chevron = expanded
+    ? ArrowDown01Icon
+    : I18nManager.isRTL
+      ? ArrowLeft01Icon
+      : ArrowRight01Icon
+
+  return (
+    <View className="bg-surface border-border w-[85%] flex-col gap-2 self-start rounded-xl border px-3 py-2.5">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        onPress={() => setExpanded((value) => !value)}
+        className="flex-row items-center gap-2"
+      >
+        <Text numberOfLines={1} className="text-fg font-sans-medium flex-1 text-left text-xs">
+          {t('chat.reasoning')}
+        </Text>
+        <Chevron size={14} className="text-muted" />
+      </Pressable>
+      {expanded && (
+        <Text selectable className="text-muted text-left font-sans text-xs leading-5">
+          {content}
+        </Text>
+      )}
+    </View>
+  )
+})
+
 export const TurnEndCard = memo(function TurnEndCard({
   block
 }: {
   block: Extract<RenderBlock, { type: 'turnEnd' }>
 }): React.JSX.Element | null {
   const { t } = useTranslation()
-  const [showReasoning, setShowReasoning] = useState(false)
   const reasoning = block.reasoningContent?.trim()
   const failed = block.stopReason === 'error' || block.stopReason === 'no_provider_available'
   // Provider failures render as the desktop's error cards wherever they
@@ -53,11 +93,6 @@ export const TurnEndCard = memo(function TurnEndCard({
         : null
 
   if (!label && !reasoning && !failures) return null
-  const Chevron = showReasoning
-    ? ArrowDown01Icon
-    : I18nManager.isRTL
-      ? ArrowLeft01Icon
-      : ArrowRight01Icon
 
   return (
     <View className="flex-col gap-1.5">
@@ -79,26 +114,7 @@ export const TurnEndCard = memo(function TurnEndCard({
           </Text>
         </View>
       )}
-      {reasoning ? (
-        <View className="bg-surface border-border w-[85%] flex-col gap-2 self-start rounded-xl border px-3 py-2.5">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: showReasoning }}
-            onPress={() => setShowReasoning((value) => !value)}
-            className="flex-row items-center gap-2"
-          >
-            <Text numberOfLines={1} className="text-fg font-sans-medium flex-1 text-left text-xs">
-              {t('chat.reasoning')}
-            </Text>
-            <Chevron size={14} className="text-muted" />
-          </Pressable>
-          {showReasoning && (
-            <Text selectable className="text-muted text-left font-sans text-xs leading-5">
-              {reasoning}
-            </Text>
-          )}
-        </View>
-      ) : null}
+      {reasoning ? <ReasoningCard content={reasoning} /> : null}
     </View>
   )
 })

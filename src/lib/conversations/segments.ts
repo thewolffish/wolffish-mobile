@@ -49,6 +49,8 @@ export type DeliveredFileKind = 'image' | 'document' | 'audio' | 'video' | 'file
 
 export type RenderBlock =
   | { type: 'text'; key: string; markdown: string }
+  /** A run of the model's thinking, at its true position in the stream. */
+  | { type: 'reasoning'; key: string; content: string }
   | { type: 'media'; key: string; relPath: string }
   | {
       type: 'tool'
@@ -213,9 +215,21 @@ export function buildRenderBlocks(message: ConversationMessage): RenderBlock[] {
   const taskIndexById = new Map<string, number>()
   let textBuffer = ''
   let textKey = ''
+  let reasoningBuffer = ''
+  let reasoningKey = ''
   let compactionStartedIndex = -1
+  // In-place reasoning supersedes the legacy turn_end copy: the desktop
+  // dual-publishes the final iteration's thinking on turn_end for surfaces
+  // that predate the 'reasoning' kind, so rendering both would show it twice.
+  const hasReasoningSegments = segments.some(
+    (segment) =>
+      segment &&
+      typeof segment === 'object' &&
+      segment.kind === 'reasoning' &&
+      !('worker' in segment && segment.worker)
+  )
 
-  const flushText = (): void => {
+  const flushTextOnly = (): void => {
     const trimmed = textBuffer.trim()
     textBuffer = ''
     if (!trimmed) return
@@ -232,14 +246,41 @@ export function buildRenderBlocks(message: ConversationMessage): RenderBlock[] {
     blocks.push({ type: 'text', key: textKey, markdown: trimmed })
   }
 
+  // A run of streamed thinking flushes as one collapsed card at its true
+  // position — above the prose/tool activity that thinking produced. At most
+  // one of textBuffer/reasoningBuffer is ever non-empty (each case flushes
+  // the other before accumulating), so the combined flushText below — text
+  // first — can never reorder them.
+  const flushReasoning = (): void => {
+    const trimmed = reasoningBuffer.trim()
+    reasoningBuffer = ''
+    if (!trimmed) return
+    blocks.push({ type: 'reasoning', key: reasoningKey, content: trimmed })
+  }
+
+  const flushText = (): void => {
+    flushTextOnly()
+    flushReasoning()
+  }
+
   for (const segment of segments) {
     if (!segment || typeof segment !== 'object' || !('kind' in segment)) continue
     if (!isRenderableSegment(segment)) continue
 
     switch (segment.kind) {
       case 'text':
+        // A pending thinking run preceded this prose — its card goes above.
+        flushReasoning()
         if (!textBuffer) textKey = `t:${segment.segmentId}`
         textBuffer += segment.delta
+        break
+      case 'reasoning':
+        // Prose already buffered belongs to the previous iteration — it goes
+        // above this thinking run. Text only: draining the reasoning buffer
+        // here would split one streamed run into a card per delta.
+        flushTextOnly()
+        if (!reasoningBuffer) reasoningKey = `rs:${segment.segmentId}`
+        reasoningBuffer += segment.delta
         break
       case 'separator':
         flushText()
@@ -353,25 +394,31 @@ export function buildRenderBlocks(message: ConversationMessage): RenderBlock[] {
           tokensSaved: segment.tokensSaved
         })
         break
-      case 'turn_end':
+      case 'turn_end': {
         flushText()
+        // LEGACY: conversations persisted before in-place reasoning segments
+        // carry the final iteration's thinking only here. When the message
+        // has reasoning segments, this is a duplicate of the last one — the
+        // in-place card already rendered it.
+        const reasoningContent = hasReasoningSegments ? undefined : segment.reasoningContent
         // providerErrors emit even on a clean stop: a turn that retried
         // through a provider failure and recovered still shows the failure
         // record mid-transcript, exactly as the desktop renders it.
         if (
           segment.stopReason !== 'end_turn' ||
           segment.providerErrors?.length ||
-          (segment.reasoningContent && segment.reasoningContent.trim())
+          (reasoningContent && reasoningContent.trim())
         ) {
           blocks.push({
             type: 'turnEnd',
             key: `e:${segment.segmentId}`,
             stopReason: segment.stopReason,
-            reasoningContent: segment.reasoningContent,
+            reasoningContent,
             providerErrors: segment.providerErrors
           })
         }
         break
+      }
       default:
         // Unknown segment kind from a newer desktop — skip, never crash.
         break
@@ -382,18 +429,20 @@ export function buildRenderBlocks(message: ConversationMessage): RenderBlock[] {
 }
 
 /**
- * Merge consecutive text segments into one per run — the desktop does this at
- * persist time (a raw stream was 28k segments / 4 MB). Used by the demo
- * importer and by the demo streaming persister.
+ * Merge consecutive text and reasoning segments into one per run (same kind
+ * only, never across kinds) — the desktop does this at persist time (a raw
+ * stream was 28k segments / 4 MB). Used by the demo importer, the demo
+ * streaming persister, and the sync ingest path.
  */
 export function coalesceTextSegments(segments: Segment[]): Segment[] {
   const out: Segment[] = []
   for (const segment of segments) {
     const last = out[out.length - 1]
     if (
-      segment.kind === 'text' &&
+      (segment.kind === 'text' || segment.kind === 'reasoning') &&
       last &&
-      last.kind === 'text' &&
+      (last.kind === 'text' || last.kind === 'reasoning') &&
+      last.kind === segment.kind &&
       Boolean(last.worker) === Boolean(segment.worker) &&
       last.worker?.id === segment.worker?.id
     ) {

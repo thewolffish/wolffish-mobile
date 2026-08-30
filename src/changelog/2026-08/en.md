@@ -1,4 +1,10 @@
-## v1.0.47 — 2026-08-30 `Latest`
+## v1.0.48 — 2026-08-30 `Latest`
+
+### The Whole Train of Thought, In Its Place
+
+A model that thinks before it answers used to leave only a trace here: one **Reasoning** card at the very end of a reply, carrying whatever it thought before its final words — everything it weighed earlier, before each search and each step, never appeared at all. Every stretch of thinking now lands as its **own collapsed card, exactly where it happened**, above the words and actions that thinking produced, so a long reply reads the way it actually unfolded: think, act, think again. Cards stay folded until you tap them, copying a message still copies **only the reply itself**, and conversations saved before this change keep the single card they always had. The full effect arrives together with your desktop app's own next update — the phone is ready for it either way.
+
+## v1.0.47 — 2026-08-30
 
 ### Ogg Voice Notes Now Play On the iPhone
 

@@ -592,3 +592,87 @@ describe('failedTurnEnd', () => {
     expect(failedTurnEnd({ role: 'assistant', content: '', timestamp: 1 })).toBeNull()
   })
 })
+
+describe('in-place reasoning', () => {
+  // The desktop streams thinking as kind:'reasoning' segments (2026-08-30)
+  // and dual-publishes the FINAL iteration's thinking on turn_end for
+  // surfaces that predate the kind — so the feed must render the in-place
+  // runs at their true positions and skip the turn_end duplicate.
+  const reasoningSeg = (delta: string, id: string): Segment => ({
+    kind: 'reasoning',
+    turnId: 't1',
+    segmentId: id,
+    delta
+  })
+
+  it('renders each thinking run in place, above the prose/tools it produced', () => {
+    const blocks = buildRenderBlocks(
+      message([
+        reasoningSeg('plan the ', 's1'),
+        reasoningSeg('first step', 's2'),
+        textSeg('hello', 's3'),
+        {
+          kind: 'tool_call',
+          turnId: 't1',
+          segmentId: 's4',
+          toolCallId: 'c1',
+          name: 'shell',
+          args: {}
+        },
+        reasoningSeg('wrap up', 's5'),
+        {
+          kind: 'turn_end',
+          turnId: 't1',
+          segmentId: 's6',
+          stopReason: 'end_turn',
+          iterationCount: 2,
+          reasoningContent: 'wrap up'
+        }
+      ])
+    )
+    expect(blocks.map((b) => b.type)).toEqual(['reasoning', 'text', 'tool', 'reasoning'])
+    // Adjacent deltas fold into one run; the run keys off its first segment.
+    expect(blocks[0]).toMatchObject({ content: 'plan the first step', key: 'rs:s1' })
+    // The turn_end copy is the last run's duplicate — no turnEnd block at all
+    // on a clean stop once its reasoning is suppressed.
+    expect(blocks.filter((b) => b.type === 'turnEnd')).toEqual([])
+  })
+
+  it('still renders the turn_end reasoning on legacy messages without reasoning segments', () => {
+    const blocks = buildRenderBlocks(
+      message([
+        textSeg('hello', 's1'),
+        {
+          kind: 'turn_end',
+          turnId: 't1',
+          segmentId: 's2',
+          stopReason: 'end_turn',
+          iterationCount: 1,
+          reasoningContent: 'because'
+        }
+      ])
+    )
+    expect(blocks.map((b) => b.type)).toEqual(['text', 'turnEnd'])
+    expect(blocks[1]).toMatchObject({ reasoningContent: 'because' })
+  })
+
+  it('never leaks thinking into the copy payload', () => {
+    const copied = messageText(message([reasoningSeg('secret plan', 's1'), textSeg('hi', 's2')]))
+    expect(copied).toBe('hi')
+  })
+
+  it('coalesces reasoning runs but never across kinds', () => {
+    const folded = coalesceTextSegments([
+      reasoningSeg('a', 's1'),
+      reasoningSeg('b', 's2'),
+      textSeg('c', 's3'),
+      textSeg('d', 's4'),
+      reasoningSeg('e', 's5')
+    ])
+    expect(
+      folded.map((s) =>
+        s.kind === 'text' || s.kind === 'reasoning' ? `${s.kind}:${s.delta}` : s.kind
+      )
+    ).toEqual(['reasoning:ab', 'text:cd', 'reasoning:e'])
+  })
+})

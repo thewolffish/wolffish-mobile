@@ -110,6 +110,14 @@ export type NoProviderAvailableInfo = {
 
 export type Segment =
   | { kind: 'text'; turnId: string; segmentId: string; delta: string; worker?: SegmentWorker }
+  /**
+   * A run of the model's thinking, streamed in place (desktop broca.ts,
+   * 2026-08). Dual-published: the final iteration's thinking ALSO rides
+   * `turn_end.reasoningContent` for surfaces that predate this kind — when a
+   * message carries any reasoning segments, the turn_end copy is a duplicate
+   * of the last one and must not render.
+   */
+  | { kind: 'reasoning'; turnId: string; segmentId: string; delta: string; worker?: SegmentWorker }
   | {
       kind: 'tool_call'
       turnId: string

@@ -30,6 +30,7 @@ import {
   CompactionCard,
   ModelChip,
   PathCard,
+  ReasoningCard,
   TurnEndCard,
   WorkflowCard
 } from '@/components/chat/InlineCards'
@@ -429,6 +430,11 @@ function renderBlock(
       return <TaskCard snapshot={block.snapshot} conversationId={conversationId} />
     case 'compaction':
       return <CompactionCard block={block} />
+    case 'reasoning':
+      // In-place thinking — always visible like the turn-end reasoning it
+      // supersedes, not verbose-gated: it is the reply's provenance, not
+      // tool mechanics.
+      return <ReasoningCard content={block.content} />
     case 'turnEnd':
       return <TurnEndCard block={block} />
     default:
