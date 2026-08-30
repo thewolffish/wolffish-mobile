@@ -291,10 +291,15 @@ export function classifyFile(pathOrName: string, declared?: DeclaredFileKind): F
  * play it beats a transport stuck at 0:00. Deliberately conservative: only
  * formats known to be unsupported are listed, and video has a second, runtime
  * guard (the player's own error status) for anything missed here.
+ *
+ * Ogg audio is deliberately ABSENT from the iOS audio set: iOS 18.4 added
+ * native Ogg (Vorbis + Opus) decode to CoreMedia/AVFoundation, so it no longer
+ * belongs here. `isPlayable` gates it on the OS version instead, because the
+ * app still runs on iOS 16.4 where a genuine dead transport exists.
  */
 const UNPLAYABLE = {
   ios: {
-    audio: new Set(['ogg', 'oga', 'opus', 'webm', 'wma']),
+    audio: new Set(['webm', 'wma']),
     video: new Set(['webm', 'mkv', 'avi', 'wmv', 'flv', 'ogv'])
   },
   android: {
@@ -303,10 +308,39 @@ const UNPLAYABLE = {
   }
 } as const
 
-export function isPlayable(kind: 'audio' | 'video', ext: string, os: string): boolean {
+export function isPlayable(
+  kind: 'audio' | 'video',
+  ext: string,
+  os: string,
+  osVersion?: string | number
+): boolean {
+  // Ogg audio (Vorbis + Opus) is the one format whose iOS support arrived in a
+  // point release: iOS 18.4 added native Ogg container decode to
+  // CoreMedia/AVFoundation — the stack expo-audio's AVPlayer wraps — so it now
+  // plays inline exactly like mp3. The app still targets iOS 16.4, so older
+  // devices keep the file-card fallback (a transport stuck at 0:00 there).
+  if (os === 'ios' && kind === 'audio' && (ext === 'ogg' || ext === 'oga' || ext === 'opus')) {
+    return iosVersionAtLeast(osVersion, 18, 4)
+  }
+
   const table = os === 'ios' ? UNPLAYABLE.ios : os === 'android' ? UNPLAYABLE.android : null
   if (!table) return true
   return !table[kind].has(ext)
+}
+
+/** iOS `Platform.Version` is a dotted string ("18.4.1"); Android passes a number. */
+function iosVersionAtLeast(
+  version: string | number | undefined,
+  minMajor: number,
+  minMinor: number
+): boolean {
+  if (version == null) return false
+  const parts = String(version).split('.')
+  const major = Number.parseInt(parts[0] ?? '', 10)
+  const minor = Number.parseInt(parts[1] ?? '', 10)
+  const mj = Number.isNaN(major) ? 0 : major
+  const mn = Number.isNaN(minor) ? 0 : minor
+  return mj > minMajor || (mj === minMajor && mn >= minMinor)
 }
 
 /** Text-ish kinds whose bodies are read into the card. */

@@ -78,7 +78,7 @@ export function FileBlock({
       )
     case 'video':
       // A container this device has no decoder for never becomes a player.
-      if (!isPlayable('video', classification.ext, Platform.OS)) return fallback
+      if (!isPlayable('video', classification.ext, Platform.OS, Platform.Version)) return fallback
       return (
         <VideoBlock
           relPath={relPath}
@@ -89,7 +89,7 @@ export function FileBlock({
         />
       )
     case 'audio':
-      if (!isPlayable('audio', classification.ext, Platform.OS)) return fallback
+      if (!isPlayable('audio', classification.ext, Platform.OS, Platform.Version)) return fallback
       return (
         <AudioBlock
           relPath={relPath}

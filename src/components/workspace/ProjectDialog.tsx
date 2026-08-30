@@ -361,12 +361,20 @@ function ProjectDialogBody({
       footer={
         // The two project-mode actions sit at opposite ends of one row — leaving
         // the project at the start, starting another conversation in it at the
-        // end — so the destructive one is never under the thumb reaching for the
-        // constructive one. `justify-between` rather than a spacer View, because
-        // with only one of them present that spacer would push it off-centre.
+        // end. `justify-between` rather than a spacer View, because with only
+        // one of them present that spacer would push it off-centre.
         <View className="flex-row items-center justify-between gap-2">
           {onExitProject && (
-            <Button variant="danger" size="sm" disabled={busy} onPress={onExitProject}>
+            // Muted, not destructive-red: closing a project is a benign mode
+            // switch, so it keeps the ghost variant's neutral styling — matching
+            // the desktop's own close-project button.
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              onPress={onExitProject}
+              textClassName="text-muted"
+            >
               {t('projects.exit')}
             </Button>
           )}

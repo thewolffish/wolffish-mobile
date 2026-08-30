@@ -1,4 +1,14 @@
-## v1.0.46 — 2026-08-27 `Latest`
+## v1.0.47 — 2026-08-30 `Latest`
+
+### Ogg Voice Notes Now Play On the iPhone
+
+A voice note in the **Ogg format** — the open format most recorders produce — used to stop at a file card on the iPhone, because the system had no decoder for it and there was nothing to play. Recent versions of iOS changed that: the iPhone now **decodes Ogg natively**, the same way it always has mp3. The app follows suit — on a current iPhone, an Ogg voice note **opens in the same inline player** as every other voice note, with nothing to download first. Older iPhones keep the file card, which is exactly what they need, and Android and the desktop were already playing these files all along.
+
+### Leaving a Project Stops Looking Like a Warning
+
+The button that closes a project no longer wears the **destructive red** reserved for deleting things. Closing a project is a harmless switch of mode, so the button now keeps a calm, muted look — the same one the desktop app gives it.
+
+## v1.0.46 — 2026-08-27
 
 ### Catching Up No Longer Crawls
 

@@ -222,18 +222,39 @@ describe('isPlayable', () => {
   })
 
   it('rejects the containers iOS has no decoder for', () => {
-    // Verified on a device: an .ogg voice reply sits at 0:00 forever, so it
-    // renders as an openable file card instead of a dead transport.
-    expect(isPlayable('audio', 'ogg', 'ios')).toBe(false)
-    expect(isPlayable('audio', 'opus', 'ios')).toBe(false)
-    expect(isPlayable('audio', 'webm', 'ios')).toBe(false)
-    expect(isPlayable('video', 'webm', 'ios')).toBe(false)
-    expect(isPlayable('video', 'mkv', 'ios')).toBe(false)
+    // WebM (audio + video) and Matroska (mkv) are still undecodable by
+    // CoreMedia/AVFoundation on any iOS version, so they stay file cards.
+    expect(isPlayable('audio', 'webm', 'ios', '18.4')).toBe(false)
+    expect(isPlayable('audio', 'wma', 'ios', '18.4')).toBe(false)
+    expect(isPlayable('video', 'webm', 'ios', '18.4')).toBe(false)
+    expect(isPlayable('video', 'mkv', 'ios', '18.4')).toBe(false)
+  })
+
+  it('plays Ogg audio inline on iOS 18.4+ (native CoreMedia/AVFoundation decode)', () => {
+    // iOS 18.4 added Ogg container decode for Opus + Vorbis at the system
+    // media level — the same stack expo-audio's AVPlayer wraps.
+    for (const ext of ['ogg', 'oga', 'opus']) {
+      expect(isPlayable('audio', ext, 'ios', '18.4')).toBe(true)
+      expect(isPlayable('audio', ext, 'ios', '18.4.1')).toBe(true)
+      expect(isPlayable('audio', ext, 'ios', '19.0')).toBe(true)
+    }
+  })
+
+  it('keeps the file-card fallback for Ogg on iOS before 18.4', () => {
+    // Pre-18.4 devices genuinely cannot decode the Ogg container.
+    for (const ext of ['ogg', 'oga', 'opus']) {
+      expect(isPlayable('audio', ext, 'ios', '16.4')).toBe(false)
+      expect(isPlayable('audio', ext, 'ios', '17.5')).toBe(false)
+      expect(isPlayable('audio', ext, 'ios', '18.3')).toBe(false)
+      // No version reported → conservative: treat as unplayable.
+      expect(isPlayable('audio', ext, 'ios')).toBe(false)
+    }
   })
 
   it('lets Android play what its decoders support but iOS does not', () => {
     expect(isPlayable('audio', 'ogg', 'android')).toBe(true)
     expect(isPlayable('audio', 'opus', 'android')).toBe(true)
+    expect(isPlayable('audio', 'webm', 'android')).toBe(true)
     expect(isPlayable('video', 'webm', 'android')).toBe(true)
     expect(isPlayable('video', 'mkv', 'android')).toBe(true)
   })
