@@ -1,4 +1,10 @@
-## v1.0.48 — 2026-08-30 `Latest`
+## v1.0.49 — 2026-08-31 `Latest`
+
+### Downloads Pick Up Where They Left Off
+
+A photo or GIF arriving over a slow link could start over from nothing, again and again: one stalled stretch failed the whole transfer, and the next attempt re-paid every byte the last one had already landed — visible as a progress bar that kept resetting on a connection that was genuinely working. Both halves are fixed. A transfer now **waits out a slow stretch** instead of giving up at the first long pause, and when an attempt does break, the next one **continues from the exact byte it stopped at**. What arrived stays arrived — a download only moves forward. A file that truly changed on your desktop between attempts still starts over from the beginning, because stitching two versions of one file together is never the right answer.
+
+## v1.0.48 — 2026-08-30
 
 ### The Whole Train of Thought, In Its Place
 
