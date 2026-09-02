@@ -1,4 +1,4 @@
-## v1.0.49 — 2026-08-31 `Latest`
+## v1.0.49 — 2026-08-31
 
 ### Downloads Pick Up Where They Left Off
 

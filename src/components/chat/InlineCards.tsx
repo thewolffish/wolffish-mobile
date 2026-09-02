@@ -1,11 +1,21 @@
 import { ProviderErrorCards } from '@/components/chat/ProviderErrorCard'
-import { ArrowDown01Icon, ArrowRight01Icon, ArrowLeft01Icon } from '@/components/core/icons'
+import {
+  ArrowDown01Icon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  BrainIcon,
+  Copy01Icon,
+  Tick02Icon
+} from '@/components/core/icons'
+import { NEEDS_SELECT_SHEET, openSelectText } from '@/components/chat/SelectTextSheet'
 import type { RenderBlock } from '@/lib/conversations/segments'
 import type { WorkflowSnapshot } from '@/lib/conversations/types'
 import { cn } from '@/lib/utils/cn'
-import { memo, useState } from 'react'
+import * as Clipboard from 'expo-clipboard'
+import { rem } from 'nativewind'
+import { memo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { I18nManager, Pressable, Text, View } from 'react-native'
+import { I18nManager, Pressable, ScrollView, Text, View } from 'react-native'
 
 /**
  * The small inline chat cards: model chip, turn-end footer, workflow summary,
@@ -29,11 +39,40 @@ export const ModelChip = memo(function ModelChip({
   )
 })
 
+const HEADING = /^(?:\*\*(.+?)\*\*:?|__(.+?)__:?|#{1,6}\s+(.+?))$/
+const TITLE_MAX = 80
+
 /**
- * The model's thinking behind one stretch of a reply — collapsed by default,
- * plain text when open. Renders the in-place `reasoning` blocks at their true
- * position in the stream, and the legacy turn_end copy on conversations
- * persisted before in-place reasoning existed (TurnEndCard below).
+ * Lift a leading heading line out of the reasoning text to label the card.
+ * Nothing structured rides the segment (providers stream thinking as plain
+ * text), but summarised reasoning opens with a bold or `#` heading — the
+ * closest thing to a title. A lone heading with no body underneath stays in
+ * the body; the card falls back to the generic label.
+ */
+function splitReasoningTitle(content: string): { title: string | null; body: string } {
+  const text = content.trim()
+  const [first = '', ...rest] = text.split('\n')
+  const match = first.trim().match(HEADING)
+  const title = (match?.[1] ?? match?.[2] ?? match?.[3])?.trim()
+  const body = rest.join('\n').trim()
+  if (!title || title.length > TITLE_MAX || body.length === 0) return { title: null, body: text }
+  return { title, body }
+}
+
+/**
+ * The block's cap: eight lines of leading-5 (1.25rem) plus its p-2.5 (0.625rem)
+ * padding and 1pt borders, in NativeWind's rem so the count survives a rem
+ * change. Shorter reasoning sizes the block to its content.
+ */
+const reasoningBlockMaxHeight = (): number => rem.get() * (8 * 1.25 + 2 * 0.625) + 2
+
+/**
+ * The model's thinking behind one stretch of a reply — a scroll block styled
+ * like the tool card's output block: sized by its content up to eight lines,
+ * scrollable past that, with a copy control in the header. Renders the in-place
+ * `reasoning` blocks at their true position in the stream, and the legacy
+ * turn_end copy on conversations persisted before in-place reasoning existed
+ * (TurnEndCard below). Mirrors the desktop's ReasoningCard.
  */
 export const ReasoningCard = memo(function ReasoningCard({
   content
@@ -41,31 +80,66 @@ export const ReasoningCard = memo(function ReasoningCard({
   content: string
 }): React.JSX.Element {
   const { t } = useTranslation()
-  const [expanded, setExpanded] = useState(false)
-  const Chevron = expanded
-    ? ArrowDown01Icon
-    : I18nManager.isRTL
-      ? ArrowLeft01Icon
-      : ArrowRight01Icon
+  const { title, body } = splitReasoningTitle(content)
+  const [copied, setCopied] = useState(false)
+  const CopyIcon = copied ? Tick02Icon : Copy01Icon
+  const scrollRef = useRef<ScrollView>(null)
+  // A streaming run follows its tail: while the reader has not scrolled up,
+  // every delta keeps the newest line in view. Scrolling up releases the pin;
+  // scrolling back to the bottom re-arms it. The first content size is the
+  // mount itself and is skipped, so a reloaded conversation opens every card
+  // on its head, in reading order.
+  const followRef = useRef(true)
+  const laidOutRef = useRef(false)
 
   return (
     <View className="bg-surface border-border w-[85%] flex-col gap-2 self-start rounded-xl border px-3 py-2.5">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-        onPress={() => setExpanded((value) => !value)}
-        className="flex-row items-center gap-2"
-      >
+      <View className="flex-row items-center gap-2">
+        <BrainIcon size={14} className="text-muted" />
         <Text numberOfLines={1} className="text-fg font-sans-medium flex-1 text-left text-xs">
-          {t('chat.reasoning')}
+          {title ?? t('chat.reasoning')}
         </Text>
-        <Chevron size={14} className="text-muted" />
-      </Pressable>
-      {expanded && (
-        <Text selectable className="text-muted text-left font-sans text-xs leading-5">
-          {content}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('chat.copy')}
+          hitSlop={8}
+          onPress={() => {
+            void Clipboard.setStringAsync(content.trim()).then(() => {
+              setCopied(true)
+              setTimeout(() => setCopied(false), 1500)
+            })
+          }}
+          className="border-border bg-surface rounded-md border p-1"
+        >
+          <CopyIcon size={14} className={copied ? 'text-emerald-600' : 'text-muted'} />
+        </Pressable>
+      </View>
+      <ScrollView
+        ref={scrollRef}
+        nestedScrollEnabled
+        scrollEventThrottle={16}
+        style={{ maxHeight: reasoningBlockMaxHeight() }}
+        className="bg-bg border-border rounded-md border"
+        onScroll={({ nativeEvent: { contentOffset, contentSize, layoutMeasurement } }) => {
+          followRef.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 2
+        }}
+        onContentSizeChange={() => {
+          if (!laidOutRef.current) {
+            laidOutRef.current = true
+            return
+          }
+          if (followRef.current) scrollRef.current?.scrollToEnd({ animated: false })
+        }}
+      >
+        <Text
+          selectable={!NEEDS_SELECT_SHEET}
+          onLongPress={NEEDS_SELECT_SHEET ? () => openSelectText(content) : undefined}
+          suppressHighlighting
+          className="text-muted p-2.5 text-left font-sans text-xs leading-5"
+        >
+          {body}
         </Text>
-      )}
+      </ScrollView>
     </View>
   )
 })
