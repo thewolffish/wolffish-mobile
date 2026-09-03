@@ -380,7 +380,7 @@ export function Composer({
                     }
                     hitSlop={6}
                     onPress={() => (activeProject ? setProjectOpen(true) : setMenuOpen(true))}
-                    className="h-7 w-7 items-center justify-center rounded-md active:bg-border/40"
+                    className="h-7 w-7 items-center justify-center rounded-md active:bg-border-soft"
                   >
                     {activeProject ? (
                       <Text className="text-base leading-5">
@@ -392,13 +392,18 @@ export function Composer({
                   </Pressable>
                   {/* The active model, worn as the desktop model chip — a second
                     handle on the controls the button beside it opens, so the
-                    model about to answer is always one glance away. */}
+                    model about to answer is always one glance away.
+                    Precomputed tones, not `bg-primary/10 ring-primary/30`: an
+                    alpha modifier on a var() colour compiles to nothing at all
+                    (see global.css), so the desktop's tint has to be worn as
+                    the primary-soft/primary-line pair or the chip renders as
+                    bare coloured text. */}
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={activeModelName}
                     hitSlop={6}
                     onPress={() => (activeProject ? setProjectOpen(true) : setMenuOpen(true))}
-                    className="bg-primary/10 h-7 shrink flex-row items-center gap-1.5 rounded-lg px-2 active:bg-primary/20"
+                    className="bg-primary-soft border-primary-line active:bg-primary-line h-7 shrink flex-row items-center gap-1.5 rounded-lg border px-2"
                   >
                     {localActive ? (
                       <OllamaLogo size={13} className="text-primary" />
@@ -407,7 +412,7 @@ export function Composer({
                     )}
                     <Text
                       numberOfLines={1}
-                      className="text-primary font-sans-medium max-w-[130px] text-[11px]"
+                      className="text-primary font-sans-medium max-w-[162px] shrink text-[11px]"
                       style={{ writingDirection: 'ltr' }}
                     >
                       {activeModelName}
@@ -425,7 +430,7 @@ export function Composer({
                     accessibilityLabel={t('chat.editor.title')}
                     hitSlop={6}
                     onPress={() => setEditorOpen(true)}
-                    className="h-7 w-7 items-center justify-center rounded-md active:bg-border/40"
+                    className="h-7 w-7 items-center justify-center rounded-md active:bg-border-soft"
                   >
                     <ArrowExpandIcon size={13} className="text-muted" />
                   </Pressable>
@@ -443,7 +448,7 @@ export function Composer({
                     accessibilityLabel={t('chat.attach.title')}
                     hitSlop={6}
                     onPress={() => setAttachOpen(true)}
-                    className="h-7 w-7 items-center justify-center rounded-md active:bg-border/40"
+                    className="h-7 w-7 items-center justify-center rounded-md active:bg-border-soft"
                   >
                     <Image02Icon size={16} className="text-muted" />
                   </Pressable>
@@ -464,7 +469,7 @@ export function Composer({
                       }
                       hitSlop={6}
                       onPress={() => void startRecording()}
-                      className="h-7 w-7 items-center justify-center rounded-md active:bg-border/40"
+                      className="h-7 w-7 items-center justify-center rounded-md active:bg-border-soft"
                     >
                       <Mic01Icon size={16} className="text-muted" />
                     </Pressable>

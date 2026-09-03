@@ -1,0 +1,5 @@
+Pressing anything in the app now shows you that it registered. Settings rows, icon buttons, project cards, the chips in the model picker — the highlight that should appear under your finger was never being drawn, so close to forty controls looked completely inert when you tapped them. They all respond now.
+
+Several small surfaces had been drawing with no background at all, leaving only their text behind: the status pill on a task card, a tool's status chip, the file-type badge on an attachment, the download progress track, the line numbers and table headers in the file viewer, and the bars in the context meter. Each one carries its proper tint again, in both light and dark.
+
+The name of the model about to answer now sits in the composer as a real chip rather than bare coloured text, with about a quarter more room before a long model name is cut short.

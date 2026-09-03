@@ -1,0 +1,3 @@
+• Taps show feedback again: close to forty buttons, rows and chips across the app were drawing no press highlight at all.
+• Chips and bars that had no background — task status, tool status, attachment file type, download progress, file viewer gutters, context meter — carry their tint again.
+• The composer's model name is a proper chip, with about a quarter more room before a long name is cut short.

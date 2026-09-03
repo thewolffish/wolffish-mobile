@@ -413,7 +413,7 @@ function ProjectDialogBody({
               disabled={readOnly}
               onPress={() => setEmojiOpen(true)}
               className={cn(
-                'bg-bg border-border h-10 w-10 shrink-0 items-center justify-center rounded-lg border active:bg-border/40',
+                'bg-bg border-border h-10 w-10 shrink-0 items-center justify-center rounded-lg border active:bg-border-soft',
                 readOnly && 'opacity-50'
               )}
             >
@@ -543,7 +543,7 @@ function ProjectDialogBody({
                       onPress={() => persistFiles(files.filter((f) => f.path !== file.path))}
                       className={cn(
                         'h-7 w-7 shrink-0 items-center justify-center rounded-md',
-                        locked ? 'opacity-40' : 'active:bg-border/40'
+                        locked ? 'opacity-40' : 'active:bg-border-soft'
                       )}
                     >
                       <Delete02Icon size={13} className="text-muted" />
@@ -610,7 +610,7 @@ function ProjectDialogBody({
                     onPress={() => removeFolder(dir)}
                     className={cn(
                       'h-7 w-7 shrink-0 items-center justify-center rounded-md',
-                      readOnly ? 'opacity-40' : 'active:bg-border/40'
+                      readOnly ? 'opacity-40' : 'active:bg-border-soft'
                     )}
                   >
                     <Delete02Icon size={13} className="text-muted" />

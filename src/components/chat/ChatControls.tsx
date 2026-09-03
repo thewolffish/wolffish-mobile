@@ -135,7 +135,7 @@ function ChipRow<T extends string>({
             onPress={() => onChange(option.value)}
             className={cn(
               'min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg border px-1.5 py-2.5',
-              active ? 'bg-primary border-primary' : 'bg-bg border-border active:bg-border/40'
+              active ? 'bg-primary border-primary' : 'bg-bg border-border active:bg-border-soft'
             )}
           >
             <Icon size={16} className={active ? 'text-primary-fg' : 'text-muted'} />
@@ -310,7 +310,7 @@ function StatRow({
         </Text>
       </View>
       {fraction !== undefined ? (
-        <View className="bg-border/40 h-0.5 w-full overflow-hidden rounded-full">
+        <View className="bg-surface-soft h-0.5 w-full overflow-hidden rounded-full">
           <View
             className="h-full rounded-full"
             style={{
@@ -441,7 +441,7 @@ export function ContextMeterCard({
               })}
             />
             <View className="relative">
-              <View className="bg-border/40 h-1.5 w-full flex-row overflow-hidden rounded-full">
+              <View className="bg-surface-soft h-1.5 w-full flex-row overflow-hidden rounded-full">
                 <View
                   className="h-full"
                   style={{
@@ -454,7 +454,7 @@ export function ContextMeterCard({
                 // Physical `left`: the bar is a fixed LTR scale, so a logical
                 // inset would mirror the tick to the wrong end in Arabic.
                 <View
-                  className="bg-fg/50 absolute -top-0.5 h-2.5 w-px"
+                  className="bg-muted absolute -top-0.5 h-2.5 w-px"
                   style={{ left: `${tickPercent}%` }}
                 />
               ) : null}

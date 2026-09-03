@@ -28,12 +28,12 @@ import { cn } from '@/lib/utils/cn'
  */
 
 const STATUS_TONE: Record<TaskStatus, { container: string; text: string }> = {
-  submitted: { container: 'bg-primary/15', text: 'text-primary' },
-  queued: { container: 'bg-primary/15', text: 'text-primary' },
-  running: { container: 'bg-primary/15', text: 'text-primary' },
+  submitted: { container: 'bg-primary-soft', text: 'text-primary' },
+  queued: { container: 'bg-primary-soft', text: 'text-primary' },
+  running: { container: 'bg-primary-soft', text: 'text-primary' },
   succeeded: { container: 'bg-emerald-500/15', text: 'text-emerald-600 dark:text-emerald-400' },
   failed: { container: 'bg-red-500/15', text: 'text-red-600 dark:text-red-400' },
-  cancelled: { container: 'bg-border/60', text: 'text-muted' }
+  cancelled: { container: 'bg-border-soft', text: 'text-muted' }
 }
 
 const LIVE_STATUSES: ReadonlySet<TaskStatus> = new Set(['submitted', 'queued', 'running'])
@@ -167,7 +167,7 @@ function TaskVideoPreview({
   if (loading) {
     return (
       <View
-        className="bg-bg/60 w-full items-center justify-center overflow-hidden rounded-lg"
+        className="bg-bg-soft w-full items-center justify-center overflow-hidden rounded-lg"
         style={{ aspectRatio: 16 / 9 }}
       >
         <DownloadStatus relPath={relPath} />
