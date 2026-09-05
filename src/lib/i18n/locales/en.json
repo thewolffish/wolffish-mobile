@@ -147,7 +147,9 @@
         },
         "mechanism": "Mechanism",
         "serviceOnDesktop": "Registering with the operating system is your desktop's own act, so this device reports it rather than changing it — the same as Launch at startup. Change it in Settings › Channels › CLI over there."
-      }
+      },
+      "reasoning": "Show reasoning",
+      "reasoningDescription": "Show the model's thinking as a collapsible card in the chat, here and on the desktop. On by default — switching it off only hides the card; the model still thinks, and the reasoning is still saved with the conversation."
     },
     "services": {
       "subtitle": "Connections the agent uses.",
@@ -202,6 +204,9 @@
       },
       "tts": {
         "hint": "Kokoro runs locally — voices are English only."
+      },
+      "computerUse": {
+        "agentControlled": "The agent picks each screenshot’s resolution and format itself — sharper when it needs detail, lighter when it is only navigating."
       },
       "browserExtension": {
         "port": "Pairing port",

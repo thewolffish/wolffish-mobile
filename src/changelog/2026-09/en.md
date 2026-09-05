@@ -1,4 +1,14 @@
-## v1.0.51 — 2026-09-04 `Latest`
+## v1.0.52 — 2026-09-05 `Latest`
+
+### The Thinking Card Is Now Yours to Hide
+
+The **Reasoning** card that opened up last release has **a switch of its own**, on Settings › Channels. It arrives **on**, so nothing changes unless you want it to — and switching it off **hides the card and nothing else**: the model thinks exactly as much as it did before, the thinking is still saved with the conversation, and turning the switch back on brings every past thought back into view. It is **one answer for both screens**, so setting it here settles it for the desktop's chat in the same breath.
+
+### Screenshots the Agent Sizes Itself
+
+Computer use no longer asks you to choose **a screenshot width and format** up front. The agent **picks both for every capture it takes** — sharper when it needs to read fine print on a screen, lighter when it is only finding its way to the next window — so the two rows on Settings › Services have gone, and a line explaining why stands where they were. The **browser extension keeps its own** screenshot settings: those are still yours to set.
+
+## v1.0.51 — 2026-09-04
 
 ### Every Tap Answers Back
 

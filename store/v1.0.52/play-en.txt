@@ -1,0 +1,4 @@
+• The model's thinking card now has its own switch on Settings > Channels. It starts on; switching it off only hides the card.
+• The model still thinks exactly as much, and the thinking is still saved with the conversation.
+• One answer for both screens: set it here and the desktop's chat follows.
+• Computer use now picks each screenshot's width and format itself, so those two rows have gone from Settings > Services.

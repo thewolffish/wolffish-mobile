@@ -29,6 +29,10 @@ jest.mock('@/components/chat/MarkdownView', () => {
     markdownHasTable: () => false
   }
 })
+// InlineCards reads the `inapp.reasoning` switch from the config store, which
+// reaches for AsyncStorage on import. The switch is not what this suite is
+// about — pin it on (its shipping default) and keep the native module out.
+jest.mock('@/state/demoConfig', () => ({ useConfigValue: () => true }))
 jest.mock('@/lib/sync/cards', () => ({ respondAsk: jest.fn(), respondApproval: jest.fn() }))
 
 import { AssistantMessageView } from '@/components/chat/MessageBubbles'

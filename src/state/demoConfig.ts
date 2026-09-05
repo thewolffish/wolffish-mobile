@@ -240,6 +240,14 @@ export type DemoConfigValues = {
    */
   inappRunCards: boolean
   /**
+   * inapp.reasoning — whether the model's thinking renders as a card. One
+   * workspace answer for BOTH surfaces (unlike the run cards above): this
+   * phone's feed and the desktop's obey the same key. ON by default, and
+   * display-only — switching it off hides the card, and the reasoning is
+   * streamed and stored either way.
+   */
+  inappReasoning: boolean
+  /**
    * mobile.notifications — whether the model's notify_phone tool may reach
    * THIS phone. Off makes the desktop withdraw the tool entirely, so it is
    * the one channel setting on this screen that changes what a run can do.
@@ -440,6 +448,7 @@ const DEFAULTS: DemoConfigValues = {
   updatesEnabled: true,
   inappVerbose: false,
   inappRunCards: false,
+  inappReasoning: true,
   mobileNotifications: true,
   mobileVerbose: false,
   mobileRunCards: false,
@@ -657,7 +666,7 @@ export type ConfigSnapshot = {
   channels: {
     /** Absent in bundles published before the in-app feed setting shipped;
      *  `runCards` is later still and falls back to off. */
-    inapp?: { verbose?: boolean; runCards?: boolean }
+    inapp?: { verbose?: boolean; runCards?: boolean; reasoning?: boolean }
     /**
      * The terminal channel. `verbose` is the only editable field; the other
      * four describe the desktop machine and are absent whenever that desktop
@@ -1247,6 +1256,7 @@ export const useDemoConfig = create<DemoConfigState>()(
             restrictPowerfulModels: snapshot.llm.restrictPowerfulModels,
             inappVerbose: snapshot.channels.inapp?.verbose ?? DEFAULTS.inappVerbose,
             inappRunCards: snapshot.channels.inapp?.runCards ?? DEFAULTS.inappRunCards,
+            inappReasoning: snapshot.channels.inapp?.reasoning ?? DEFAULTS.inappReasoning,
             mobileNotifications:
               snapshot.channels.mobile?.notifications ?? DEFAULTS.mobileNotifications,
             mobileVerbose: snapshot.channels.mobile?.verbose ?? DEFAULTS.mobileVerbose,
@@ -1491,8 +1501,8 @@ const DESKTOP_EDITABLE: ReadonlySet<keyof DemoConfigValues> = new Set<keyof Demo
   'ttsVoice',
   'ttsSpeed',
   'ttsVoiceReplies',
-  'screenshotMaxWidth',
-  'screenshotFormat',
+  // Computer-use screenshot width/format are absent on purpose: the agent
+  // picks them per capture, so neither app has a control for them.
   'browserScreenshotMaxWidth',
   'browserScreenshotFormat',
   'browserScreenshotQuality',
@@ -1526,6 +1536,9 @@ const DESKTOP_EDITABLE: ReadonlySet<keyof DemoConfigValues> = new Set<keyof Demo
   // The desktop's floating automation cards — that machine's setting, edited
   // from here exactly as the feed switch above it is.
   'inappRunCards',
+  // The thinking card — the workspace's answer, so flipping it here changes
+  // this phone's feed and the desktop's in the same act.
+  'inappReasoning',
   'telegramAllowedUserIds',
   'telegramAutoRefresh',
   'telegramStaleHours',

@@ -11,6 +11,7 @@ import { NEEDS_SELECT_SHEET, openSelectText } from '@/components/chat/SelectText
 import type { RenderBlock } from '@/lib/conversations/segments'
 import type { WorkflowSnapshot } from '@/lib/conversations/types'
 import { cn } from '@/lib/utils/cn'
+import { useConfigValue } from '@/state/demoConfig'
 import * as Clipboard from 'expo-clipboard'
 import { rem } from 'nativewind'
 import { memo, useRef, useState } from 'react'
@@ -73,12 +74,18 @@ const reasoningBlockMaxHeight = (): number => rem.get() * (8 * 1.25 + 2 * 0.625)
  * `reasoning` blocks at their true position in the stream, and the legacy
  * turn_end copy on conversations persisted before in-place reasoning existed
  * (TurnEndCard below). Mirrors the desktop's ReasoningCard.
+ *
+ * Hidden entirely when `inapp.reasoning` is off — the workspace's own
+ * setting, edited from Settings → Channels here or the desktop's In-App Chat
+ * panel, and ON by default. Gated HERE rather than at each call site so the
+ * in-place blocks and the legacy turn_end copy can never disagree.
  */
 export const ReasoningCard = memo(function ReasoningCard({
   content
 }: {
   content: string
-}): React.JSX.Element {
+}): React.JSX.Element | null {
+  const show = useConfigValue('inappReasoning')
   const { t } = useTranslation()
   const { title, body } = splitReasoningTitle(content)
   const [copied, setCopied] = useState(false)
@@ -91,6 +98,8 @@ export const ReasoningCard = memo(function ReasoningCard({
   // on its head, in reading order.
   const followRef = useRef(true)
   const laidOutRef = useRef(false)
+
+  if (!show) return null
 
   return (
     <View className="bg-surface border-border w-[85%] flex-col gap-2 self-start rounded-xl border px-3 py-2.5">
@@ -150,7 +159,8 @@ export const TurnEndCard = memo(function TurnEndCard({
   block: Extract<RenderBlock, { type: 'turnEnd' }>
 }): React.JSX.Element | null {
   const { t } = useTranslation()
-  const reasoning = block.reasoningContent?.trim()
+  const showReasoning = useConfigValue('inappReasoning')
+  const reasoning = showReasoning ? block.reasoningContent?.trim() : ''
   const failed = block.stopReason === 'error' || block.stopReason === 'no_provider_available'
   // Provider failures render as the desktop's error cards wherever they
   // appear — even on a turn that retried through them and finished, which
