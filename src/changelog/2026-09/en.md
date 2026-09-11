@@ -1,4 +1,18 @@
-## v1.0.55 — 2026-09-11 `Latest`
+## v1.0.56 — 2026-09-12 `Latest`
+
+### One Library for Automations, Projects and Procedures
+
+The three pages you make things on now live behind **one row in the chat sheet**: **Library**. Open it and **three tabs** sit right under the title — **Automations, Projects, Procedures** — so switching from a schedule to the project it runs in is one tap instead of a trip back through the sheet. Each tab is the page you know, with the same cards, the same editor and the same play, edit and delete on every row. The Library **remembers the tab you left on**, and a notification that names one of the three still opens straight to it. This is **the same Library the desktop app opens**, laid out for a phone.
+
+### Automations Show Cards Only
+
+The Automations tab no longer has a switch between cards and the raw schedule file. On a phone the cards **are** the schedule — every switch, mode and prompt on them writes the same file — so the second view had nothing to add and one more place to go wrong. It is gone, and the header is quieter for it.
+
+### Conversations Moves Into the Sheet
+
+The full **Conversations** page — the one with search and delete — is now **in the chat sheet, right under Customization**, beside the other pages you go to rather than the settings you adjust. Settings is shorter, and the page is **one tap from chat** instead of two.
+
+## v1.0.55 — 2026-09-11
 
 ### Automations That Run Several Times a Day
 
