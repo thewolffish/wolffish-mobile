@@ -1,4 +1,14 @@
-## v1.0.54 — 2026-09-11 `Latest`
+## v1.0.55 — 2026-09-11 `Latest`
+
+### Automations That Run Several Times a Day
+
+An automation used to fire **once** in whatever period you gave it — once an hour, once a day, once a week, once a month. The editor now opens with **a row of count pills** — **Once, Twice, 3 times, 4 times, 5 times** — above the period chips, and the two read as one sentence: pick **3 times** and **Every day**, in either order, and the schedule fills itself in with **three runs spread evenly across the day**, the first of them minutes from now. A weekly count spreads across **the days of the week**, a monthly one across **the days of the month**, and an hourly one becomes **a clean interval** — every twenty minutes, for three times an hour.
+
+### The Schedule Field Understands Lists
+
+Written by hand, the schedule now takes **a list anywhere it used to take a single value**: **Daily (08:00, 14:00, 20:00)**, **Weekly (Monday, Wednesday, Friday 09:30)**, **Monthly (1, 15 09:00)**. Day names accept **their three-letter short forms**, and a **semicolon** joins whole cron expressions into one schedule. The pills **light from what is actually in the field** — a schedule you typed, or an existing automation you opened to edit — so they describe that automation rather than the last thing you pressed, and **the next-run line underneath** confirms the reading before you save. The schedule guide gains an example of **each new list form**.
+
+## v1.0.54 — 2026-09-11
 
 ### Plan First, Change Things After
 

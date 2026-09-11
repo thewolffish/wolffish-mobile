@@ -1,11 +1,11 @@
 {
-  "version": "bd469a5cc689",
-  "builtAt": "2026-09-11T10:06:16.262Z",
+  "version": "f4cb6998c430",
+  "builtAt": "2026-09-11T19:13:51.232Z",
   "conversations": 169,
   "totalBytes": 19158002,
   "config": {
     "file": "config-snapshot.json",
-    "bytes": 472696
+    "bytes": 473100
   },
   "shards": [
     {
