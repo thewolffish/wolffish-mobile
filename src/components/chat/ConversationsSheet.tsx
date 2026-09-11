@@ -1,6 +1,6 @@
 import { ChannelBadge } from '@/components/conversations/ChannelBadge'
 import { chipText, chipTone, Pulse } from '@/components/conversations/ConversationChip'
-import { AiBrain01Icon, LibraryIcon, Settings02Icon } from '@/components/core/icons'
+import { AiBrain01Icon, Clock01Icon, LibraryIcon, Settings02Icon } from '@/components/core/icons'
 import { UnreadBadge } from '@/components/core/UnreadBadge'
 import { groupByRecency } from '@/lib/conversations/grouping'
 import { useConversationList } from '@/lib/conversations/hooks'
@@ -37,9 +37,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
  *
  * Two halves, in the desktop's own order:
  *
- *  - the workspace pages that are not settings knobs but things you MAKE with
- *    the app (the Library and Customization, and Settings itself), each with
- *    the icon the desktop's sheet gives it;
+ *  - the pages that are not settings knobs but places you GO (the Library,
+ *    Customization and the full Conversations page, plus Settings itself),
+ *    each with the icon the desktop's sheet gives it;
  *  - every conversation, grouped by the same recency buckets under the same
  *    labels, each row a numbered status chip + origin badge + one line of title.
  *
@@ -92,6 +92,15 @@ const NAV = [
     href: '/settings/customization',
     Icon: AiBrain01Icon,
     labelKey: 'settings.tabs.customization'
+  },
+  // The full Conversations page — search and delete, which the list below
+  // cannot do — last, where the desktop's sheet keeps it. It used to live in
+  // Settings, but it is a place you go, not a knob you turn.
+  {
+    key: 'conversations',
+    href: '/history',
+    Icon: Clock01Icon,
+    labelKey: 'settings.tabs.conversations'
   }
 ] as const
 

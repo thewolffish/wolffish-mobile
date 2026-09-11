@@ -128,7 +128,7 @@ describe('the conversations sheet', () => {
     await draw()
     // Projects, Automations and Procedures are tabs of the Library now, so the
     // sheet carries one row for the three of them — the desktop's own sheet.
-    for (const label of ['Settings', 'Library', 'Customization']) {
+    for (const label of ['Settings', 'Library', 'Customization', 'Conversations']) {
       expect(screen.getByLabelText(label)).toBeTruthy()
     }
     for (const label of ['Projects', 'Automations', 'Procedures']) {
