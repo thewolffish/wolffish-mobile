@@ -1,4 +1,4 @@
-## v1.0.53 — 2026-09-11 `Latest`
+## v1.0.54 — 2026-09-11 `Latest`
 
 ### Plan First, Change Things After
 

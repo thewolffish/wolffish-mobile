@@ -1,0 +1,5 @@
+• Plan mode: turn it on in the chat controls and the agent only investigates and writes a plan you approve. Nothing changes until you turn it off.
+• File edits, writes and shell runs now show in the chat whatever your tool-activity setting says. Tap for the diff or output.
+• The agent's checklists are now cards that tick themselves off.
+• Choosing a model is one row of providers, Ollama included.
+• Floating run cards and their switches are gone. Runs keep their schedules and reports.
