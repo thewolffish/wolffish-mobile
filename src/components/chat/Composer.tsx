@@ -133,7 +133,9 @@ export function Composer({
   // Plan mode is switched in the chat controls (the bottom row has no room for
   // it); while it is ON a chip sits at the end of the row ABOVE the controls,
   // so the stance is never invisible from the chat, and one tap turns it off.
-  // Gone entirely when no desktop can run the turn — the switch is too.
+  // Gone whenever no desktop can run the turn: offline the switch is still
+  // there but disabled, and in demo it is gone too — so the stance can never
+  // be on with nothing on screen saying so.
   const planMode = useChatRuntime(selectPlanMode(conversation?.id ?? null))
   const desktopReachable = useDesktopReachable()
   const showPlanChip = planMode && desktopReachable && !recording

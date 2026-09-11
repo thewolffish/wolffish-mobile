@@ -194,7 +194,7 @@ export function ChatControlsPanel({
       <ModelSwitch />
       <ModeAndThinkingControls />
       {/* The conversation's own stance — a fresh chat's until its first send
-          creates one. Hidden when no desktop can run the turn. */}
+          creates one. Absent in demo: nothing there holds a stance. */}
       <PlanModeControl conversationId={conversation?.id ?? null} />
       {showProject && <ProjectChips conversation={conversation} onPicked={onProjectPicked} />}
       <ContextMeterCard conversation={conversation} />

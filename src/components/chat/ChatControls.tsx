@@ -222,7 +222,10 @@ export function ModeAndThinkingControls(): React.JSX.Element {
  * holds for this conversation and writes it back (lib/sync/planMode), so the
  * composer chip over there and this row always agree. While a paired desktop
  * is out of reach the switch is disabled with a note — a flip nobody would
- * receive is not a setting. In demo mode it stays local.
+ * receive is not a setting, and an offline send never reaches a turn to apply
+ * it to. Unpaired, the row is GONE rather than dead: demo replies are
+ * recorded, so no stance set here could shape one, and a switch that cannot
+ * mean what its label says is worse than no switch at all.
  */
 export function PlanModeControl({
   conversationId
@@ -233,7 +236,10 @@ export function PlanModeControl({
   const reachable = useDesktopReachable()
   const paired = useAppStore((state) => state.paired)
   const planMode = useChatRuntime(selectPlanMode(conversationId))
-  const disabled = paired && !reachable
+  // Demo mode holds no stance and runs no turn — see the docblock. After the
+  // hooks, so the order never changes between renders.
+  if (!paired) return null
+  const disabled = !reachable
   return (
     <View className="flex-col gap-2">
       <View className="flex-row items-center gap-3">
