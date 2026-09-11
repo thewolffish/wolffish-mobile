@@ -124,14 +124,19 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('the conversations sheet', () => {
-  it('links to the five core pages, and closes before it navigates', async () => {
+  it('links to the three core pages, and closes before it navigates', async () => {
     await draw()
-    for (const label of ['Settings', 'Projects', 'Automations', 'Procedures', 'Customization']) {
+    // Projects, Automations and Procedures are tabs of the Library now, so the
+    // sheet carries one row for the three of them — the desktop's own sheet.
+    for (const label of ['Settings', 'Library', 'Customization']) {
       expect(screen.getByLabelText(label)).toBeTruthy()
     }
-    await fireEvent.press(screen.getByLabelText('Projects'))
+    for (const label of ['Projects', 'Automations', 'Procedures']) {
+      expect(screen.queryByLabelText(label)).toBeNull()
+    }
+    await fireEvent.press(screen.getByLabelText('Library'))
     expect(onClose).toHaveBeenCalled()
-    expect(router.push).toHaveBeenCalledWith('/settings/projects')
+    expect(router.push).toHaveBeenCalledWith('/settings/library')
   })
 
   it('groups by date and keeps the numbers counting across the headers', async () => {

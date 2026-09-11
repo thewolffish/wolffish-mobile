@@ -1,12 +1,6 @@
 import { ChannelBadge } from '@/components/conversations/ChannelBadge'
 import { chipText, chipTone, Pulse } from '@/components/conversations/ConversationChip'
-import {
-  AiBrain01Icon,
-  Folder01Icon,
-  HeartCheckIcon,
-  PlayListIcon,
-  Settings02Icon
-} from '@/components/core/icons'
+import { AiBrain01Icon, LibraryIcon, Settings02Icon } from '@/components/core/icons'
 import { UnreadBadge } from '@/components/core/UnreadBadge'
 import { groupByRecency } from '@/lib/conversations/grouping'
 import { useConversationList } from '@/lib/conversations/hooks'
@@ -43,14 +37,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
  *
  * Two halves, in the desktop's own order:
  *
- *  - the five workspace pages that are not settings knobs but things you MAKE
- *    with the app (and Settings itself), each with the icon the desktop's nav
- *    rail gives it;
+ *  - the workspace pages that are not settings knobs but things you MAKE with
+ *    the app (the Library and Customization, and Settings itself), each with
+ *    the icon the desktop's sheet gives it;
  *  - every conversation, grouped by the same recency buckets under the same
  *    labels, each row a numbered status chip + origin badge + one line of title.
  *
  * Only the second half scrolls. The pages are a fixed header ABOVE the list
- * rather than the list's own ListHeaderComponent: they are the sheet's five
+ * rather than the list's own ListHeaderComponent: they are the sheet's
  * destinations, and a destination that scrolls off the top of its own navigator
  * is one the user has to scroll back up to find. The list gets the space that
  * is left and scrolls inside it.
@@ -79,26 +73,19 @@ const WIDTH_RATIO = 0.86
 /** Enter/exit duration. Short: this sheet is a menu, not a destination. */
 const SLIDE_MS = 200
 
-/** The five pages the sheet links to, in the desktop nav rail's order. */
+/**
+ * The pages the sheet links to, in the desktop sheet's order. Automations,
+ * Projects and Procedures are one Library row — the three lists are tabs of
+ * one screen now, as on the desktop — so the sheet carries three destinations
+ * where it carried five.
+ */
 const NAV = [
   { key: 'settings', href: '/settings', Icon: Settings02Icon, labelKey: 'settings.title' },
   {
-    key: 'projects',
-    href: '/settings/projects',
-    Icon: Folder01Icon,
-    labelKey: 'settings.tabs.projects'
-  },
-  {
-    key: 'automations',
-    href: '/settings/automations',
-    Icon: HeartCheckIcon,
-    labelKey: 'settings.tabs.automations'
-  },
-  {
-    key: 'procedures',
-    href: '/settings/procedures',
-    Icon: PlayListIcon,
-    labelKey: 'settings.tabs.procedures'
+    key: 'library',
+    href: '/settings/library',
+    Icon: LibraryIcon,
+    labelKey: 'settings.tabs.library'
   },
   {
     key: 'customization',
