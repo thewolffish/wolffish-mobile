@@ -9,8 +9,9 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 )
 
 import { parseAutomations, parseSchedule } from '@/lib/automations/heartbeat'
-import { buildRenderBlocks } from '@/lib/conversations/segments'
-import type { ConversationFile } from '@/lib/conversations/types'
+import { parseUnifiedDiff } from '@/components/chat/DiffView'
+import { CODE_ACTIVITY_TOOLS, buildRenderBlocks } from '@/lib/conversations/segments'
+import type { ConversationFile, Segment } from '@/lib/conversations/types'
 import { sampleExtFor } from '@/lib/files/sampleFiles'
 import {
   USAGE_TIME_RANGES,
@@ -310,21 +311,10 @@ describe('the dataset as a whole', () => {
       expect(known.has(conversation.channel)).toBe(true)
       seen.add(conversation.channel)
     }
-    /**
-     * Every glyph ChannelBadge can draw has at least one row wearing it, so the
-     * demo actually exercises the badge rather than merely permitting it.
-     *
-     * `cli` is the one exception, and deliberately: the demo dataset is
-     * hand-authored content and has no terminal-origin conversation in it yet.
-     * Naming the exception here keeps the guard on every other glyph instead of
-     * deleting the assertion — and the day someone writes that conversation,
-     * removing this line is the whole change.
-     */
-    const notInTheDemoYet = new Set(['cli'])
-    for (const channel of known) {
-      if (notInTheDemoYet.has(channel)) continue
-      expect(seen.has(channel)).toBe(true)
-    }
+    // Every glyph ChannelBadge can draw has at least one row wearing it, so the
+    // demo actually exercises the badge rather than merely permitting it (the
+    // terminal one is the hand-written "Workspace disk breakdown" row).
+    for (const channel of known) expect(`${channel}:${seen.has(channel)}`).toBe(`${channel}:true`)
   })
 
   it('binds conversations only to projects the snapshot still carries', () => {
@@ -479,5 +469,181 @@ describe('usage ledger', () => {
         `${label}:true`
       )
     }
+  })
+})
+
+/**
+ * The code-activity contract: a code tool's compact row draws its exit code,
+ * elapsed time, label and +N −M from the tool_result's `meta`, and the task
+ * list card draws from `todo` segments — so a result without meta is a row
+ * with nothing on it, and a turn without a todo is a turn with no card.
+ * Both fail silently on a device, which is what these guard against.
+ */
+type ToolResultSegment = Extract<Segment, { kind: 'tool_result' }>
+type TodoSegment = Extract<Segment, { kind: 'todo' }>
+
+/** Every rendered (non-worker) tool_result of a conversation, with its call. */
+function toolResults(conversation: ConversationFile): Array<{
+  call: Extract<Segment, { kind: 'tool_call' }>
+  result: ToolResultSegment
+}> {
+  const out: Array<{
+    call: Extract<Segment, { kind: 'tool_call' }>
+    result: ToolResultSegment
+  }> = []
+  for (const message of conversation.messages) {
+    const segments = (message.segments ?? []).filter(
+      (segment) => !('worker' in segment && segment.worker)
+    )
+    const calls = new Map(
+      segments
+        .filter(
+          (segment): segment is Extract<Segment, { kind: 'tool_call' }> =>
+            segment.kind === 'tool_call'
+        )
+        .map((segment) => [segment.toolCallId, segment])
+    )
+    for (const segment of segments) {
+      if (segment.kind !== 'tool_result') continue
+      const call = calls.get(segment.toolCallId)
+      if (call) out.push({ call, result: segment })
+    }
+  }
+  return out
+}
+
+describe('code showcase', () => {
+  const conversation = showcase('code-showcase')
+  const results = toolResults(conversation)
+  const blocks = conversation.messages
+    .filter((message) => message.role === 'assistant')
+    .map((message) => buildRenderBlocks(message))
+
+  it('sits above every other showcase', () => {
+    for (const { file, conversation: other } of everyConversation()) {
+      if (other.id === conversation.id) continue
+      expect(`${file}:${other.updatedAt < conversation.updatedAt}`).toBe(`${file}:true`)
+    }
+  })
+
+  it('shows one task list per turn — finished in the first, parked in the second', () => {
+    const lists = blocks.map((turn) => turn.filter((block) => block.type === 'todo'))
+    expect(lists.map((list) => list.length)).toEqual([1, 1])
+    const [first, second] = lists.map((list) => list[0])
+    if (first.type !== 'todo' || second.type !== 'todo') throw new Error('not todo blocks')
+    expect(first.items.every((item) => item.status === 'completed')).toBe(true)
+    expect(second.items.map((item) => item.status)).toEqual(['completed', 'in_progress', 'pending'])
+  })
+
+  it('carries every edit as a diff the row can open', () => {
+    const edits = results.filter(({ call }) => /^file_(edit|write)$/.test(call.name))
+    expect(edits.length).toBeGreaterThanOrEqual(5)
+    for (const { result } of edits) {
+      const diff = result.meta?.diff
+      expect(diff?.patch.startsWith('--- a/')).toBe(true)
+      const lines = parseUnifiedDiff(diff!.patch)
+      expect(lines.filter((line) => line.kind === 'add').length).toBe(diff!.additions)
+      expect(lines.filter((line) => line.kind === 'del').length).toBe(diff!.deletions)
+    }
+    expect(new Set(edits.map(({ result }) => result.meta?.label))).toEqual(
+      new Set(['Edit', 'Append'])
+    )
+  })
+
+  it('shows a run in every state the row has', () => {
+    const runs = results.filter(({ call }) => call.name === 'shell_exec')
+    const codes = runs.map(({ result }) => result.meta?.exitCode)
+    expect(codes).toContain(0)
+    expect(codes).toContain(1)
+    const failed = runs.find(({ result }) => result.status === 'failed')
+    expect(failed?.result.error).toContain('TypeError')
+    expect(runs.some(({ result }) => (result.meta?.durationMs ?? 0) > 60_000)).toBe(true)
+    expect(runs.some(({ result }) => result.meta?.truncated && result.meta.outputPath)).toBe(true)
+    expect(runs.some(({ call }) => String(call.args.command).includes('\n'))).toBe(true)
+    for (const { result } of runs) {
+      expect(typeof result.meta?.label).toBe('string')
+      expect(typeof result.meta?.durationMs).toBe('number')
+    }
+  })
+
+  it('keeps the todo_write chips the desktop persists next to each card', () => {
+    const writes = results.filter(({ call }) => call.name === 'todo_write')
+    const cards = conversation.messages.flatMap((message) =>
+      (message.segments ?? []).filter((segment): segment is TodoSegment => segment.kind === 'todo')
+    )
+    expect(writes.length).toBe(cards.length)
+    expect(writes.length).toBe(7)
+  })
+})
+
+describe('code activity across the dataset', () => {
+  const dataset = everyConversation()
+
+  it('gives every shell run the meta its compact row is drawn from', () => {
+    let runs = 0
+    for (const { file, conversation } of dataset) {
+      for (const { call, result } of toolResults(conversation)) {
+        if (call.name !== 'shell_exec') continue
+        runs++
+        const meta = result.meta
+        const shape = `${typeof meta?.label}/${typeof meta?.durationMs}/${typeof meta?.exitCode}`
+        expect(`${file}:${call.toolCallId}:${shape}`).toBe(
+          `${file}:${call.toolCallId}:string/number/${meta?.exitCode === null ? 'object' : 'number'}`
+        )
+        if (result.status === 'success')
+          expect(meta?.exitCode === 0 || meta?.exitCode === 1).toBe(true)
+        if (meta?.truncated) expect(typeof meta.outputPath).toBe('string')
+      }
+    }
+    expect(runs).toBeGreaterThan(400)
+  })
+
+  it('gives every successful file write and patch a diff that parses', () => {
+    let diffs = 0
+    for (const { file, conversation } of dataset) {
+      for (const { call, result } of toolResults(conversation)) {
+        if (!/^file_(write|patch|edit)$/.test(call.name) || result.status !== 'success') continue
+        diffs++
+        const diff = result.meta?.diff
+        expect(`${file}:${call.toolCallId}:${typeof diff?.patch}`).toBe(
+          `${file}:${call.toolCallId}:string`
+        )
+        const lines = parseUnifiedDiff(diff!.patch)
+        expect(lines.filter((line) => line.kind === 'add').length).toBe(diff!.additions)
+        expect(lines.filter((line) => line.kind === 'del').length).toBe(diff!.deletions)
+      }
+    }
+    expect(diffs).toBeGreaterThan(8)
+  })
+
+  it('keeps a task list on every turn with three or more steps, in a coherent state', () => {
+    let lists = 0
+    const withLists = new Set<string>()
+    for (const { file, conversation } of dataset) {
+      for (const message of conversation.messages) {
+        if (message.role !== 'assistant') continue
+        for (const block of buildRenderBlocks(message)) {
+          if (block.type !== 'todo') continue
+          lists++
+          withLists.add(file)
+          expect(block.items.length).toBeGreaterThanOrEqual(3)
+          expect(block.items.length).toBeLessThanOrEqual(6)
+          // The desktop's rule: exactly one in progress while work remains.
+          const inProgress = block.items.filter((item) => item.status === 'in_progress').length
+          expect(`${file}:${block.key}:${inProgress}`).toMatch(/:[01]$/)
+          for (const item of block.items) expect(item.content.trim().length).toBeGreaterThan(0)
+        }
+      }
+    }
+    expect(lists).toBeGreaterThan(100)
+    // "Most conversations" is the brief: every conversation that does real
+    // multi-step work, which is over half the dataset.
+    expect(withLists.size).toBeGreaterThan(dataset.length / 2)
+  })
+
+  it('names only the code tools the clean feed keeps as compact rows', () => {
+    expect([...CODE_ACTIVITY_TOOLS]).toEqual(
+      expect.arrayContaining(['shell_exec', 'file_write', 'file_patch', 'file_edit'])
+    )
   })
 })

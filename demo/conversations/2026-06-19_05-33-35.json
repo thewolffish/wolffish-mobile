@@ -48,7 +48,14 @@
           "segmentId": "seg_3",
           "toolCallId": "call_00_TlyjIitQo4KbwpJiRQ9y1913",
           "status": "success",
-          "output": "total 8\ndrwxr-xr-x  3 younes  staff   96 Jun 19 05:33 .\ndrwxr-xr-x  5 younes  staff  160 Jun 19 05:33 ..\n-rw-r--r--  1 younes  staff  430 Jun 19 05:33 SKILL.md"
+          "output": "total 8\ndrwxr-xr-x  3 younes  staff   96 Jun 19 05:33 .\ndrwxr-xr-x  5 younes  staff  160 Jun 19 05:33 ..\n-rw-r--r--  1 younes  staff  430 Jun 19 05:33 SKILL.md",
+          "meta": {
+            "label": "List files",
+            "cwd": "/Users/younes",
+            "durationMs": 26,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",

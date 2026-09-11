@@ -27,6 +27,68 @@
         {
           "kind": "tool_call",
           "turnId": "hb_mqrs9a8m",
+          "segmentId": "seg_td_1x9g66d_1a",
+          "toolCallId": "call_td_1x9g66d_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Find the GIF",
+                "status": "in_progress"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "pending",
+                "priority": "high"
+              },
+              {
+                "content": "List the workspace files",
+                "status": "pending"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mqrs9a8m",
+          "segmentId": "seg_td_1x9g66d_1b",
+          "toolCallId": "call_td_1x9g66d_1",
+          "status": "success",
+          "output": "4 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"List the workspace files\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mqrs9a8m",
+          "segmentId": "seg_td_1x9g66d_1c",
+          "items": [
+            {
+              "content": "Find the GIF",
+              "status": "in_progress"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "List the workspace files",
+              "status": "pending"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "hb_mqrs9a8m",
           "segmentId": "seg_2",
           "toolCallId": "call_00_hPpxH8Jew3mUFyfkspih2247",
           "name": "gif_search",
@@ -129,6 +191,68 @@
           "output": "Sent. message_id=796 to=8417306252 kind=photo"
         },
         {
+          "kind": "tool_call",
+          "turnId": "hb_mqrs9a8m",
+          "segmentId": "seg_td_1x9g66d_2a",
+          "toolCallId": "call_td_1x9g66d_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Find the GIF",
+                "status": "completed"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "cancelled",
+                "priority": "high"
+              },
+              {
+                "content": "List the workspace files",
+                "status": "completed"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mqrs9a8m",
+          "segmentId": "seg_td_1x9g66d_2b",
+          "toolCallId": "call_td_1x9g66d_2",
+          "status": "success",
+          "output": "4 todos (3 completed, 0 in progress)\n[\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"cancelled\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"List the workspace files\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mqrs9a8m",
+          "segmentId": "seg_td_1x9g66d_2c",
+          "items": [
+            {
+              "content": "Find the GIF",
+              "status": "completed"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "cancelled",
+              "priority": "high"
+            },
+            {
+              "content": "List the workspace files",
+              "status": "completed"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "hb_mqrs9a8m",
           "segmentId": "seg_30",
@@ -159,7 +283,7 @@
     "allTime": {
       "turns": 1,
       "apiCalls": 1,
-      "toolCalls": 4,
+      "toolCalls": 6,
       "inputTokens": 24,
       "outputTokens": 626,
       "cacheReadTokens": 0,
@@ -177,7 +301,7 @@
       "elapsedMs": 28400,
       "apiMs": 23288,
       "apiCalls": 1,
-      "toolCalls": 4,
+      "toolCalls": 6,
       "inputTokens": 24,
       "outputTokens": 626,
       "cacheReadTokens": 0,

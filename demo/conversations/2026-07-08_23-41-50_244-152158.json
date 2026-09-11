@@ -27,6 +27,82 @@
         {
           "kind": "tool_call",
           "turnId": "hb_mrcjmxt0",
+          "segmentId": "seg_td_1exhh1m_1a",
+          "toolCallId": "call_td_1exhh1m_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “top AI news breaking July 7 2026” and 2 more",
+                "status": "in_progress"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "pending"
+              },
+              {
+                "content": "Read the top sources (5 pages)",
+                "status": "pending"
+              },
+              {
+                "content": "Search the web for “JADEPUFFER autonomous AI ransomware attack…”",
+                "status": "pending"
+              },
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "pending"
+              },
+              {
+                "content": "Deliver the file",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mrcjmxt0",
+          "segmentId": "seg_td_1exhh1m_1b",
+          "toolCallId": "call_td_1exhh1m_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Search the web for “top AI news breaking July 7 2026” and 2 more\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the top sources (5 pages)\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Search the web for “JADEPUFFER autonomous AI ransomware attack…”\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Deliver the file\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mrcjmxt0",
+          "segmentId": "seg_td_1exhh1m_1c",
+          "items": [
+            {
+              "content": "Search the web for “top AI news breaking July 7 2026” and 2 more",
+              "status": "in_progress"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "pending"
+            },
+            {
+              "content": "Read the top sources (5 pages)",
+              "status": "pending"
+            },
+            {
+              "content": "Search the web for “JADEPUFFER autonomous AI ransomware attack…”",
+              "status": "pending"
+            },
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "pending"
+            },
+            {
+              "content": "Deliver the file",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "hb_mrcjmxt0",
           "segmentId": "seg_2",
           "toolCallId": "call_00_sG88lHtzmPV6LyKEl8SP5188",
           "name": "web_search",
@@ -1333,6 +1409,82 @@
           "output": "[wolffish-output: /Users/younes/.wolffish/workspace/files/ai-news-july-7-2026.pdf (document)]"
         },
         {
+          "kind": "tool_call",
+          "turnId": "hb_mrcjmxt0",
+          "segmentId": "seg_td_1exhh1m_2a",
+          "toolCallId": "call_td_1exhh1m_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “top AI news breaking July 7 2026” and 2 more",
+                "status": "completed"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (5 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Search the web for “JADEPUFFER autonomous AI ransomware attack…”",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Deliver the file",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mrcjmxt0",
+          "segmentId": "seg_td_1exhh1m_2b",
+          "toolCallId": "call_td_1exhh1m_2",
+          "status": "success",
+          "output": "6 todos (6 completed, 0 in progress)\n[\n  {\n    \"content\": \"Search the web for “top AI news breaking July 7 2026” and 2 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (5 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search the web for “JADEPUFFER autonomous AI ransomware attack…”\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Deliver the file\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mrcjmxt0",
+          "segmentId": "seg_td_1exhh1m_2c",
+          "items": [
+            {
+              "content": "Search the web for “top AI news breaking July 7 2026” and 2 more",
+              "status": "completed"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (5 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Search the web for “JADEPUFFER autonomous AI ransomware attack…”",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Deliver the file",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "hb_mrcjmxt0",
           "segmentId": "seg_43",
@@ -1363,7 +1515,7 @@
     "allTime": {
       "turns": 1,
       "apiCalls": 1,
-      "toolCalls": 17,
+      "toolCalls": 19,
       "inputTokens": 68,
       "outputTokens": 25958,
       "cacheReadTokens": 0,
@@ -1381,7 +1533,7 @@
       "elapsedMs": 192862,
       "apiMs": 158147,
       "apiCalls": 1,
-      "toolCalls": 17,
+      "toolCalls": 19,
       "inputTokens": 68,
       "outputTokens": 25958,
       "cacheReadTokens": 0,

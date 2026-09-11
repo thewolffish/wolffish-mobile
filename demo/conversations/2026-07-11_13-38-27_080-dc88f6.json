@@ -27,6 +27,82 @@
         {
           "kind": "tool_call",
           "turnId": "hb_mrg8ej9k",
+          "segmentId": "seg_td_1kqhvbv_1a",
+          "toolCallId": "call_td_1kqhvbv_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Check memory for context",
+                "status": "in_progress"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "pending"
+              },
+              {
+                "content": "Review the earlier conversations",
+                "status": "pending"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "pending"
+              },
+              {
+                "content": "Find the GIF",
+                "status": "pending"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mrg8ej9k",
+          "segmentId": "seg_td_1kqhvbv_1b",
+          "toolCallId": "call_td_1kqhvbv_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Review the earlier conversations\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mrg8ej9k",
+          "segmentId": "seg_td_1kqhvbv_1c",
+          "items": [
+            {
+              "content": "Check memory for context",
+              "status": "in_progress"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "pending"
+            },
+            {
+              "content": "Review the earlier conversations",
+              "status": "pending"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "pending"
+            },
+            {
+              "content": "Find the GIF",
+              "status": "pending"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "hb_mrg8ej9k",
           "segmentId": "seg_2",
           "toolCallId": "call_00_LLCWBSf3QVtdumqIC2UI7861",
           "name": "memory_search",
@@ -782,7 +858,14 @@
           "segmentId": "seg_270",
           "toolCallId": "call_00_feZCFIwwhP9uCj3Up2OK5632",
           "status": "success",
-          "output": "https://media.tenor.com/ongULa4VHQcAAAAj/crying-pepe-the-frog.gif\nhttps://media.tenor.com/dUFSMab-AH4AAAAM/dog-meme-meme-dog.gif\nhttps://media.tenor.com/rokauCI9nPYAAAAM/crying-sad.gif\nhttps://media.tenor.com/vLhEp8uCJq4AAAAM/dean-winchester-jensen-ackles.gif\nhttps://media.tenor.com/5TsvyTdZ3GAAAAAM/pleurer-pleure.gif"
+          "output": "https://media.tenor.com/ongULa4VHQcAAAAj/crying-pepe-the-frog.gif\nhttps://media.tenor.com/dUFSMab-AH4AAAAM/dog-meme-meme-dog.gif\nhttps://media.tenor.com/rokauCI9nPYAAAAM/crying-sad.gif\nhttps://media.tenor.com/vLhEp8uCJq4AAAAM/dean-winchester-jensen-ackles.gif\nhttps://media.tenor.com/5TsvyTdZ3GAAAAAM/pleurer-pleure.gif",
+          "meta": {
+            "label": "Make HTTP request",
+            "cwd": "/Users/younes",
+            "durationMs": 1867,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "tool_result",
@@ -790,7 +873,14 @@
           "segmentId": "seg_271",
           "toolCallId": "call_01_7GejWrPBo11viWYdsFat9672",
           "status": "success",
-          "output": "https://media.tenor.com/xNNMfTHbKBYAAAAM/minimalism-is-great-smile.gif\nhttps://media.tenor.com/msRAFW_ZtUIAAAAM/minimalismo-nina-marcucci.gif\nhttps://media.tenor.com/zm215zZVKREAAAAM/matt-davella-minimalsim.gif\nhttps://media.tenor.com/VDWpgcOlzAkAAAAM/minimal-minimalistic.gif\nhttps://media.tenor.com/fZVauNPH4TwAAAAM/jack-stratton-vulfpeck.gif"
+          "output": "https://media.tenor.com/xNNMfTHbKBYAAAAM/minimalism-is-great-smile.gif\nhttps://media.tenor.com/msRAFW_ZtUIAAAAM/minimalismo-nina-marcucci.gif\nhttps://media.tenor.com/zm215zZVKREAAAAM/matt-davella-minimalsim.gif\nhttps://media.tenor.com/VDWpgcOlzAkAAAAM/minimal-minimalistic.gif\nhttps://media.tenor.com/fZVauNPH4TwAAAAM/jack-stratton-vulfpeck.gif",
+          "meta": {
+            "label": "Make HTTP request",
+            "cwd": "/Users/younes",
+            "durationMs": 2784,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -833,7 +923,14 @@
           "segmentId": "seg_297",
           "toolCallId": "call_00_HUF3GBaWsg8ElFtXHqXa8345",
           "status": "success",
-          "output": "/Users/younes/.wolffish/workspace/uploads/memes/pepe-crying-laptop.gif: GIF image data, version 89a, 112 x 112"
+          "output": "/Users/younes/.wolffish/workspace/uploads/memes/pepe-crying-laptop.gif: GIF image data, version 89a, 112 x 112",
+          "meta": {
+            "label": "Make HTTP request",
+            "cwd": "/Users/younes",
+            "durationMs": 1267,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "tool_result",
@@ -841,7 +938,14 @@
           "segmentId": "seg_298",
           "toolCallId": "call_01_ZGoIuCmMmtVq48qkZeHa9662",
           "status": "success",
-          "output": "https://media.tenor.com/k94zl_BX15kAAAAM/frog-scream.gif\nhttps://media.tenor.com/fRXQdH2UeRgAAAAM/vernos-bday.gif\nhttps://media.tenor.com/cfzSkYVRIJUAAAAM/kermit.gif\nhttps://media.tenor.com/La4ld9WgFlcAAAAM/kermit-the-frog-dance.gif\nhttps://media.tenor.com/lCVrzaQHUvYAAAAM/kermitthefrog-dance.gif\nhttps://media.tenor.com/q0AZ9Wptd6QAAAAM/kermit-frog.gif\nhttps://media.tenor.com/6ngjyOc7ZTsAAAAM/math-dancing.gif\nhttps://media.tenor.com/BsRcAQhpD-wAAAAM/ocm-onchainmonkey.gif\nhttps://media.tenor.com/vXZU1QYxYasAAAAM/kermit-frog.gif\nhttps://media.tenor.com/eIjdUNdvTokAAAAM/kermit-shaking.gif"
+          "output": "https://media.tenor.com/k94zl_BX15kAAAAM/frog-scream.gif\nhttps://media.tenor.com/fRXQdH2UeRgAAAAM/vernos-bday.gif\nhttps://media.tenor.com/cfzSkYVRIJUAAAAM/kermit.gif\nhttps://media.tenor.com/La4ld9WgFlcAAAAM/kermit-the-frog-dance.gif\nhttps://media.tenor.com/lCVrzaQHUvYAAAAM/kermitthefrog-dance.gif\nhttps://media.tenor.com/q0AZ9Wptd6QAAAAM/kermit-frog.gif\nhttps://media.tenor.com/6ngjyOc7ZTsAAAAM/math-dancing.gif\nhttps://media.tenor.com/BsRcAQhpD-wAAAAM/ocm-onchainmonkey.gif\nhttps://media.tenor.com/vXZU1QYxYasAAAAM/kermit-frog.gif\nhttps://media.tenor.com/eIjdUNdvTokAAAAM/kermit-shaking.gif",
+          "meta": {
+            "label": "Make HTTP request",
+            "cwd": "/Users/younes",
+            "durationMs": 3183,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -884,7 +988,14 @@
           "segmentId": "seg_321",
           "toolCallId": "call_00_HXYK0YKjdLPB3EN1f0Xw9149",
           "status": "success",
-          "output": "/Users/younes/.wolffish/workspace/uploads/memes/kermit-shaking.gif: GIF image data, version 89a, 220 x 140"
+          "output": "/Users/younes/.wolffish/workspace/uploads/memes/kermit-shaking.gif: GIF image data, version 89a, 220 x 140",
+          "meta": {
+            "label": "Make HTTP request",
+            "cwd": "/Users/younes",
+            "durationMs": 650,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "tool_result",
@@ -892,7 +1003,14 @@
           "segmentId": "seg_322",
           "toolCallId": "call_01_ImBOrjZGciHPrsojlntk7240",
           "status": "success",
-          "output": "https://media.tenor.com/AsIHhAZPSv0AAAAM/pepe-the-frog.gif\nhttps://media.tenor.com/TZNyxLKYdcgAAAAM/yippee.gif\nhttps://media.tenor.com/LdxHR81ACSAAAAAM/pepe-sad.gif\nhttps://media.tenor.com/iCSK9nRu_TkAAAAM/permtag2.gif\nhttps://media.tenor.com/XOQqTTQMv1sAAAAM/metaskyclub.gif\nhttps://media.tenor.com/pd4dz9_XgLsAAAAM/pepocry-pepe.gif\nhttps://media.tenor.com/660lQV3gF9IAAAAM/peppe.gif\nhttps://media.tenor.com/Ci-CrNQGHpMAAAAM/peppo.gif\nhttps://media.tenor.com/FZfGNhRwq9QAAAAM/pepe-blink-blink-pepe.gif\nhttps://media.tenor.com/Dbxhh_rWy44AAAAM/hit-green-fist.gif"
+          "output": "https://media.tenor.com/AsIHhAZPSv0AAAAM/pepe-the-frog.gif\nhttps://media.tenor.com/TZNyxLKYdcgAAAAM/yippee.gif\nhttps://media.tenor.com/LdxHR81ACSAAAAAM/pepe-sad.gif\nhttps://media.tenor.com/iCSK9nRu_TkAAAAM/permtag2.gif\nhttps://media.tenor.com/XOQqTTQMv1sAAAAM/metaskyclub.gif\nhttps://media.tenor.com/pd4dz9_XgLsAAAAM/pepocry-pepe.gif\nhttps://media.tenor.com/660lQV3gF9IAAAAM/peppe.gif\nhttps://media.tenor.com/Ci-CrNQGHpMAAAAM/peppo.gif\nhttps://media.tenor.com/FZfGNhRwq9QAAAAM/pepe-blink-blink-pepe.gif\nhttps://media.tenor.com/Dbxhh_rWy44AAAAM/hit-green-fist.gif",
+          "meta": {
+            "label": "Make HTTP request",
+            "cwd": "/Users/younes",
+            "durationMs": 2143,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -918,7 +1036,14 @@
           "segmentId": "seg_325",
           "toolCallId": "call_00_DwkfHwjzvVExyokBn1sY8001",
           "status": "success",
-          "output": "https://media.tenor.com/molFG9GoHrIAAAAM/hhh.gif\nhttps://media.tenor.com/jE5sBZe_JpgAAAAM/waiting-for-you-waiting.gif\nhttps://media.tenor.com/38dXV7CiDnYAAAAM/it%27s-coming-out.gif\nhttps://media.tenor.com/DVivj7VSVRsAAAAM/kermit-the-frog-stairwell.gif\nhttps://media.tenor.com/tP_ZujYoIQ8AAAAM/aibui2k4.gif\nhttps://media.tenor.com/cC_3MEM6-1gAAAAM/happy-frog.gif\nhttps://media.tenor.com/L0zOFyfFc7cAAAAM/kermit-the-frog-kermit.gif\nhttps://media.tenor.com/Y29XieO3ITkAAAAM/kermit-curse.gif\nhttps://media.tenor.com/gW0JrHP3sAsAAAAM/kermit-darkside.gif\nhttps://media.tenor.com/b5fM0vMEKBgAAAAM/kermit-the-frog-boombox.gif\nhttps://media.tenor.com/ibZ2Y7CVplgAAAAM/kermit-hehehe-kermit-evil-laugh.gif\nhttps://media.tenor.com/NtKfVhgmdtkAAAAM/kermit-sad-kermit.gif\nhttps://media.tenor.com/GXT5jP6q1gIAAAAM/kermit-the-frog-kermit.gif\nhttps://media.tenor.com/Tg5-OjeK-mIAAAAM/really.gif\nhttps://media.tenor.com/hXl8jUR6hRYAAAAM/kermit-sipping-tea.gif\nhttps://media.tenor.com/WxZx90xtWo4AAAAM/kermit-kermit-the-frog.gif\nhttps://media.tenor.com/5tG2EG0p36IAAAAM/kermit-the-frog-kermit.gif\nhttps://media.tenor.com/0l_G-keu97kAAAAM/kermit-the-frog-none-of-my-business.gif\nhttps://media.tenor.com/KfLWE_aBEasAAAAM/cozy-cozy-kermit.gif\nhttps://media.tenor.com/YkzZDK_MraAAAAAM/the-muppets-the-muppets-2012.gif"
+          "output": "https://media.tenor.com/molFG9GoHrIAAAAM/hhh.gif\nhttps://media.tenor.com/jE5sBZe_JpgAAAAM/waiting-for-you-waiting.gif\nhttps://media.tenor.com/38dXV7CiDnYAAAAM/it%27s-coming-out.gif\nhttps://media.tenor.com/DVivj7VSVRsAAAAM/kermit-the-frog-stairwell.gif\nhttps://media.tenor.com/tP_ZujYoIQ8AAAAM/aibui2k4.gif\nhttps://media.tenor.com/cC_3MEM6-1gAAAAM/happy-frog.gif\nhttps://media.tenor.com/L0zOFyfFc7cAAAAM/kermit-the-frog-kermit.gif\nhttps://media.tenor.com/Y29XieO3ITkAAAAM/kermit-curse.gif\nhttps://media.tenor.com/gW0JrHP3sAsAAAAM/kermit-darkside.gif\nhttps://media.tenor.com/b5fM0vMEKBgAAAAM/kermit-the-frog-boombox.gif\nhttps://media.tenor.com/ibZ2Y7CVplgAAAAM/kermit-hehehe-kermit-evil-laugh.gif\nhttps://media.tenor.com/NtKfVhgmdtkAAAAM/kermit-sad-kermit.gif\nhttps://media.tenor.com/GXT5jP6q1gIAAAAM/kermit-the-frog-kermit.gif\nhttps://media.tenor.com/Tg5-OjeK-mIAAAAM/really.gif\nhttps://media.tenor.com/hXl8jUR6hRYAAAAM/kermit-sipping-tea.gif\nhttps://media.tenor.com/WxZx90xtWo4AAAAM/kermit-kermit-the-frog.gif\nhttps://media.tenor.com/5tG2EG0p36IAAAAM/kermit-the-frog-kermit.gif\nhttps://media.tenor.com/0l_G-keu97kAAAAM/kermit-the-frog-none-of-my-business.gif\nhttps://media.tenor.com/KfLWE_aBEasAAAAM/cozy-cozy-kermit.gif\nhttps://media.tenor.com/YkzZDK_MraAAAAAM/the-muppets-the-muppets-2012.gif",
+          "meta": {
+            "label": "Make HTTP request",
+            "cwd": "/Users/younes",
+            "durationMs": 1932,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -955,7 +1080,14 @@
           "segmentId": "seg_329",
           "toolCallId": "call_00_VvOWE2TpchoZQ4OdTRlw4616",
           "status": "success",
-          "output": "/Users/younes/.wolffish/workspace/uploads/memes/kermit-tea.gif: GIF image data, version 89a, 220 x 220"
+          "output": "/Users/younes/.wolffish/workspace/uploads/memes/kermit-tea.gif: GIF image data, version 89a, 220 x 220",
+          "meta": {
+            "label": "Make HTTP request",
+            "cwd": "/Users/younes",
+            "durationMs": 2893,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "tool_result",
@@ -963,7 +1095,14 @@
           "segmentId": "seg_330",
           "toolCallId": "call_01_kWqOEGKme7RyLTJKrFBd5148",
           "status": "success",
-          "output": "/Users/younes/.wolffish/workspace/uploads/memes/kermit-cozy.gif: GIF image data, version 89a, 220 x 227"
+          "output": "/Users/younes/.wolffish/workspace/uploads/memes/kermit-cozy.gif: GIF image data, version 89a, 220 x 227",
+          "meta": {
+            "label": "Make HTTP request",
+            "cwd": "/Users/younes",
+            "durationMs": 3286,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -1023,6 +1162,82 @@
           "output": "Sent. message_id=1290 to=8417306252 kind=photo"
         },
         {
+          "kind": "tool_call",
+          "turnId": "hb_mrg8ej9k",
+          "segmentId": "seg_td_1kqhvbv_2a",
+          "toolCallId": "call_td_1kqhvbv_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Check memory for context",
+                "status": "completed"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "completed"
+              },
+              {
+                "content": "Review the earlier conversations",
+                "status": "completed"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "completed"
+              },
+              {
+                "content": "Find the GIF",
+                "status": "completed"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mrg8ej9k",
+          "segmentId": "seg_td_1kqhvbv_2b",
+          "toolCallId": "call_td_1kqhvbv_2",
+          "status": "success",
+          "output": "6 todos (6 completed, 0 in progress)\n[\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Review the earlier conversations\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mrg8ej9k",
+          "segmentId": "seg_td_1kqhvbv_2c",
+          "items": [
+            {
+              "content": "Check memory for context",
+              "status": "completed"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "completed"
+            },
+            {
+              "content": "Review the earlier conversations",
+              "status": "completed"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "completed"
+            },
+            {
+              "content": "Find the GIF",
+              "status": "completed"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "hb_mrg8ej9k",
           "segmentId": "seg_367",
@@ -1055,7 +1270,7 @@
       "apiMs": 164515,
       "turns": 1,
       "apiCalls": 22,
-      "toolCalls": 43,
+      "toolCalls": 45,
       "inputTokens": 66142,
       "outputTokens": 6806,
       "cacheReadTokens": 783360,
@@ -1067,7 +1282,7 @@
       "elapsedMs": 210103,
       "apiMs": 164515,
       "apiCalls": 22,
-      "toolCalls": 43,
+      "toolCalls": 45,
       "inputTokens": 66142,
       "outputTokens": 6806,
       "cacheReadTokens": 783360,

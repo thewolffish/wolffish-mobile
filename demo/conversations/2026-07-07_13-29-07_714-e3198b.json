@@ -27,6 +27,66 @@
         {
           "kind": "tool_call",
           "turnId": "turn_1783420148615_2u6mes",
+          "segmentId": "seg_td_j2yh9a_1a",
+          "toolCallId": "call_td_j2yh9a_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Activate the right tools",
+                "status": "in_progress"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "pending"
+              },
+              {
+                "content": "Update Notion",
+                "status": "pending",
+                "priority": "high"
+              },
+              {
+                "content": "Look it up in Notion",
+                "status": "pending"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783420148615_2u6mes",
+          "segmentId": "seg_td_j2yh9a_1b",
+          "toolCallId": "call_td_j2yh9a_1",
+          "status": "success",
+          "output": "4 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Update Notion\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Look it up in Notion\",\n    \"status\": \"pending\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783420148615_2u6mes",
+          "segmentId": "seg_td_j2yh9a_1c",
+          "items": [
+            {
+              "content": "Activate the right tools",
+              "status": "in_progress"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "pending"
+            },
+            {
+              "content": "Update Notion",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Look it up in Notion",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1783420148615_2u6mes",
           "segmentId": "seg_2",
           "toolCallId": "call_00_hIh3wIYvOzCzhnTePACi0477",
           "name": "tool_activate",
@@ -207,6 +267,66 @@
           "output": "{\"object\":\"list\",\"results\":[{\"object\":\"page\",\"id\":\"12f115a6-47e0-80f3-af3b-fcb913ea0d4e\",\"created_time\":\"2024-10-30T22:12:00.000Z\",\"last_edited_time\":\"2026-04-26T15:12:00.000Z\",\"created_by\":{\"object\":\"user\",\"id\":\"4ab51c2d-cde8-45a3-8311-63e1d7ae8857\"},\"last_edited_by\":{\"object\":\"user\",\"id\":\"4ab51c2d-cde8-45a3-8311-63e1d7ae8857\"},\"cover\":null,\"icon\":{\"type\":\"file\",\"file\":{\"url\":\"https://prod-files-secure.s3.us-west-2.amazonaws.com/8a82440d-a97a-485a-a9ef-3cddb76b08b2/3dd78270-76b2-49ef-93e7-8c589e85b0a7/sadeem.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIAZI2LB466X6S56T5A%2F20260707%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20260707T102946Z&X-Amz-Expires=3600&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEKH%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLXdlc3QtMiJHMEUCIANaxFc%2BFbt%2FhvSYjDN9Dq4ErIzmTfU1iuNwcUqJKWS4AiEA%2FQf4vLseOCfo45XeOuwUOXMHKQH2Z7GHvzStR4JXSCAq%2FwMIahAAGgw2Mzc0MjMxODM4MDUiDIFM%2B0FZFPEVZpsVEyrcAwcfBqvGQmkuYDtpuRWiO%2FC%2BzXDzUk9lEynDS%2B8gF5k9altVGqHDJUCZqFPpSkg2OlEtw9bmSoUL0Hj%2B1a%2B3S14nfRgjGft%2BvzbmJXvLTahLXv%2FizjrX0d7xlUNWMkf46xHUoQA3EUy9c1%2BPWBDv57%2BkwR44xmOAIYEoCsmZirDQAXswtlbruwNEkvQLexLn8svi2D7PsbhOdkucJ%2FIx9f1RAeKZ4YENPSnzT4XKww%2BmGlYTZdqEpXgHJdkudJnONus59W3gG9TpvfCMOSyXk5ppzC%2FmAAw%2B5PVHaLiHGZwtOl107xGPjEbd8X%2FBmtkazTIK%2BwMZtvuDpbcYmnwOZeE8xB813GDUKT48dXE2E0fkTlsE%2FHvfTfEaBRdBv2bzoSzwakM%2BjVVlZo%2Fb71vuyQ2cFM49xMAm%2BM4jp9CD%2BJZ%2BbyhTmHBUaiNJwDoSIXTw1UPECPDgMje0OYPhqThqMSLDMGtV6VUvi%2F9CMmLfPNJvDB1NM6Z96Y%2B5RqBQz5XDm2FlPg3Xek3G%2FMjBI2A4Zcq6Q3IPmxpbx%2Bkf6Dvtr1vEOUv%2BhZJ03jrKPAHXcq9w9yhQ6ZUj%2BU7IOt8pfGJvPRqKgE0xLNRcLoXdOSVtClii%2BzWtaLIpZ%2Bd9UwGfMLyIs9IGOqUBEiewWO8N65jBmzl9ZiyN248pMdPA0zwScArcq1b8%2FhD5gG60IJjBNTy3ZwVbYXNBsvQ7Q3vNu0Z8Ea8aGt27QPSszKAgYzmcRbi23NV0igIAUuW%2BA0Qa%2BtCEYGKlv9pcrsMdWj2%2BrxEyhnTEHYu%2FMA%2BOqdDZ8Ka0Y2r0TBQgHB8jJBvaNgljEPbDxsTSYpiYA2NXrcUXXP%2FWsWHib455tkAdKuhY&X-Amz-Signature=79b4bbc4a6a3fc5a5e3c1d670a40df8094aac3c1443c895983a0ed7d843bafb8&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject\",\"expiry_time\":\"2026-07-07T11:29:46.961Z\"}},\"parent\":{\"type\":\"database_id\",\"database_id\":\"2d52dc1e-af5b-4a0c-ab04-32c93d88aef1\"},\"in_trash\":false,\"is_archived\":false,\"is_locked\":false,\"properties\":{\"GOSI\":{\"id\":\"%3F%3ErC\",\"type\":\"number\",\"number\":2249.37},\"Buffer\":{\"id\":\"E%7D%60E\",\"type\":\"number\",\"number\":45145.25},\"Spent\":{\"id\":\"Ki%7B%3F\",\"type\":\"number\",\"number\":111807.15},\"Total\":{\"id\":\"RZJx\",\"type\":\"number\",\"number\":281952.4},\"Gross Monthly\":{\"id\":\"X%7C%3Ek\",\"type\":\"number\",\"number\":24915},\"Bonus\":{\"id\":\"%5C%3BhD\",\"type\":\"number\",\"number\":25000},\"Monthly\":{\"id\":\"byj_\",\"type\":\"number\",\"number\":22665.63},\"Saved\":{\"id\":\"iMDR\",\"type\":\"number\",\"number\":125000},\"Annual\":{\"id\":\"kR~R\",\"type\":\"number\",\"number\":256952.4},\"Saved %\":{\"id\":\"w%5EGh\",\"type\":\"number\",\"number\":0.44334},\"Source\":{\"id\":\"title\",\"type\":\"title\",\"title\":[{\"type\":\"text\",\"text\":{\"content\":\"Sadeem\",\"link\":null},\"annotations\":{\"bold\":false,\"italic\":false,\"strikethrough\":false,\"underline\":false,\"code\":false,\"color\":\"default\"},\"plain_text\":\"Sadeem\",\"href\":null}]}},\"url\":\"https://app.notion.com/p/Sadeem-12f115a647e080f3af3bfcb913ea0d4e\",\"public_url\":null,\"archived\":false}],\"next_cursor\":null,\"has_more\":false,\"type\":\"page_or_database\",\"page_or_database\":{},\"request_id\":\"0368013f-e5e0-4c29-bf14-781389bd6a94\"}"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1783420148615_2u6mes",
+          "segmentId": "seg_td_j2yh9a_2a",
+          "toolCallId": "call_td_j2yh9a_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Activate the right tools",
+                "status": "completed"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "completed"
+              },
+              {
+                "content": "Update Notion",
+                "status": "completed",
+                "priority": "high"
+              },
+              {
+                "content": "Look it up in Notion",
+                "status": "completed"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783420148615_2u6mes",
+          "segmentId": "seg_td_j2yh9a_2b",
+          "toolCallId": "call_td_j2yh9a_2",
+          "status": "success",
+          "output": "4 todos (4 completed, 0 in progress)\n[\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Update Notion\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Look it up in Notion\",\n    \"status\": \"completed\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783420148615_2u6mes",
+          "segmentId": "seg_td_j2yh9a_2c",
+          "items": [
+            {
+              "content": "Activate the right tools",
+              "status": "completed"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "completed"
+            },
+            {
+              "content": "Update Notion",
+              "status": "completed",
+              "priority": "high"
+            },
+            {
+              "content": "Look it up in Notion",
+              "status": "completed"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "turn_1783420148615_2u6mes",
           "segmentId": "seg_67",
@@ -260,6 +380,14 @@
         "call_01_wlNg7lbacjvEifUjPq9Z9346": {
           "startedAt": 1783420185405,
           "endedAt": 1783420186799
+        },
+        "call_td_j2yh9a_2": {
+          "startedAt": 1783420187399,
+          "endedAt": 1783420187439
+        },
+        "call_td_j2yh9a_1": {
+          "startedAt": 1783420168104,
+          "endedAt": 1783420168144
         }
       },
       "stopReason": "end_turn"
@@ -270,7 +398,7 @@
     "allTime": {
       "turns": 1,
       "apiCalls": 1,
-      "toolCalls": 8,
+      "toolCalls": 10,
       "inputTokens": 46,
       "outputTokens": 10140,
       "cacheReadTokens": 0,
@@ -288,7 +416,7 @@
       "elapsedMs": 70320,
       "apiMs": 57662,
       "apiCalls": 1,
-      "toolCalls": 8,
+      "toolCalls": 10,
       "inputTokens": 46,
       "outputTokens": 10140,
       "cacheReadTokens": 0,

@@ -77,7 +77,17 @@
           "segmentId": "seg_3",
           "toolCallId": "call_7d72c6f0345d4d068fed0526",
           "status": "success",
-          "output": "Wrote 559 bytes to /Users/younes/Desktop/README.md"
+          "output": "Created /Users/younes/Desktop/README.md (564 bytes, +23 −0)",
+          "meta": {
+            "diff": {
+              "file": "/Users/younes/Desktop/README.md",
+              "patch": "--- a/Users/younes/Desktop/README.md\n+++ b/Users/younes/Desktop/README.md\n@@ -0,0 +1,23 @@\n+# Welcome to Your Desktop 🐟\n+\n+Created by Wolffish — your local-first AI assistant.\n+\n+## Quick Info\n+- **User:** Younes Alharbi\n+- **Location:** Riyadh, Saudi Arabia\n+- **Current Project:** Building Wolffish — a markdown-powered personal AI agent\n+\n+## What is this?\n+Just a placeholder README to show that Wolffish can write files to your desktop. Feel free to edit or delete it.\n+\n+## Need something?\n+Ask Wolffish to:\n+- Create files and documents\n+- Automate tasks\n+- Check your emails\n+- Send messages\n+- Research anything\n+- And much more...\n+\n+---\n+*Generated on $(date)*",
+              "additions": 23,
+              "deletions": 0,
+              "kind": "create"
+            },
+            "label": "Create"
+          }
         },
         {
           "kind": "active_model",

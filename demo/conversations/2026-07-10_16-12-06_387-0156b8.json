@@ -27,6 +27,82 @@
         {
           "kind": "tool_call",
           "turnId": "hb_mreyga9f",
+          "segmentId": "seg_td_1ajh39f_1a",
+          "toolCallId": "call_td_1ajh39f_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “top AI news breaking stories July 9 2026” and 2 more",
+                "status": "in_progress"
+              },
+              {
+                "content": "Read the top sources (4 pages)",
+                "status": "pending"
+              },
+              {
+                "content": "Search the web for “OpenAI GPT-5.6 launch pricing Sol Terra Lun…” and 2 more",
+                "status": "pending"
+              },
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "pending"
+              },
+              {
+                "content": "Search the web for “EU UN global AI governance dialogue July 7…”",
+                "status": "pending"
+              },
+              {
+                "content": "Deliver the file",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mreyga9f",
+          "segmentId": "seg_td_1ajh39f_1b",
+          "toolCallId": "call_td_1ajh39f_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Search the web for “top AI news breaking stories July 9 2026” and 2 more\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Read the top sources (4 pages)\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Search the web for “OpenAI GPT-5.6 launch pricing Sol Terra Lun…” and 2 more\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Search the web for “EU UN global AI governance dialogue July 7…”\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Deliver the file\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mreyga9f",
+          "segmentId": "seg_td_1ajh39f_1c",
+          "items": [
+            {
+              "content": "Search the web for “top AI news breaking stories July 9 2026” and 2 more",
+              "status": "in_progress"
+            },
+            {
+              "content": "Read the top sources (4 pages)",
+              "status": "pending"
+            },
+            {
+              "content": "Search the web for “OpenAI GPT-5.6 launch pricing Sol Terra Lun…” and 2 more",
+              "status": "pending"
+            },
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "pending"
+            },
+            {
+              "content": "Search the web for “EU UN global AI governance dialogue July 7…”",
+              "status": "pending"
+            },
+            {
+              "content": "Deliver the file",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "hb_mreyga9f",
           "segmentId": "seg_2",
           "toolCallId": "call_00_8XyAtSEAZEMxtKYUkS3y5544",
           "name": "web_search",
@@ -634,6 +710,82 @@
           "output": "[wolffish-output: /Users/younes/.wolffish/workspace/files/ai-news-report-july-9-2026.pdf (document)]"
         },
         {
+          "kind": "tool_call",
+          "turnId": "hb_mreyga9f",
+          "segmentId": "seg_td_1ajh39f_2a",
+          "toolCallId": "call_td_1ajh39f_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “top AI news breaking stories July 9 2026” and 2 more",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (4 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Search the web for “OpenAI GPT-5.6 launch pricing Sol Terra Lun…” and 2 more",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Search the web for “EU UN global AI governance dialogue July 7…”",
+                "status": "completed"
+              },
+              {
+                "content": "Deliver the file",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mreyga9f",
+          "segmentId": "seg_td_1ajh39f_2b",
+          "toolCallId": "call_td_1ajh39f_2",
+          "status": "success",
+          "output": "6 todos (6 completed, 0 in progress)\n[\n  {\n    \"content\": \"Search the web for “top AI news breaking stories July 9 2026” and 2 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (4 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search the web for “OpenAI GPT-5.6 launch pricing Sol Terra Lun…” and 2 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search the web for “EU UN global AI governance dialogue July 7…”\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Deliver the file\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mreyga9f",
+          "segmentId": "seg_td_1ajh39f_2c",
+          "items": [
+            {
+              "content": "Search the web for “top AI news breaking stories July 9 2026” and 2 more",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (4 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Search the web for “OpenAI GPT-5.6 launch pricing Sol Terra Lun…” and 2 more",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Search the web for “EU UN global AI governance dialogue July 7…”",
+              "status": "completed"
+            },
+            {
+              "content": "Deliver the file",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "hb_mreyga9f",
           "segmentId": "seg_96",
@@ -666,7 +818,7 @@
       "apiMs": 217326,
       "turns": 1,
       "apiCalls": 18,
-      "toolCalls": 27,
+      "toolCalls": 29,
       "inputTokens": 135720,
       "outputTokens": 13144,
       "cacheReadTokens": 634368,
@@ -678,7 +830,7 @@
       "elapsedMs": 249695,
       "apiMs": 217326,
       "apiCalls": 18,
-      "toolCalls": 27,
+      "toolCalls": 29,
       "inputTokens": 135720,
       "outputTokens": 13144,
       "cacheReadTokens": 634368,

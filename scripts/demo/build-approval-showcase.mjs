@@ -56,7 +56,17 @@ const FLAGGED = [
     },
     output:
       'To github.com:younes-alturkey/wolffish.git\n' +
-      ' + 9c1a4f2...41e7b83 release/1.0.18 -> release/1.0.18 (forced update)'
+      ' + 9c1a4f2...41e7b83 release/1.0.18 -> release/1.0.18 (forced update)',
+    // What the shell plugin attaches to every run (desktop ToolResultMeta):
+    // the compact row on the clean feed draws its label, exit code and time
+    // from this. The label is the desktop's describeCommand for the command.
+    meta: {
+      label: 'Push commits to remote',
+      cwd: '/Users/younes/dev/wolffish',
+      durationMs: 2_140,
+      exitCode: 0,
+      truncated: false
+    }
   },
   {
     toolCallId: 'call_purge_cache',
@@ -91,7 +101,14 @@ const FLAGGED = [
       risk: 'medium'
     },
     output:
-      '==> Pouring ffmpeg--7.1.1.arm64_sequoia.bottle.tar.gz\n🍺  /opt/homebrew/Cellar/ffmpeg/7.1.1: 296 files, 51.4MB'
+      '==> Pouring ffmpeg--7.1.1.arm64_sequoia.bottle.tar.gz\n🍺  /opt/homebrew/Cellar/ffmpeg/7.1.1: 296 files, 51.4MB',
+    meta: {
+      label: 'Install with Homebrew',
+      cwd: '/Users/younes',
+      durationMs: 38_600,
+      exitCode: 0,
+      truncated: false
+    }
   }
 ]
 
@@ -163,7 +180,8 @@ async function main() {
       segmentId: `s${step++}`,
       toolCallId: flagged.toolCallId,
       status: flagged.decision === 'denied' ? 'denied' : 'success',
-      output: flagged.decision === 'denied' ? flagged.denied : flagged.output
+      output: flagged.decision === 'denied' ? flagged.denied : flagged.output,
+      ...(flagged.meta ? { meta: flagged.meta } : {})
     })
     // The record the card is replayed from. `decision` is what makes it a
     // settled card rather than a control with dead buttons.

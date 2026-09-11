@@ -1,0 +1,9 @@
+Plan mode arrives in the chat controls. Switch it on and the agent only looks — it reads, searches and works the problem out, then writes you a plan to approve. Nothing on your machine is touched until you switch it off. A chip in the composer shows the stance the whole time, and one tap ends it. It is the same switch your desktop's composer has, so the two always agree.
+
+File edits, writes and shell runs now appear in the chat whatever your tool-activity setting says. Each is a compact row naming the file or the command, with a green and red line count for an edit or the exit code for a run. Tap it open for the real diff, or the command's output.
+
+When the agent breaks a job into a checklist, that checklist is now a card in the conversation with a progress count. It updates in place as items are done, even when the agent picks the list back up several turns later.
+
+Choosing a model is one row: providers side by side, Ollama among them whenever it is running on your desktop, and that provider's models underneath. The Local and Cloud switch has gone.
+
+The floating cards that appeared while an automation, procedure, reflection or memory tidy-up ran have been retired, with their four switches. The runs keep their schedules and their notifications, and the Automations and Knowledge screens still report every one. The memory index rebuild keeps its card.

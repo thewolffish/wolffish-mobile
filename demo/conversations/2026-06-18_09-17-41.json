@@ -39,7 +39,14 @@
           "segmentId": "seg_3",
           "toolCallId": "call_00_oT89RYILn0vSQOGzqt1d9670",
           "status": "success",
-          "output": "9:17  up 14 days,  1:55, 1 user, load averages: 1.76 3.11 3.31"
+          "output": "9:17  up 14 days,  1:55, 1 user, load averages: 1.76 3.11 3.31",
+          "meta": {
+            "label": "Run shell command",
+            "cwd": "/Users/younes",
+            "durationMs": 550,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",

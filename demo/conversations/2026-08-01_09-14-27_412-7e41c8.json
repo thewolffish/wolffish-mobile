@@ -40,7 +40,14 @@
           "segmentId": "seg_3",
           "toolCallId": "call_00_Kd4RwXn8HqTb2mYcJs6Fv913",
           "status": "success",
-          "output": "4.4G\t/Users/younes/.wolffish/workspace\n812M\t/Users/younes/.wolffish/bin\n 96M\t/Users/younes/.wolffish/brain\n 57M\t/Users/younes/.wolffish/logs\n\n2.6G\t/Users/younes/.wolffish/workspace/downloads\n1.2G\t/Users/younes/.wolffish/workspace/uploads\n512M\t/Users/younes/.wolffish/workspace/files\n 19M\t/Users/younes/.wolffish/workspace/exports"
+          "output": "4.4G\t/Users/younes/.wolffish/workspace\n812M\t/Users/younes/.wolffish/bin\n 96M\t/Users/younes/.wolffish/brain\n 57M\t/Users/younes/.wolffish/logs\n\n2.6G\t/Users/younes/.wolffish/workspace/downloads\n1.2G\t/Users/younes/.wolffish/workspace/uploads\n512M\t/Users/younes/.wolffish/workspace/files\n 19M\t/Users/younes/.wolffish/workspace/exports",
+          "meta": {
+            "label": "Run shell command",
+            "cwd": "/Users/younes",
+            "durationMs": 2314,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -107,7 +114,14 @@
           "segmentId": "seg_3",
           "toolCallId": "call_00_Zp7LgVe5RmNa3xWdQh8Bt204",
           "status": "success",
-          "output": "968M\t/Users/younes/.wolffish/workspace/downloads/electron-v37.2.1-darwin-arm64.zip\n496M\t/Users/younes/.wolffish/workspace/downloads/node-v24.4.0-darwin-arm64.tar.xz\n402M\t/Users/younes/.wolffish/workspace/downloads/wolffish-1.0.226-arm64.dmg\n389M\t/Users/younes/.wolffish/workspace/downloads/wolffish-1.0.218-arm64.dmg\n356M\t/Users/younes/.wolffish/workspace/downloads/ffmpeg-8.0-arm64-static.tar.xz"
+          "output": "968M\t/Users/younes/.wolffish/workspace/downloads/electron-v37.2.1-darwin-arm64.zip\n496M\t/Users/younes/.wolffish/workspace/downloads/node-v24.4.0-darwin-arm64.tar.xz\n402M\t/Users/younes/.wolffish/workspace/downloads/wolffish-1.0.226-arm64.dmg\n389M\t/Users/younes/.wolffish/workspace/downloads/wolffish-1.0.218-arm64.dmg\n356M\t/Users/younes/.wolffish/workspace/downloads/ffmpeg-8.0-arm64-static.tar.xz",
+          "meta": {
+            "label": "Run shell command",
+            "cwd": "/Users/younes",
+            "durationMs": 2627,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",

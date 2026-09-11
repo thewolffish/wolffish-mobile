@@ -28,14 +28,15 @@ const DEMO_PROVIDER = 'wolffish'
 const DEMO_MODEL = 'wolffish-demo'
 
 /**
- * The brain the demo turn is attributed to — whichever side of the model
- * switch is active. Nothing is called, but the turn is stamped and priced
- * under it, so switching models moves the context meter's window exactly as
- * it does on the desktop.
+ * The brain the demo turn is attributed to — the provider and model the
+ * picker has lit, by the desktop runtime's own rule (`localOnly` routes to
+ * Ollama, otherwise the cloud brain). Nothing is called, but the turn is
+ * stamped and priced under it, so switching models moves the context meter's
+ * window exactly as it does on the desktop.
  */
 function activeBrain(): { provider: string; model: string } {
   const config = useDemoConfig.getState()
-  if (config.localOnly && config.localEnabled && config.localModel) {
+  if (config.localOnly && config.localModel) {
     return { provider: 'local', model: config.localModel }
   }
   if (config.brainModel) return { provider: config.brainProvider, model: config.brainModel }

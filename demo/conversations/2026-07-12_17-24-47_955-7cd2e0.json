@@ -53,6 +53,82 @@
           "conversationId": "2026-07-12_17-24-47_955-7cd2e0"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1783866287972_c19362",
+          "segmentId": "seg_td_18f4etq_1a",
+          "toolCallId": "call_td_18f4etq_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Plan the workflow",
+                "status": "in_progress"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "pending"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "pending"
+              },
+              {
+                "content": "Fan the work out to sub-agents",
+                "status": "pending"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "pending"
+              },
+              {
+                "content": "Deliver the file",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783866287972_c19362",
+          "segmentId": "seg_td_18f4etq_1b",
+          "toolCallId": "call_td_18f4etq_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Plan the workflow\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Fan the work out to sub-agents\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Deliver the file\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783866287972_c19362",
+          "segmentId": "seg_td_18f4etq_1c",
+          "items": [
+            {
+              "content": "Plan the workflow",
+              "status": "in_progress"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "pending"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "pending"
+            },
+            {
+              "content": "Fan the work out to sub-agents",
+              "status": "pending"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "pending"
+            },
+            {
+              "content": "Deliver the file",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "text",
           "turnId": "turn_1783866287972_c19362",
           "segmentId": "seg_5",
@@ -457,7 +533,13 @@
           "toolCallId": "call_00_k6PK4L89duZkqZGws9U14017",
           "name": "agents_await",
           "args": {
-            "agent_ids": ["a1", "a2", "a3", "a4", "a5"]
+            "agent_ids": [
+              "a1",
+              "a2",
+              "a3",
+              "a4",
+              "a5"
+            ]
           },
           "conversationId": "2026-07-12_17-24-47_955-7cd2e0"
         },
@@ -492,7 +574,12 @@
           "toolCallId": "call_00_Yiw6W8lBzTfosDXnvF9p3299",
           "name": "agents_await",
           "args": {
-            "agent_ids": ["a1", "a2", "a3", "a5"]
+            "agent_ids": [
+              "a1",
+              "a2",
+              "a3",
+              "a5"
+            ]
           },
           "conversationId": "2026-07-12_17-24-47_955-7cd2e0"
         },
@@ -527,7 +614,11 @@
           "toolCallId": "call_00_zw20j88FLunHuE0dpNSU1046",
           "name": "agents_await",
           "args": {
-            "agent_ids": ["a1", "a3", "a5"]
+            "agent_ids": [
+              "a1",
+              "a3",
+              "a5"
+            ]
           },
           "conversationId": "2026-07-12_17-24-47_955-7cd2e0"
         },
@@ -555,7 +646,10 @@
           "toolCallId": "call_00_doK3Nd9RoQNeQL1ZjybY4982",
           "name": "agents_await",
           "args": {
-            "agent_ids": ["a1", "a3"]
+            "agent_ids": [
+              "a1",
+              "a3"
+            ]
           },
           "conversationId": "2026-07-12_17-24-47_955-7cd2e0"
         },
@@ -590,7 +684,9 @@
           "toolCallId": "call_00_3ypigbQ1rDJIckfAQu9d1616",
           "name": "agents_await",
           "args": {
-            "agent_ids": ["a3"]
+            "agent_ids": [
+              "a3"
+            ]
           },
           "conversationId": "2026-07-12_17-24-47_955-7cd2e0"
         },
@@ -869,6 +965,82 @@
           "conversationId": "2026-07-12_17-24-47_955-7cd2e0"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1783866287972_c19362",
+          "segmentId": "seg_td_18f4etq_2a",
+          "toolCallId": "call_td_18f4etq_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Plan the workflow",
+                "status": "completed"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "completed"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "completed"
+              },
+              {
+                "content": "Fan the work out to sub-agents",
+                "status": "completed"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "completed"
+              },
+              {
+                "content": "Deliver the file",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783866287972_c19362",
+          "segmentId": "seg_td_18f4etq_2b",
+          "toolCallId": "call_td_18f4etq_2",
+          "status": "success",
+          "output": "6 todos (6 completed, 0 in progress)\n[\n  {\n    \"content\": \"Plan the workflow\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Fan the work out to sub-agents\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Deliver the file\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783866287972_c19362",
+          "segmentId": "seg_td_18f4etq_2c",
+          "items": [
+            {
+              "content": "Plan the workflow",
+              "status": "completed"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "completed"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "completed"
+            },
+            {
+              "content": "Fan the work out to sub-agents",
+              "status": "completed"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "completed"
+            },
+            {
+              "content": "Deliver the file",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "turn_1783866287972_c19362",
           "segmentId": "seg_270",
@@ -985,6 +1157,14 @@
         "call_00_1GLHgiAor2cpRnWoPNT77507": {
           "startedAt": 1783866626156,
           "endedAt": 1783866626224
+        },
+        "call_td_18f4etq_2": {
+          "startedAt": 1783866626824,
+          "endedAt": 1783866626864
+        },
+        "call_td_18f4etq_1": {
+          "startedAt": 1783866300679,
+          "endedAt": 1783866300719
         }
       },
       "stopReason": "end_turn",
@@ -997,7 +1177,7 @@
       "apiMs": 227691,
       "turns": 1,
       "apiCalls": 53,
-      "toolCalls": 24,
+      "toolCalls": 26,
       "inputTokens": 399602,
       "outputTokens": 36828,
       "cacheReadTokens": 1309056,
@@ -1009,7 +1189,7 @@
       "elapsedMs": 345279,
       "apiMs": 227691,
       "apiCalls": 18,
-      "toolCalls": 24,
+      "toolCalls": 26,
       "inputTokens": 144541,
       "outputTokens": 13149,
       "cacheReadTokens": 639360,

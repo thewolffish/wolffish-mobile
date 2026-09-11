@@ -36,14 +36,6 @@ export default function ChannelsScreen(): React.JSX.Element {
           label={t('settings.verbose.label')}
           description={t('settings.verbose.description')}
         />
-        {/* The desktop's floating automation cards — that machine's screen,
-            edited from here. This phone's own copy of the question lives in
-            the section below, because the two are answered differently. */}
-        <ConfigSwitchRow
-          field="inappRunCards"
-          label={t('settings.channels.runCards')}
-          description={t('settings.channels.runCardsDesktopDescription')}
-        />
         {/* Not a desktop-only row despite the section it sits in: like the
             feed switch at the top, `inapp.reasoning` is the workspace's
             answer, so this drives this phone's chat as well. */}
@@ -70,14 +62,6 @@ export default function ChannelsScreen(): React.JSX.Element {
           field="mobileVerbose"
           label={t('settings.channels.taskResults')}
           description={t('settings.channels.taskResultsDescription')}
-        />
-        {/* Whether a run on the desktop cards over THIS phone. Off by
-            default: the pushes still arrive, the Automations screen still
-            shows what ran — only the interruption goes away. */}
-        <ConfigSwitchRow
-          field="mobileRunCards"
-          label={t('settings.channels.runCards')}
-          description={t('settings.channels.runCardsPhoneDescription')}
         />
       </Section>
 
@@ -209,7 +193,7 @@ function CliCards(): React.JSX.Element {
         />
         {/* `verbose.label`, not the phone card's "Task results": that wording
             belongs to this device's own feed, and every OTHER channel's row on
-            this screen already says "Verbose task results". A second row
+            this screen already says "Show all tool activity". A second row
             labelled like the phone's would read as a second setting for the
             phone. */}
         <ConfigSwitchRow

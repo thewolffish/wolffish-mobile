@@ -24,6 +24,80 @@
           "model": "deepseek-v4-pro"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1782418626142_f00mxn",
+          "segmentId": "seg_td_rt5oj5_1a",
+          "toolCallId": "call_td_rt5oj5_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “best lunch restaurants downtown Riyadh 2025…” and 2 more",
+                "status": "in_progress"
+              },
+              {
+                "content": "Ask the user",
+                "status": "pending"
+              },
+              {
+                "content": "Search the web for “best Korean BBQ restaurant Riyadh 2025 2026”",
+                "status": "pending"
+              },
+              {
+                "content": "Read timeoutriyadh.com",
+                "status": "pending"
+              },
+              {
+                "content": "Search the web for “Woo Samgyup Riyadh Korean BBQ location menu…” and 1 more",
+                "status": "pending"
+              },
+              {
+                "content": "Ask the user",
+                "status": "pending"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782418626142_f00mxn",
+          "segmentId": "seg_td_rt5oj5_1b",
+          "toolCallId": "call_td_rt5oj5_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Search the web for “best lunch restaurants downtown Riyadh 2025…” and 2 more\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Ask the user\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Search the web for “best Korean BBQ restaurant Riyadh 2025 2026”\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read timeoutriyadh.com\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Search the web for “Woo Samgyup Riyadh Korean BBQ location menu…” and 1 more\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Ask the user\",\n    \"status\": \"pending\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782418626142_f00mxn",
+          "segmentId": "seg_td_rt5oj5_1c",
+          "items": [
+            {
+              "content": "Search the web for “best lunch restaurants downtown Riyadh 2025…” and 2 more",
+              "status": "in_progress"
+            },
+            {
+              "content": "Ask the user",
+              "status": "pending"
+            },
+            {
+              "content": "Search the web for “best Korean BBQ restaurant Riyadh 2025 2026”",
+              "status": "pending"
+            },
+            {
+              "content": "Read timeoutriyadh.com",
+              "status": "pending"
+            },
+            {
+              "content": "Search the web for “Woo Samgyup Riyadh Korean BBQ location menu…” and 1 more",
+              "status": "pending"
+            },
+            {
+              "content": "Ask the user",
+              "status": "pending"
+            }
+          ]
+        },
+        {
           "kind": "text",
           "turnId": "turn_1782418626142_f00mxn",
           "segmentId": "seg_2",
@@ -294,6 +368,80 @@
           "output": "The user selected option 3 of 3: \"🍲 Koyee Korean BBQ — The Zone, Al Mohammadiyyah\" — Newer spot, broader menu. BBQ plus soups and mains. Dolsot Bibimbap is a bestseller. Mango Bingsoo for dessert. Good if you want more than just grilled meat."
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1782418626142_f00mxn",
+          "segmentId": "seg_td_rt5oj5_2a",
+          "toolCallId": "call_td_rt5oj5_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “best lunch restaurants downtown Riyadh 2025…” and 2 more",
+                "status": "completed"
+              },
+              {
+                "content": "Ask the user",
+                "status": "completed"
+              },
+              {
+                "content": "Search the web for “best Korean BBQ restaurant Riyadh 2025 2026”",
+                "status": "completed"
+              },
+              {
+                "content": "Read timeoutriyadh.com",
+                "status": "completed"
+              },
+              {
+                "content": "Search the web for “Woo Samgyup Riyadh Korean BBQ location menu…” and 1 more",
+                "status": "completed"
+              },
+              {
+                "content": "Ask the user",
+                "status": "completed"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782418626142_f00mxn",
+          "segmentId": "seg_td_rt5oj5_2b",
+          "toolCallId": "call_td_rt5oj5_2",
+          "status": "success",
+          "output": "6 todos (6 completed, 0 in progress)\n[\n  {\n    \"content\": \"Search the web for “best lunch restaurants downtown Riyadh 2025…” and 2 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Ask the user\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search the web for “best Korean BBQ restaurant Riyadh 2025 2026”\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read timeoutriyadh.com\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search the web for “Woo Samgyup Riyadh Korean BBQ location menu…” and 1 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Ask the user\",\n    \"status\": \"completed\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782418626142_f00mxn",
+          "segmentId": "seg_td_rt5oj5_2c",
+          "items": [
+            {
+              "content": "Search the web for “best lunch restaurants downtown Riyadh 2025…” and 2 more",
+              "status": "completed"
+            },
+            {
+              "content": "Ask the user",
+              "status": "completed"
+            },
+            {
+              "content": "Search the web for “best Korean BBQ restaurant Riyadh 2025 2026”",
+              "status": "completed"
+            },
+            {
+              "content": "Read timeoutriyadh.com",
+              "status": "completed"
+            },
+            {
+              "content": "Search the web for “Woo Samgyup Riyadh Korean BBQ location menu…” and 1 more",
+              "status": "completed"
+            },
+            {
+              "content": "Ask the user",
+              "status": "completed"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "turn_1782418626142_f00mxn",
           "segmentId": "seg_113",
@@ -351,6 +499,14 @@
         "call_00_Kpb70n6r7b2XWQy58fsz1325": {
           "startedAt": 1782418735872,
           "endedAt": 1782418753637
+        },
+        "call_td_rt5oj5_2": {
+          "startedAt": 1782418754237,
+          "endedAt": 1782418754277
+        },
+        "call_td_rt5oj5_1": {
+          "startedAt": 1782418633327,
+          "endedAt": 1782418633367
         }
       },
       "stopReason": "end_turn",
@@ -429,7 +585,7 @@
     "allTime": {
       "turns": 2,
       "apiCalls": 2,
-      "toolCalls": 10,
+      "toolCalls": 12,
       "inputTokens": 36,
       "outputTokens": 7112,
       "cacheReadTokens": 18932,
@@ -447,7 +603,7 @@
       "elapsedMs": 1000,
       "apiMs": 820,
       "apiCalls": 1,
-      "toolCalls": 1,
+      "toolCalls": 3,
       "inputTokens": 6,
       "outputTokens": 610,
       "cacheReadTokens": 18932,

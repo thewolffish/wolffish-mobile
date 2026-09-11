@@ -27,6 +27,56 @@
         {
           "kind": "tool_call",
           "turnId": "turn_1782932552938_xwn20s",
+          "segmentId": "seg_td_13nztz3_1a",
+          "toolCallId": "call_td_13nztz3_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Read ask-your-wolffish-ai-agent-about-woolworths-redundancies-layoff-2026-06-30.docx",
+                "status": "in_progress"
+              },
+              {
+                "content": "List the workspace files",
+                "status": "pending"
+              },
+              {
+                "content": "Find files (3 commands)",
+                "status": "pending"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782932552938_xwn20s",
+          "segmentId": "seg_td_13nztz3_1b",
+          "toolCallId": "call_td_13nztz3_1",
+          "status": "success",
+          "output": "3 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Read ask-your-wolffish-ai-agent-about-woolworths-redundancies-layoff-2026-06-30.docx\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"List the workspace files\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Find files (3 commands)\",\n    \"status\": \"pending\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782932552938_xwn20s",
+          "segmentId": "seg_td_13nztz3_1c",
+          "items": [
+            {
+              "content": "Read ask-your-wolffish-ai-agent-about-woolworths-redundancies-layoff-2026-06-30.docx",
+              "status": "in_progress"
+            },
+            {
+              "content": "List the workspace files",
+              "status": "pending"
+            },
+            {
+              "content": "Find files (3 commands)",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1782932552938_xwn20s",
           "segmentId": "seg_2",
           "toolCallId": "call_00_pFqr6D2wztRMVXCtvilE9754",
           "name": "document_read",
@@ -152,7 +202,14 @@
           "segmentId": "seg_32",
           "toolCallId": "call_00_546Z8KG8B9SX9yXupSVS0005",
           "status": "success",
-          "output": "(no output)"
+          "output": "(no output)",
+          "meta": {
+            "label": "Find files",
+            "cwd": "/Users/younes",
+            "durationMs": 1364,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -187,7 +244,14 @@
           "segmentId": "seg_36",
           "toolCallId": "call_00_t5ATjwF9uvGGfzL2AhFj4595",
           "status": "success",
-          "output": "(no output)"
+          "output": "(no output)",
+          "meta": {
+            "label": "Find files",
+            "cwd": "/Users/younes",
+            "durationMs": 86338,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "tool_result",
@@ -195,7 +259,64 @@
           "segmentId": "seg_37",
           "toolCallId": "call_01_Aa5M8MCLaU7cYID48rP93465",
           "status": "success",
-          "output": "(no output)"
+          "output": "(no output)",
+          "meta": {
+            "label": "Find files",
+            "cwd": "/Users/younes",
+            "durationMs": 87939,
+            "exitCode": 0,
+            "truncated": false
+          }
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1782932552938_xwn20s",
+          "segmentId": "seg_td_13nztz3_2a",
+          "toolCallId": "call_td_13nztz3_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Read ask-your-wolffish-ai-agent-about-woolworths-redundancies-layoff-2026-06-30.docx",
+                "status": "cancelled"
+              },
+              {
+                "content": "List the workspace files",
+                "status": "completed"
+              },
+              {
+                "content": "Find files (3 commands)",
+                "status": "completed"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782932552938_xwn20s",
+          "segmentId": "seg_td_13nztz3_2b",
+          "toolCallId": "call_td_13nztz3_2",
+          "status": "success",
+          "output": "3 todos (2 completed, 0 in progress)\n[\n  {\n    \"content\": \"Read ask-your-wolffish-ai-agent-about-woolworths-redundancies-layoff-2026-06-30.docx\",\n    \"status\": \"cancelled\"\n  },\n  {\n    \"content\": \"List the workspace files\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Find files (3 commands)\",\n    \"status\": \"completed\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782932552938_xwn20s",
+          "segmentId": "seg_td_13nztz3_2c",
+          "items": [
+            {
+              "content": "Read ask-your-wolffish-ai-agent-about-woolworths-redundancies-layoff-2026-06-30.docx",
+              "status": "cancelled"
+            },
+            {
+              "content": "List the workspace files",
+              "status": "completed"
+            },
+            {
+              "content": "Find files (3 commands)",
+              "status": "completed"
+            }
+          ]
         },
         {
           "kind": "active_model",
@@ -247,6 +368,14 @@
         "call_01_Aa5M8MCLaU7cYID48rP93465": {
           "startedAt": 1782932588663,
           "endedAt": 1782932676602
+        },
+        "call_td_13nztz3_2": {
+          "startedAt": 1782932677202,
+          "endedAt": 1782932677242
+        },
+        "call_td_13nztz3_1": {
+          "startedAt": 1782932561974,
+          "endedAt": 1782932562014
         }
       },
       "stopReason": "end_turn"
@@ -409,7 +538,7 @@
     "allTime": {
       "turns": 3,
       "apiCalls": 3,
-      "toolCalls": 9,
+      "toolCalls": 11,
       "inputTokens": 1652,
       "outputTokens": 5738,
       "cacheReadTokens": 35604,
@@ -427,7 +556,7 @@
       "elapsedMs": 17259,
       "apiMs": 14152,
       "apiCalls": 1,
-      "toolCalls": 1,
+      "toolCalls": 3,
       "inputTokens": 824,
       "outputTokens": 447,
       "cacheReadTokens": 18519,

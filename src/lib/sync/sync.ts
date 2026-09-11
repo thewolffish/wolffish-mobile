@@ -12,8 +12,8 @@ import {
   type ConfigSnapshot
 } from '@/state/demoConfig'
 import { pushCapability, setOutboxRefreshHook } from '@/lib/sync/outbox'
-import { applyRunsPush, invalidateAutomations } from '@/lib/sync/automations'
-import { applyOverlayReindex, applyOverlayRuns, readReindex, readRuns } from '@/lib/sync/overlays'
+import { applyRunsPush, invalidateAutomations, readRuns } from '@/lib/sync/automations'
+import { applyOverlayReindex, readReindex } from '@/lib/sync/overlays'
 import { applyUpdaterPush, readUpdaterState } from '@/lib/sync/updater'
 import { invalidateProcedures } from '@/lib/sync/procedures'
 import { invalidateProjects } from '@/lib/sync/projects'
@@ -481,21 +481,14 @@ export function attachLiveUpdates(): () => void {
   // also the signal that an automation just FIRED, which is the one moment a
   // served `nextRunMs` goes stale. Re-reading on it keeps the "fires in" line
   // honest instead of counting backwards past a run that already happened.
-  //
-  // Two folds off one push, each with an owner: the automations screen's cache,
-  // which gates its play buttons, and the overlay stack, which draws a card per
-  // run. One read of the wire feeds both, so they cannot disagree.
   tunnel.onEvent(Event.automationRunsChanged, (payload) => {
-    const runs = readRuns(payload)
-    applyRunsPush(runs)
-    applyOverlayRuns(runs)
+    applyRunsPush(readRuns(payload))
     invalidateAutomations()
   })
 
-  // The memory index started, moved, or finished rebuilding — the fourth
-  // overlay kind, and the only one that is not a brainstem run. Payload-carrying
-  // and throttled on the desktop; `{ status: null }` is the end, which is what
-  // takes the card away.
+  // The memory index started, moved, or finished rebuilding — the one thing
+  // the phone cards over its screens. Payload-carrying and throttled on the
+  // desktop; `{ status: null }` is the end, which is what takes the card away.
   tunnel.onEvent(Event.reindexChanged, (payload) => {
     applyOverlayReindex(readReindex(payload))
   })

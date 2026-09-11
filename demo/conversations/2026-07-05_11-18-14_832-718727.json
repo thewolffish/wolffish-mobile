@@ -25,6 +25,66 @@
           "model": "deepseek-v4-pro"
         },
         {
+          "kind": "tool_call",
+          "turnId": "hb_mr7ir4c0",
+          "segmentId": "seg_td_10wwi0w_1a",
+          "toolCallId": "call_td_10wwi0w_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Read the WhatsApp thread",
+                "status": "in_progress"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "pending"
+              },
+              {
+                "content": "Make the meme",
+                "status": "pending"
+              },
+              {
+                "content": "Send it on WhatsApp",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mr7ir4c0",
+          "segmentId": "seg_td_10wwi0w_1b",
+          "toolCallId": "call_td_10wwi0w_1",
+          "status": "success",
+          "output": "4 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Read the WhatsApp thread\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Make the meme\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Send it on WhatsApp\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mr7ir4c0",
+          "segmentId": "seg_td_10wwi0w_1c",
+          "items": [
+            {
+              "content": "Read the WhatsApp thread",
+              "status": "in_progress"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "pending"
+            },
+            {
+              "content": "Make the meme",
+              "status": "pending"
+            },
+            {
+              "content": "Send it on WhatsApp",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "text",
           "turnId": "hb_mr7ir4c0",
           "segmentId": "seg_2",
@@ -627,6 +687,66 @@
           "output": "Sent image. messageId=3EB0D7DBEC95FA85C4242F to=966507219348@s.whatsapp.net"
         },
         {
+          "kind": "tool_call",
+          "turnId": "hb_mr7ir4c0",
+          "segmentId": "seg_td_10wwi0w_2a",
+          "toolCallId": "call_td_10wwi0w_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Read the WhatsApp thread",
+                "status": "completed"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "completed"
+              },
+              {
+                "content": "Make the meme",
+                "status": "completed"
+              },
+              {
+                "content": "Send it on WhatsApp",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mr7ir4c0",
+          "segmentId": "seg_td_10wwi0w_2b",
+          "toolCallId": "call_td_10wwi0w_2",
+          "status": "success",
+          "output": "4 todos (4 completed, 0 in progress)\n[\n  {\n    \"content\": \"Read the WhatsApp thread\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Make the meme\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Send it on WhatsApp\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mr7ir4c0",
+          "segmentId": "seg_td_10wwi0w_2c",
+          "items": [
+            {
+              "content": "Read the WhatsApp thread",
+              "status": "completed"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "completed"
+            },
+            {
+              "content": "Make the meme",
+              "status": "completed"
+            },
+            {
+              "content": "Send it on WhatsApp",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "hb_mr7ir4c0",
           "segmentId": "seg_275",
@@ -657,7 +777,7 @@
     "allTime": {
       "turns": 1,
       "apiCalls": 1,
-      "toolCalls": 26,
+      "toolCalls": 28,
       "inputTokens": 45,
       "outputTokens": 2627,
       "cacheReadTokens": 0,
@@ -675,7 +795,7 @@
       "elapsedMs": 122691,
       "apiMs": 100607,
       "apiCalls": 1,
-      "toolCalls": 26,
+      "toolCalls": 28,
       "inputTokens": 45,
       "outputTokens": 2627,
       "cacheReadTokens": 0,

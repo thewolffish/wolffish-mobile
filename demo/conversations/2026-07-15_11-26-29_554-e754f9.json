@@ -52,6 +52,82 @@
         {
           "kind": "tool_call",
           "turnId": "hb_mrltg8qa",
+          "segmentId": "seg_td_3simlv_1a",
+          "toolCallId": "call_td_3simlv_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Check memory for context",
+                "status": "in_progress"
+              },
+              {
+                "content": "Read the WhatsApp thread",
+                "status": "pending"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "pending"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "pending"
+              },
+              {
+                "content": "Make the meme",
+                "status": "pending"
+              },
+              {
+                "content": "Send it on WhatsApp",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mrltg8qa",
+          "segmentId": "seg_td_3simlv_1b",
+          "toolCallId": "call_td_3simlv_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Read the WhatsApp thread\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Make the meme\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Send it on WhatsApp\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mrltg8qa",
+          "segmentId": "seg_td_3simlv_1c",
+          "items": [
+            {
+              "content": "Check memory for context",
+              "status": "in_progress"
+            },
+            {
+              "content": "Read the WhatsApp thread",
+              "status": "pending"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "pending"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "pending"
+            },
+            {
+              "content": "Make the meme",
+              "status": "pending"
+            },
+            {
+              "content": "Send it on WhatsApp",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "hb_mrltg8qa",
           "segmentId": "seg_5",
           "toolCallId": "call_00_nxLGWPiqzjepYtiA9yjd6155",
           "name": "memory_search",
@@ -421,7 +497,11 @@
           "name": "meme_generate",
           "args": {
             "template_id": "db",
-            "lines": ["All of Younes' problems", "Younes", "Sana existing"]
+            "lines": [
+              "All of Younes' problems",
+              "Younes",
+              "Sana existing"
+            ]
           }
         },
         {
@@ -491,6 +571,82 @@
           "output": "Sent image. messageId=3EB08E6BC956C49C1ABCEF to=966507219348@s.whatsapp.net"
         },
         {
+          "kind": "tool_call",
+          "turnId": "hb_mrltg8qa",
+          "segmentId": "seg_td_3simlv_2a",
+          "toolCallId": "call_td_3simlv_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Check memory for context",
+                "status": "completed"
+              },
+              {
+                "content": "Read the WhatsApp thread",
+                "status": "completed"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "completed"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "completed"
+              },
+              {
+                "content": "Make the meme",
+                "status": "completed"
+              },
+              {
+                "content": "Send it on WhatsApp",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mrltg8qa",
+          "segmentId": "seg_td_3simlv_2b",
+          "toolCallId": "call_td_3simlv_2",
+          "status": "success",
+          "output": "6 todos (6 completed, 0 in progress)\n[\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the WhatsApp thread\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Make the meme\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Send it on WhatsApp\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mrltg8qa",
+          "segmentId": "seg_td_3simlv_2c",
+          "items": [
+            {
+              "content": "Check memory for context",
+              "status": "completed"
+            },
+            {
+              "content": "Read the WhatsApp thread",
+              "status": "completed"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "completed"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "completed"
+            },
+            {
+              "content": "Make the meme",
+              "status": "completed"
+            },
+            {
+              "content": "Send it on WhatsApp",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "hb_mrltg8qa",
           "segmentId": "seg_352",
@@ -523,7 +679,7 @@
       "apiMs": 94169,
       "turns": 1,
       "apiCalls": 11,
-      "toolCalls": 21,
+      "toolCalls": 23,
       "inputTokens": 61836,
       "outputTokens": 4347,
       "cacheReadTokens": 370944,
@@ -535,7 +691,7 @@
       "elapsedMs": 105870,
       "apiMs": 94169,
       "apiCalls": 11,
-      "toolCalls": 21,
+      "toolCalls": 23,
       "inputTokens": 61836,
       "outputTokens": 4347,
       "cacheReadTokens": 370944,

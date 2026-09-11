@@ -6,8 +6,12 @@ import { useProjects } from '@/lib/sync/projects'
 import { useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
-import { ContextMeterCard, ModeAndThinkingControls } from '@/components/chat/ChatControls'
-import { ModelSelector, ModelSwitch } from '@/components/chat/ModelSwitch'
+import {
+  ContextMeterCard,
+  ModeAndThinkingControls,
+  PlanModeControl
+} from '@/components/chat/ChatControls'
+import { ModelSwitch } from '@/components/chat/ModelSwitch'
 
 /** The unfiled chip's value — the row keys on strings, so null needs one. */
 const NO_PROJECT = ''
@@ -154,7 +158,8 @@ function ProjectChips({
 
 /**
  * The chat controls themselves — everything that flanks the desktop composer
- * (model, mode, thinking, project, context meter), scrolling in one column.
+ * (model, mode, thinking, plan mode, project, context meter), scrolling in one
+ * column.
  *
  * Separate from the sheet below because project mode shows the SAME panel from
  * inside the project dialog (the composer's menu button becomes the project
@@ -187,8 +192,10 @@ export function ChatControlsPanel({
       showsVerticalScrollIndicator={false}
     >
       <ModelSwitch />
-      <ModelSelector />
       <ModeAndThinkingControls />
+      {/* The conversation's own stance — a fresh chat's until its first send
+          creates one. Hidden when no desktop can run the turn. */}
+      <PlanModeControl conversationId={conversation?.id ?? null} />
       {showProject && <ProjectChips conversation={conversation} onPicked={onProjectPicked} />}
       <ContextMeterCard conversation={conversation} />
     </ScrollView>

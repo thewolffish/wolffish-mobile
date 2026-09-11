@@ -125,6 +125,18 @@ export const Rpc = {
    * while the turns ran without its instructions.
    */
   conversationProject: 'desktop.conversations.project',
+  /**
+   * One conversation's plan-mode stance — `{ conversationId }` →
+   * `{ planMode }`. Read when the phone opens a chat so its switch matches
+   * the desktop's chip; the desktop holds the stance (main/runtime/plan-mode).
+   */
+  planModeGet: 'desktop.chat.planMode.get',
+  /**
+   * Set one conversation's plan-mode stance — `{ conversationId, planMode }`
+   * → `{ planMode }`. The desktop applies it and pushes `Event.planMode` to
+   * every surface, the phone included, so both sides settle on one answer.
+   */
+  planModeSet: 'desktop.chat.planMode.set',
   /** Usage totals and per-provider breakdown. */
   usage: 'desktop.usage',
   /**
@@ -213,7 +225,7 @@ export const Rpc = {
   approvalRespond: 'desktop.chat.approvalRespond',
   /**
    * Update the reflection schedule config. The body is a partial
-   * ReflectionConfig-shaped patch ({ hour?, quietHours?, cards? }); the
+   * ReflectionConfig-shaped patch ({ hour?, quietHours? }); the
    * answer is the desktop's complete post-write config. Callers render
    * the answer, never their own optimism — both screens can only ever show
    * what the desktop actually persisted.
@@ -346,13 +358,14 @@ export const Rpc = {
    */
   diagnosticsExport: 'desktop.diagnostics.export',
   /**
-   * What the phone's overlay stack should show right now — an `OverlaySeed`.
+   * Whether the desktop is rebuilding its memory index right now — an
+   * `OverlaySeed`.
    *
-   * Taken once per connection, because both halves of it only ever arrive as
-   * pushes: a phone that connects while a nightly reflection is halfway
-   * through has already missed the only announcement it was going to get, and
-   * would sit blank until the run ended. Nothing polls it afterwards; the
-   * pushes are what keep it current.
+   * Taken once per connection, because the status only ever arrives as a
+   * push: a phone that connects while a rebuild is halfway through has
+   * already missed the only announcement it was going to get, and would sit
+   * blank until it ended. Nothing polls it afterwards; the pushes are what
+   * keep it current.
    */
   overlaysRead: 'desktop.overlays.read',
   /**
@@ -394,6 +407,12 @@ export const Event = {
   messageAppended: 'message.appended',
   /** Turn lifecycle: thinking / running a tool / done. */
   turnStatus: 'turn.status',
+  /**
+   * A conversation's plan-mode stance changed on any surface —
+   * `{ conversationId, planMode }`. The phone mirrors it into its switch and
+   * chip; the desktop chip does the same through its own IPC.
+   */
+  planMode: 'chat.planMode',
   /**
    * The agent is asking the user multiple-choice question(s) and the turn is
    * parked until they answer. Payload mirrors the desktop's own chat:askRequest
@@ -445,12 +464,11 @@ export const Event = {
    * The automation run pool moved: `{ running, queued }`, the brainstem's own
    * snapshot. Carries its payload because it fires several times per run and a
    * fetch per tick would be pure overhead — the phone renders it straight into
-   * the play-button gating, as the desktop's cards do, and into the overlay
-   * stack, which is the phone's version of those cards.
+   * the Automations screen's play-button gating.
    *
-   * Compaction and reflection ride this same pool: they are brainstem jobs with
-   * fixed ids, not a separate system, which is why one topic feeds three of the
-   * four overlay kinds. `kind` on each row says which.
+   * Compaction, reflection and procedure runs ride this same pool: they are
+   * brainstem jobs, not a separate system. `kind` on each row says which, and
+   * the gating skips everything that is not an automation.
    */
   automationRunsChanged: 'automations.runs',
   /**
@@ -669,49 +687,34 @@ export type AutomationJob = {
 /**
  * Which family a run belongs to. Resolved on the DESKTOP from the brainstem's
  * job id, so the phone never parses ids to decide what it is looking at — the
- * built-in jobs are `compaction-daily`, `reflection-nightly` and friends, and
- * that naming is the scheduler's business, not the wire's.
+ * built-in jobs are `compaction-daily`, `reflection-nightly` and friends,
+ * procedure runs are `procedure:<id>`, and that naming is the scheduler's
+ * business, not the wire's.
  *
- * It also settles how `body` reads: an automation's body is the literal prompt
- * the user wrote, while the built-in jobs carry an i18n KEY (the desktop's own
- * overlay renders `t(job.body)` and i18next passes an unknown key through).
- * Both sides need the same rule, so `kind` states it rather than leaving each
- * renderer to sniff the string.
+ * Every family rides the wire. Consumers that mean *automations* specifically
+ * (the Automations screen's per-job status) must skip `procedure` rather than
+ * assume every row is a heading in heartbeat.md.
  */
-export const OVERLAY_KINDS = [
-  'automation',
-  'compaction',
-  'reflection',
-  'procedure',
-  'reindex'
-] as const
-export type OverlayKind = (typeof OVERLAY_KINDS)[number]
+export const RUN_KINDS = ['automation', 'compaction', 'reflection', 'procedure'] as const
+export type RunKind = (typeof RUN_KINDS)[number]
 
-/** One in-flight run. `body` reads per `kind` — see OverlayKind. */
+/** One in-flight run — what the Automations screen's play-button gating reads. */
 export type AutomationRun = {
   id: string
   label: string
-  body: string
-  kind: Exclude<OverlayKind, 'reindex'>
-  startedAt: number
-  mode: 'single' | 'workflow' | null
+  kind: RunKind
 }
 
 export type AutomationQueuedRun = {
   id: string
   label: string
-  kind: Exclude<OverlayKind, 'reindex'>
-  queuedAt: number
+  kind: RunKind
 }
 
 /**
- * The brainstem's run pool: in-flight runs plus the FIFO overflow.
- *
- * Everything past `id`/`label` was added for the phone's overlay cards and is
- * additive on purpose — a phone reading an older desktop gets rows without it,
- * which is why lib/sync/overlays.ts normalizes every row rather than trusting
- * the shape. The automations screen only ever reads `label`, so it is untouched
- * by the widening either way.
+ * The brainstem's run pool: in-flight runs plus the FIFO overflow. Every row
+ * is normalized off the wire (lib/sync/automations.ts readRuns) rather than
+ * trusted: an older desktop may send rows without `kind`.
  */
 export type AutomationRuns = {
   running: AutomationRun[]
@@ -734,16 +737,14 @@ export type ReindexStatus = {
 }
 
 /**
- * Everything the phone's overlay stack shows, in one answer — the run pool and
- * the reindex status together.
+ * What the phone's reindex overlay shows, in one answer.
  *
- * It exists because both are PUSH-shaped: neither has a screen that fetches it,
- * so a phone that connects while a nightly reflection is halfway through would
- * otherwise show nothing until the run ended. This is the seed that push
- * traffic then keeps current, taken once per connection.
+ * It exists because the reindex is PUSH-shaped: no screen fetches it, so a
+ * phone that connects while a rebuild is halfway through would otherwise show
+ * nothing until it ended. This is the seed that push traffic then keeps
+ * current, taken once per connection.
  */
 export type OverlaySeed = {
-  runs: AutomationRuns
   reindex: ReindexStatus | null
 }
 
@@ -754,7 +755,7 @@ export type OverlaySeed = {
  * hundred times per update would buy nothing the phone shows.
  *
  * The phase vocabulary is the desktop's own, exported as a list (the
- * OVERLAY_KINDS pattern) so the phone validates against it rather than
+ * RUN_KINDS pattern) so the phone validates against it rather than
  * keeping a copy. A phone reading a phase it does not know treats the
  * machine as 'idle' rather than guessing — an older app against a newer
  * desktop degrades to "no live card", never to a wrong one.

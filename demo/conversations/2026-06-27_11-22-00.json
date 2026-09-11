@@ -25,6 +25,82 @@
           "model": "deepseek-v4-pro"
         },
         {
+          "kind": "tool_call",
+          "turnId": "hb_mqw3d4r8",
+          "segmentId": "seg_td_1ec4e01_1a",
+          "toolCallId": "call_td_1ec4e01_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Find the GIF",
+                "status": "in_progress"
+              },
+              {
+                "content": "Check the connected Google accounts",
+                "status": "pending"
+              },
+              {
+                "content": "Find the GIF",
+                "status": "pending"
+              },
+              {
+                "content": "Read the unread emails",
+                "status": "pending"
+              },
+              {
+                "content": "Find the GIF",
+                "status": "pending"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mqw3d4r8",
+          "segmentId": "seg_td_1ec4e01_1b",
+          "toolCallId": "call_td_1ec4e01_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Check the connected Google accounts\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the unread emails\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mqw3d4r8",
+          "segmentId": "seg_td_1ec4e01_1c",
+          "items": [
+            {
+              "content": "Find the GIF",
+              "status": "in_progress"
+            },
+            {
+              "content": "Check the connected Google accounts",
+              "status": "pending"
+            },
+            {
+              "content": "Find the GIF",
+              "status": "pending"
+            },
+            {
+              "content": "Read the unread emails",
+              "status": "pending"
+            },
+            {
+              "content": "Find the GIF",
+              "status": "pending"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "text",
           "turnId": "hb_mqw3d4r8",
           "segmentId": "seg_2",
@@ -305,6 +381,82 @@
           "output": "Sent. message_id=900 to=8417306252 kind=photo"
         },
         {
+          "kind": "tool_call",
+          "turnId": "hb_mqw3d4r8",
+          "segmentId": "seg_td_1ec4e01_2a",
+          "toolCallId": "call_td_1ec4e01_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Find the GIF",
+                "status": "cancelled"
+              },
+              {
+                "content": "Check the connected Google accounts",
+                "status": "completed"
+              },
+              {
+                "content": "Find the GIF",
+                "status": "completed"
+              },
+              {
+                "content": "Read the unread emails",
+                "status": "completed"
+              },
+              {
+                "content": "Find the GIF",
+                "status": "completed"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mqw3d4r8",
+          "segmentId": "seg_td_1ec4e01_2b",
+          "toolCallId": "call_td_1ec4e01_2",
+          "status": "success",
+          "output": "6 todos (5 completed, 0 in progress)\n[\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"cancelled\"\n  },\n  {\n    \"content\": \"Check the connected Google accounts\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the unread emails\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mqw3d4r8",
+          "segmentId": "seg_td_1ec4e01_2c",
+          "items": [
+            {
+              "content": "Find the GIF",
+              "status": "cancelled"
+            },
+            {
+              "content": "Check the connected Google accounts",
+              "status": "completed"
+            },
+            {
+              "content": "Find the GIF",
+              "status": "completed"
+            },
+            {
+              "content": "Read the unread emails",
+              "status": "completed"
+            },
+            {
+              "content": "Find the GIF",
+              "status": "completed"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "hb_mqw3d4r8",
           "segmentId": "seg_172",
@@ -335,7 +487,7 @@
     "allTime": {
       "turns": 1,
       "apiCalls": 1,
-      "toolCalls": 11,
+      "toolCalls": 13,
       "inputTokens": 65,
       "outputTokens": 1462,
       "cacheReadTokens": 0,
@@ -353,7 +505,7 @@
       "elapsedMs": 82919,
       "apiMs": 67994,
       "apiCalls": 1,
-      "toolCalls": 11,
+      "toolCalls": 13,
       "inputTokens": 65,
       "outputTokens": 1462,
       "cacheReadTokens": 0,

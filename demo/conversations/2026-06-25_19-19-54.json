@@ -156,6 +156,82 @@
           "model": "deepseek-v4-pro"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1782412206138_lq8bow",
+          "segmentId": "seg_td_16uym92_1a",
+          "toolCallId": "call_td_16uym92_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Create directory",
+                "status": "in_progress"
+              },
+              {
+                "content": "Make HTTP request",
+                "status": "pending"
+              },
+              {
+                "content": "Copy files",
+                "status": "pending"
+              },
+              {
+                "content": "Search code",
+                "status": "pending"
+              },
+              {
+                "content": "Check python",
+                "status": "pending"
+              },
+              {
+                "content": "Deliver the file",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782412206138_lq8bow",
+          "segmentId": "seg_td_16uym92_1b",
+          "toolCallId": "call_td_16uym92_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Create directory\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Make HTTP request\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Copy files\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Search code\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Check python\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Deliver the file\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782412206138_lq8bow",
+          "segmentId": "seg_td_16uym92_1c",
+          "items": [
+            {
+              "content": "Create directory",
+              "status": "in_progress"
+            },
+            {
+              "content": "Make HTTP request",
+              "status": "pending"
+            },
+            {
+              "content": "Copy files",
+              "status": "pending"
+            },
+            {
+              "content": "Search code",
+              "status": "pending"
+            },
+            {
+              "content": "Check python",
+              "status": "pending"
+            },
+            {
+              "content": "Deliver the file",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "text",
           "turnId": "turn_1782412206138_lq8bow",
           "segmentId": "seg_2",
@@ -177,7 +253,14 @@
           "segmentId": "seg_55",
           "toolCallId": "call_00_IRDeLlbl6zXmBD1bPq5e6830",
           "status": "success",
-          "output": "(no output)"
+          "output": "(no output)",
+          "meta": {
+            "label": "Create directory",
+            "cwd": "/Users/younes",
+            "durationMs": 63,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -203,7 +286,14 @@
           "segmentId": "seg_58",
           "toolCallId": "call_00_3bQGPhkpdknX9bUBOxUs0392",
           "status": "success",
-          "output": "-rw-r--r--  1 younes  staff   407K Jun 25 21:30 06-ErMpBjiPQj30wNd4mN_ZdQ.png\n-rw-r--r--  1 younes  staff   388K Jun 25 21:30 08-N3OFC_IYNJM9QGepX5TGmg.png\n-rw-r--r--  1 younes  staff   379K Jun 25 21:30 04-zSOgsS3VPnIZZ_fKGZmBuQ.png\n-rw-r--r--  1 younes  staff   376K Jun 25 21:30 02-6Fx8cVMgjIWaI5we3aJh2g.png\n-rw-r--r--  1 younes  staff   373K Jun 25 21:30 01-pMCTca1XYHt4urUW4FEteg.png\n-rw-r--r--  1 younes  staff   356K Jun 25 21:30 10-WTNH_3NWKIkiPwtdQ5jXAg.png\n-rw-r--r--  1 younes  staff   299K Jun 25 21:30 11-oWxluOsVBi-2okJJwTSoZA.png\n-rw-r--r--  1 younes  staff   220K Jun 25 21:30 09-0zfde4ZZ4Elh8sTd4xdHCg.png\n-rw-r--r--  1 younes  staff   203K Jun 25 21:30 03-RK2mlXCVN2jmxZFXJkJkoA.png\n-rw-r--r--  1 younes  staff   193K Jun 25 21:30 05-7rY0tt3e5fzCeA-5Rp8qlA.png\n-rw-r--r--  1 younes  staff    76K Jun 25 21:30 07-W7YslTwiH8kcp3_j5fX_wg.png"
+          "output": "-rw-r--r--  1 younes  staff   407K Jun 25 21:30 06-ErMpBjiPQj30wNd4mN_ZdQ.png\n-rw-r--r--  1 younes  staff   388K Jun 25 21:30 08-N3OFC_IYNJM9QGepX5TGmg.png\n-rw-r--r--  1 younes  staff   379K Jun 25 21:30 04-zSOgsS3VPnIZZ_fKGZmBuQ.png\n-rw-r--r--  1 younes  staff   376K Jun 25 21:30 02-6Fx8cVMgjIWaI5we3aJh2g.png\n-rw-r--r--  1 younes  staff   373K Jun 25 21:30 01-pMCTca1XYHt4urUW4FEteg.png\n-rw-r--r--  1 younes  staff   356K Jun 25 21:30 10-WTNH_3NWKIkiPwtdQ5jXAg.png\n-rw-r--r--  1 younes  staff   299K Jun 25 21:30 11-oWxluOsVBi-2okJJwTSoZA.png\n-rw-r--r--  1 younes  staff   220K Jun 25 21:30 09-0zfde4ZZ4Elh8sTd4xdHCg.png\n-rw-r--r--  1 younes  staff   203K Jun 25 21:30 03-RK2mlXCVN2jmxZFXJkJkoA.png\n-rw-r--r--  1 younes  staff   193K Jun 25 21:30 05-7rY0tt3e5fzCeA-5Rp8qlA.png\n-rw-r--r--  1 younes  staff    76K Jun 25 21:30 07-W7YslTwiH8kcp3_j5fX_wg.png",
+          "meta": {
+            "label": "Make HTTP request",
+            "cwd": "/Users/younes",
+            "durationMs": 9941,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -248,7 +338,14 @@
           "toolCallId": "call_00_tKNtFnNx8ndO8LD2mc953071",
           "status": "failed",
           "output": "tool failed (unknown, non-retryable): Command exited with code 1: --- Remaining Medium URLs ---\n0\n--- Remaining Medium URLs ---\n0",
-          "error": "tool failed (unknown, non-retryable): Command exited with code 1: --- Remaining Medium URLs ---\n0\n--- Remaining Medium URLs ---\n0"
+          "error": "tool failed (unknown, non-retryable): Command exited with code 1: --- Remaining Medium URLs ---\n0\n--- Remaining Medium URLs ---\n0",
+          "meta": {
+            "label": "Copy files",
+            "cwd": "/Users/younes",
+            "durationMs": 61,
+            "exitCode": 1,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -280,7 +377,14 @@
           "toolCallId": "call_00_0bj95hPqfq8JqUOwuLm45142",
           "status": "failed",
           "output": "tool failed (unknown, non-retryable): Command exited with code 1: 0\n0",
-          "error": "tool failed (unknown, non-retryable): Command exited with code 1: 0\n0"
+          "error": "tool failed (unknown, non-retryable): Command exited with code 1: 0\n0",
+          "meta": {
+            "label": "Search code",
+            "cwd": "/Users/younes",
+            "durationMs": 46,
+            "exitCode": 1,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -353,7 +457,14 @@
           "segmentId": "seg_259",
           "toolCallId": "call_00_KXsHSgOx0CLBQOUg8Ouk8888",
           "status": "success",
-          "output": "Image tags inserted:\n11"
+          "output": "Image tags inserted:\n11",
+          "meta": {
+            "label": "Run shell command",
+            "cwd": "/Users/younes",
+            "durationMs": 69,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -385,6 +496,82 @@
           "toolCallId": "call_00_jYlBzf3gpb83z276739M3412",
           "status": "success",
           "output": "[wolffish-output: /Users/younes/.wolffish/workspace/files/loop-engineering-adnan-masood.html (file)]"
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1782412206138_lq8bow",
+          "segmentId": "seg_td_16uym92_2a",
+          "toolCallId": "call_td_16uym92_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Create directory",
+                "status": "completed"
+              },
+              {
+                "content": "Make HTTP request",
+                "status": "completed"
+              },
+              {
+                "content": "Copy files",
+                "status": "cancelled"
+              },
+              {
+                "content": "Search code",
+                "status": "cancelled"
+              },
+              {
+                "content": "Check python",
+                "status": "completed"
+              },
+              {
+                "content": "Deliver the file",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782412206138_lq8bow",
+          "segmentId": "seg_td_16uym92_2b",
+          "toolCallId": "call_td_16uym92_2",
+          "status": "success",
+          "output": "6 todos (4 completed, 0 in progress)\n[\n  {\n    \"content\": \"Create directory\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Make HTTP request\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Copy files\",\n    \"status\": \"cancelled\"\n  },\n  {\n    \"content\": \"Search code\",\n    \"status\": \"cancelled\"\n  },\n  {\n    \"content\": \"Check python\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Deliver the file\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782412206138_lq8bow",
+          "segmentId": "seg_td_16uym92_2c",
+          "items": [
+            {
+              "content": "Create directory",
+              "status": "completed"
+            },
+            {
+              "content": "Make HTTP request",
+              "status": "completed"
+            },
+            {
+              "content": "Copy files",
+              "status": "cancelled"
+            },
+            {
+              "content": "Search code",
+              "status": "cancelled"
+            },
+            {
+              "content": "Check python",
+              "status": "completed"
+            },
+            {
+              "content": "Deliver the file",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
         },
         {
           "kind": "active_model",
@@ -436,6 +623,14 @@
         "call_00_jYlBzf3gpb83z276739M3412": {
           "startedAt": 1782412321637,
           "endedAt": 1782412321717
+        },
+        "call_td_16uym92_2": {
+          "startedAt": 1782412322317,
+          "endedAt": 1782412322357
+        },
+        "call_td_16uym92_1": {
+          "startedAt": 1782412222867,
+          "endedAt": 1782412222907
         }
       },
       "stopReason": "end_turn",
@@ -482,7 +677,7 @@
     "allTime": {
       "turns": 3,
       "apiCalls": 3,
-      "toolCalls": 10,
+      "toolCalls": 12,
       "inputTokens": 85,
       "outputTokens": 7645,
       "cacheReadTokens": 36967,
@@ -500,7 +695,7 @@
       "elapsedMs": 1000,
       "apiMs": 820,
       "apiCalls": 1,
-      "toolCalls": 0,
+      "toolCalls": 2,
       "inputTokens": 10,
       "outputTokens": 57,
       "cacheReadTokens": 20063,

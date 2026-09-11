@@ -40,7 +40,14 @@
           "segmentId": "seg_3",
           "toolCallId": "call_00_KkDqdYwaghxVRL13usJG6072",
           "status": "success",
-          "output": "2026-06-27 10:54:25"
+          "output": "2026-06-27 10:54:25",
+          "meta": {
+            "label": "Run shell command",
+            "cwd": "/Users/younes",
+            "durationMs": 280,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -66,7 +73,17 @@
           "segmentId": "seg_6",
           "toolCallId": "call_00_7tlbvSlseuIstAvbzkkI5347",
           "status": "success",
-          "output": "Wrote 35 bytes to /Users/younes/Desktop/hello.md"
+          "output": "Created /Users/younes/Desktop/hello.md (39 bytes, +2 −0)",
+          "meta": {
+            "diff": {
+              "file": "/Users/younes/Desktop/hello.md",
+              "patch": "--- a/Users/younes/Desktop/hello.md\n+++ b/Users/younes/Desktop/hello.md\n@@ -0,0 +1,2 @@\n+Good morning ☀️\n+2026-06-27 10:54:25",
+              "additions": 2,
+              "deletions": 0,
+              "kind": "create"
+            },
+            "label": "Create"
+          }
         },
         {
           "kind": "active_model",

@@ -27,6 +27,74 @@
         {
           "kind": "tool_call",
           "turnId": "hb_mrbxidoa",
+          "segmentId": "seg_td_1nrb7jo_1a",
+          "toolCallId": "call_td_1nrb7jo_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Check memory for context",
+                "status": "in_progress"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "pending"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "pending"
+              },
+              {
+                "content": "Find the GIF",
+                "status": "pending"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mrbxidoa",
+          "segmentId": "seg_td_1nrb7jo_1b",
+          "toolCallId": "call_td_1nrb7jo_1",
+          "status": "success",
+          "output": "5 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mrbxidoa",
+          "segmentId": "seg_td_1nrb7jo_1c",
+          "items": [
+            {
+              "content": "Check memory for context",
+              "status": "in_progress"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "pending"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "pending"
+            },
+            {
+              "content": "Find the GIF",
+              "status": "pending"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "hb_mrbxidoa",
           "segmentId": "seg_2",
           "toolCallId": "call_00_GrOdZfcRtGKB2p5jvCh93716",
           "name": "memory_search",
@@ -418,6 +486,74 @@
           "output": "Sent. message_id=1165 to=8417306252 kind=photo"
         },
         {
+          "kind": "tool_call",
+          "turnId": "hb_mrbxidoa",
+          "segmentId": "seg_td_1nrb7jo_2a",
+          "toolCallId": "call_td_1nrb7jo_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Check memory for context",
+                "status": "completed"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "completed"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "completed"
+              },
+              {
+                "content": "Find the GIF",
+                "status": "completed"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mrbxidoa",
+          "segmentId": "seg_td_1nrb7jo_2b",
+          "toolCallId": "call_td_1nrb7jo_2",
+          "status": "success",
+          "output": "5 todos (5 completed, 0 in progress)\n[\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mrbxidoa",
+          "segmentId": "seg_td_1nrb7jo_2c",
+          "items": [
+            {
+              "content": "Check memory for context",
+              "status": "completed"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "completed"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "completed"
+            },
+            {
+              "content": "Find the GIF",
+              "status": "completed"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "hb_mrbxidoa",
           "segmentId": "seg_161",
@@ -448,7 +584,7 @@
     "allTime": {
       "turns": 1,
       "apiCalls": 1,
-      "toolCalls": 17,
+      "toolCalls": 19,
       "inputTokens": 81,
       "outputTokens": 14807,
       "cacheReadTokens": 0,
@@ -466,7 +602,7 @@
       "elapsedMs": 113167,
       "apiMs": 92797,
       "apiCalls": 1,
-      "toolCalls": 17,
+      "toolCalls": 19,
       "inputTokens": 81,
       "outputTokens": 14807,
       "cacheReadTokens": 0,

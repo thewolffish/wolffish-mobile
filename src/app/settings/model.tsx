@@ -5,7 +5,7 @@ import { Select } from '@/components/core/Select'
 import { CheckmarkCircle02Icon } from '@/components/core/icons'
 import { PROVIDER_LABELS, PROVIDER_LOGOS } from '@/components/core/providerLogos'
 import { ModeAndThinkingControls } from '@/components/chat/ChatControls'
-import { ModelSelector, ModelSwitch } from '@/components/chat/ModelSwitch'
+import { ModelSwitch } from '@/components/chat/ModelSwitch'
 import { PanelScreen, Section, StatusDot } from '@/components/settings/SettingsUI'
 import { cn } from '@/lib/utils/cn'
 import { useToast } from '@/providers/toast/useToast'
@@ -24,8 +24,9 @@ import { Text, View } from 'react-native'
 
 /**
  * Model, desktop UX: behavior controls up top — the two knobs touched every
- * session — then the Model card (Local/Cloud ModelSwitch and the active
- * side's picker), Local, then a card per cloud provider (logo, key state,
+ * session — then the Model card (provider chips, then that provider's
+ * models — Ollama listed beside the cloud providers, no Local/Cloud switch),
+ * Local, then a card per cloud provider (logo, key state,
  * masked key preview, new-key entry). Every control writes through to the
  * paired desktop over configSet; the connection test is the one demo-only
  * affordance, because the desktop has no test RPC to run it against.
@@ -162,7 +163,7 @@ const ProviderCard = memo(function ProviderCard({
  * snapshot time, which models it has pulled, the folder it scans — since this
  * device cannot reach that machine's localhost. Choosing among the installed
  * models is ours; pulling a new one, the endpoint, and the enabled switch are
- * not, and the Model switch above already shows which side is answering.
+ * not, and the Model picker above already says whether Ollama is answering.
  */
 const LocalSection = memo(function LocalSection(): React.JSX.Element {
   const { t } = useTranslation()
@@ -256,7 +257,6 @@ export default function ModelScreen(): React.JSX.Element {
 
       <Section title={t('settings.model.modelTitle')}>
         <ModelSwitch />
-        <ModelSelector />
       </Section>
 
       <LocalSection />

@@ -26,6 +26,74 @@
         {
           "kind": "tool_call",
           "turnId": "turn_1782281635322_2k7uz6",
+          "segmentId": "seg_td_1ywb40d_1a",
+          "toolCallId": "call_td_1ywb40d_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Read the WhatsApp thread",
+                "status": "in_progress"
+              },
+              {
+                "content": "Make the meme",
+                "status": "pending"
+              },
+              {
+                "content": "Find the GIF",
+                "status": "pending"
+              },
+              {
+                "content": "Make the meme",
+                "status": "pending"
+              },
+              {
+                "content": "Send it on WhatsApp",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782281635322_2k7uz6",
+          "segmentId": "seg_td_1ywb40d_1b",
+          "toolCallId": "call_td_1ywb40d_1",
+          "status": "success",
+          "output": "5 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Read the WhatsApp thread\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Make the meme\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Make the meme\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Send it on WhatsApp\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782281635322_2k7uz6",
+          "segmentId": "seg_td_1ywb40d_1c",
+          "items": [
+            {
+              "content": "Read the WhatsApp thread",
+              "status": "in_progress"
+            },
+            {
+              "content": "Make the meme",
+              "status": "pending"
+            },
+            {
+              "content": "Find the GIF",
+              "status": "pending"
+            },
+            {
+              "content": "Make the meme",
+              "status": "pending"
+            },
+            {
+              "content": "Send it on WhatsApp",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1782281635322_2k7uz6",
           "segmentId": "seg_2",
           "toolCallId": "call_00_SYHiVtsV3RSGwEonohrS0339",
           "name": "whatsapp_check",
@@ -198,7 +266,11 @@
           "name": "meme_generate",
           "args": {
             "template_id": "db",
-            "lines": ["Other AI assistants", "Sana", "Wolffish 🐟"]
+            "lines": [
+              "Other AI assistants",
+              "Sana",
+              "Wolffish 🐟"
+            ]
           }
         },
         {
@@ -241,6 +313,74 @@
           "toolCallId": "call_00_P3hIEd10ezOCWf7KNGoB9175",
           "status": "success",
           "output": "Sent image. messageId=3EB0017A1AA82BAFD16E87 to=966507219348@s.whatsapp.net"
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1782281635322_2k7uz6",
+          "segmentId": "seg_td_1ywb40d_2a",
+          "toolCallId": "call_td_1ywb40d_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Read the WhatsApp thread",
+                "status": "completed"
+              },
+              {
+                "content": "Make the meme",
+                "status": "completed"
+              },
+              {
+                "content": "Find the GIF",
+                "status": "completed"
+              },
+              {
+                "content": "Make the meme",
+                "status": "completed"
+              },
+              {
+                "content": "Send it on WhatsApp",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782281635322_2k7uz6",
+          "segmentId": "seg_td_1ywb40d_2b",
+          "toolCallId": "call_td_1ywb40d_2",
+          "status": "success",
+          "output": "5 todos (5 completed, 0 in progress)\n[\n  {\n    \"content\": \"Read the WhatsApp thread\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Make the meme\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Find the GIF\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Make the meme\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Send it on WhatsApp\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782281635322_2k7uz6",
+          "segmentId": "seg_td_1ywb40d_2c",
+          "items": [
+            {
+              "content": "Read the WhatsApp thread",
+              "status": "completed"
+            },
+            {
+              "content": "Make the meme",
+              "status": "completed"
+            },
+            {
+              "content": "Find the GIF",
+              "status": "completed"
+            },
+            {
+              "content": "Make the meme",
+              "status": "completed"
+            },
+            {
+              "content": "Send it on WhatsApp",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
         },
         {
           "kind": "active_model",
@@ -300,6 +440,14 @@
         "call_00_P3hIEd10ezOCWf7KNGoB9175": {
           "startedAt": 1782281676505,
           "endedAt": 1782281679093
+        },
+        "call_td_1ywb40d_2": {
+          "startedAt": 1782281679693,
+          "endedAt": 1782281679733
+        },
+        "call_td_1ywb40d_1": {
+          "startedAt": 1782281640724,
+          "endedAt": 1782281640764
         }
       },
       "stopReason": "end_turn",
@@ -310,7 +458,7 @@
     "allTime": {
       "turns": 1,
       "apiCalls": 1,
-      "toolCalls": 9,
+      "toolCalls": 11,
       "inputTokens": 28,
       "outputTokens": 612,
       "cacheReadTokens": 0,
@@ -328,7 +476,7 @@
       "elapsedMs": 1000,
       "apiMs": 820,
       "apiCalls": 1,
-      "toolCalls": 9,
+      "toolCalls": 11,
       "inputTokens": 28,
       "outputTokens": 612,
       "cacheReadTokens": 0,

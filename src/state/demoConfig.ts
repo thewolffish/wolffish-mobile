@@ -232,17 +232,9 @@ export type DemoConfigValues = {
   /** inapp.verbose — what the DESKTOP feed displays, not this device's. */
   inappVerbose: boolean
   /**
-   * inapp.runCards — whether a running automation OR procedure draws its
-   * floating card on the DESKTOP. Its own copy of the same question is
-   * `mobileRunCards` below; the two are deliberately separate, because a card
-   * worth having on the desk is not automatically one worth having in a
-   * pocket. Both default off.
-   */
-  inappRunCards: boolean
-  /**
    * inapp.reasoning — whether the model's thinking renders as a card. One
-   * workspace answer for BOTH surfaces (unlike the run cards above): this
-   * phone's feed and the desktop's obey the same key. ON by default, and
+   * workspace answer for BOTH surfaces: this phone's feed and the desktop's
+   * obey the same key. ON by default, and
    * display-only — switching it off hides the card, and the reasoning is
    * streamed and stored either way.
    */
@@ -256,13 +248,6 @@ export type DemoConfigValues = {
   /** mobile.verbose — what this phone's feed shows mid-turn: off (default)
    *  is the clean feed, on relays every tool call and activity card. */
   mobileVerbose: boolean
-  /**
-   * mobile.runCards — whether an automation or procedure running on the
-   * desktop draws its card over whatever screen THIS phone is on. Off by
-   * default; the pushes still arrive either way, so nothing but the
-   * interruption changes.
-   */
-  mobileRunCards: boolean
   /**
    * cli.verbose — what the TERMINAL's feed prints on the desktop, not this
    * device's. The only editable field on the CLI card: everything else there
@@ -318,14 +303,6 @@ export type DemoConfigValues = {
   compactionWeeklyHour: number
   reflectionHour: number
   reflectionQuietHours: number
-  /**
-   * compaction.cards / reflection.cards — whether a running compaction or
-   * reflection job draws its floating card. One switch per family, obeyed by
-   * BOTH surfaces (unlike the automation pair above): this is housekeeping
-   * either device can watch, not a per-device taste. Both default off.
-   */
-  compactionCards: boolean
-  reflectionCards: boolean
   // --- customization ---
   /**
    * The three hand-written documents that shape the agent, verbatim — the
@@ -447,11 +424,9 @@ const DEFAULTS: DemoConfigValues = {
   weekStartsOn: 1,
   updatesEnabled: true,
   inappVerbose: false,
-  inappRunCards: false,
   inappReasoning: true,
   mobileNotifications: true,
   mobileVerbose: false,
-  mobileRunCards: false,
   cliVerbose: false,
   telegramEnabled: true,
   telegramAllowedUserIds: '429753549',
@@ -493,9 +468,6 @@ const DEFAULTS: DemoConfigValues = {
   // Desktop DEFAULT_REFLECTION: 3 AM, 12 h quiet.
   reflectionHour: 3,
   reflectionQuietHours: 12,
-  // Floating run cards, all off — the desktop's own defaults.
-  compactionCards: false,
-  reflectionCards: false,
   soulMarkdown: DEMO_SOUL_MD,
   userMarkdown: DEMO_USER_MD,
   agentsMarkdown: DEMO_AGENTS_MD,
@@ -593,7 +565,7 @@ export type ConfigSnapshot = {
    *
    * The run pool is deliberately NOT here: a run is something happening right
    * now on a machine this one cannot see, and a bundled one would be a claim
-   * with no evidence behind it (see lib/sync/overlays).
+   * with no evidence behind it.
    */
   automations?: {
     /** heartbeat.md verbatim. */
@@ -664,9 +636,8 @@ export type ConfigSnapshot = {
     }
   }
   channels: {
-    /** Absent in bundles published before the in-app feed setting shipped;
-     *  `runCards` is later still and falls back to off. */
-    inapp?: { verbose?: boolean; runCards?: boolean; reasoning?: boolean }
+    /** Absent in bundles published before the in-app feed setting shipped. */
+    inapp?: { verbose?: boolean; reasoning?: boolean }
     /**
      * The terminal channel. `verbose` is the only editable field; the other
      * four describe the desktop machine and are absent whenever that desktop
@@ -686,7 +657,7 @@ export type ConfigSnapshot = {
     /** This phone's own channel. Absent in bundles (and on desktops) from
      *  before these two settings reached the snapshot; notifications then
      *  falls back to ON and the feed to clean, as the desktop defaults them. */
-    mobile?: { notifications?: boolean; verbose?: boolean; runCards?: boolean }
+    mobile?: { notifications?: boolean; verbose?: boolean }
     telegram: {
       enabled: boolean
       allowedUserIds: string
@@ -779,8 +750,6 @@ export type ConfigSnapshot = {
     dailyHour?: number
     weeklyDay?: number
     weeklyHour?: number
-    /** Floating run cards. Absent on desktops from before they shipped. */
-    cards?: boolean
     runs?: {
       daily?: CompactionRunRecord | null
       weekly?: CompactionRunRecord | null
@@ -798,8 +767,6 @@ export type ConfigSnapshot = {
   reflection?: {
     hour?: number
     quietHours?: number
-    /** Floating run cards. Absent on desktops from before they shipped. */
-    cards?: boolean
   }
   /**
    * The workspace usage ledger folded per (day × provider × model) — what the
@@ -1184,8 +1151,6 @@ export const useDemoConfig = create<DemoConfigState>()(
             compactionDailyHour: compaction?.dailyHour ?? DEFAULTS.compactionDailyHour,
             compactionWeeklyDay: compaction?.weeklyDay ?? DEFAULTS.compactionWeeklyDay,
             compactionWeeklyHour: compaction?.weeklyHour ?? DEFAULTS.compactionWeeklyHour,
-            compactionCards: compaction?.cards ?? DEFAULTS.compactionCards,
-            reflectionCards: snapshot.reflection?.cards ?? DEFAULTS.reflectionCards,
             reflectionHour: snapshot.reflection?.hour ?? DEFAULTS.reflectionHour,
             reflectionQuietHours: snapshot.reflection?.quietHours ?? DEFAULTS.reflectionQuietHours,
             compactionRuns: {
@@ -1255,12 +1220,10 @@ export const useDemoConfig = create<DemoConfigState>()(
             })),
             restrictPowerfulModels: snapshot.llm.restrictPowerfulModels,
             inappVerbose: snapshot.channels.inapp?.verbose ?? DEFAULTS.inappVerbose,
-            inappRunCards: snapshot.channels.inapp?.runCards ?? DEFAULTS.inappRunCards,
             inappReasoning: snapshot.channels.inapp?.reasoning ?? DEFAULTS.inappReasoning,
             mobileNotifications:
               snapshot.channels.mobile?.notifications ?? DEFAULTS.mobileNotifications,
             mobileVerbose: snapshot.channels.mobile?.verbose ?? DEFAULTS.mobileVerbose,
-            mobileRunCards: snapshot.channels.mobile?.runCards ?? DEFAULTS.mobileRunCards,
             cliVerbose: snapshot.channels.cli?.verbose ?? DEFAULTS.cliVerbose,
             // The three probed fields keep `null` when the source omitted them
             // — a desktop whose PATH walk or launchctl query failed, or one
@@ -1475,9 +1438,6 @@ const DESKTOP_EDITABLE: ReadonlySet<keyof DemoConfigValues> = new Set<keyof Demo
   // in force for the next turn, and moves the desktop panel's control too.
   'mobileNotifications',
   'mobileVerbose',
-  // This phone's own floating automation cards, through the same channel
-  // setter — so flipping it here moves the desktop Mobile panel's control too.
-  'mobileRunCards',
   // The terminal's feed. Written on the desktop through setCliConfig and
   // announced on cli:configChange — the same push its own Channels → CLI panel
   // re-seeds from, so a flip here moves that panel's control too. The rest of
@@ -1533,9 +1493,6 @@ const DESKTOP_EDITABLE: ReadonlySet<keyof DemoConfigValues> = new Set<keyof Demo
   // deliberately absent on both sides: starting a bridge process is the
   // desktop's own act, and those rows render as status here.
   'inappVerbose',
-  // The desktop's floating automation cards — that machine's setting, edited
-  // from here exactly as the feed switch above it is.
-  'inappRunCards',
   // The thinking card — the workspace's answer, so flipping it here changes
   // this phone's feed and the desktop's in the same act.
   'inappReasoning',
@@ -1557,10 +1514,7 @@ const DESKTOP_EDITABLE: ReadonlySet<keyof DemoConfigValues> = new Set<keyof Demo
   // (lib/sync/reflection); these three are Knowledge's generic-path keys.
   'compactionDailyHour',
   'compactionWeeklyDay',
-  'compactionWeeklyHour',
-  // Compaction's floating run cards. Reflection's twin is NOT here: it rides
-  // the reflection RPC with the rest of that config.
-  'compactionCards'
+  'compactionWeeklyHour'
 ])
 
 /**

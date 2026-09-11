@@ -27,6 +27,80 @@
         {
           "kind": "tool_call",
           "turnId": "turn_1783897835300_f051e6",
+          "segmentId": "seg_td_70ksv9_1a",
+          "toolCallId": "call_td_70ksv9_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Activate the right tools",
+                "status": "in_progress"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "pending"
+              },
+              {
+                "content": "List mcp",
+                "status": "pending"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "pending"
+              },
+              {
+                "content": "Print file contents",
+                "status": "pending"
+              },
+              {
+                "content": "Find files",
+                "status": "pending"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783897835300_f051e6",
+          "segmentId": "seg_td_70ksv9_1b",
+          "toolCallId": "call_td_70ksv9_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"List mcp\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Print file contents\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Find files\",\n    \"status\": \"pending\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783897835300_f051e6",
+          "segmentId": "seg_td_70ksv9_1c",
+          "items": [
+            {
+              "content": "Activate the right tools",
+              "status": "in_progress"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "pending"
+            },
+            {
+              "content": "List mcp",
+              "status": "pending"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "pending"
+            },
+            {
+              "content": "Print file contents",
+              "status": "pending"
+            },
+            {
+              "content": "Find files",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1783897835300_f051e6",
           "segmentId": "seg_2",
           "toolCallId": "call_00_meH7SYyFg3NVRPFP5xN58528",
           "name": "tool_search",
@@ -151,7 +225,14 @@
           "status": "failed",
           "output": "tool failed (not_found, non-retryable): Command exited with code 1: cat: /Users/younes/.wolffish/runtime/config.json: No such file or directory\ncat: /Users/younes/.wolffish/runtime/config.json: No such file or directory",
           "error": "cat: /Users/younes/.wolffish/runtime/config.json: No such file or directory",
-          "conversationId": "2026-07-13_02-10-35_281-34e07f"
+          "conversationId": "2026-07-13_02-10-35_281-34e07f",
+          "meta": {
+            "label": "Print file contents",
+            "cwd": "/Users/younes",
+            "durationMs": 88,
+            "exitCode": 1,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -179,7 +260,88 @@
           "toolCallId": "call_00_1JtDvRFaoxz1GGetkEzc6045",
           "status": "success",
           "output": "/Users/younes/.wolffish/bin/python/cache/archive-v0/D7wOUWZt36sCmq7Y/kokoro_onnx/config.json\n/Users/younes/.wolffish/bin/python/venvs/kokoro-tts/lib/python3.12/site-packages/kokoro_onnx/config.json\n/Users/younes/.wolffish/bin/whisper-models/models--Systran--faster-whisper-base/snapshots/ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66/config.json\n/Users/younes/.wolffish/workspace/config.json",
-          "conversationId": "2026-07-13_02-10-35_281-34e07f"
+          "conversationId": "2026-07-13_02-10-35_281-34e07f",
+          "meta": {
+            "label": "Find files",
+            "cwd": "/Users/younes",
+            "durationMs": 928,
+            "exitCode": 0,
+            "truncated": false
+          }
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1783897835300_f051e6",
+          "segmentId": "seg_td_70ksv9_2a",
+          "toolCallId": "call_td_70ksv9_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Activate the right tools",
+                "status": "completed"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "completed"
+              },
+              {
+                "content": "List mcp",
+                "status": "completed"
+              },
+              {
+                "content": "Check memory for context",
+                "status": "completed"
+              },
+              {
+                "content": "Print file contents",
+                "status": "cancelled"
+              },
+              {
+                "content": "Find files",
+                "status": "completed"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783897835300_f051e6",
+          "segmentId": "seg_td_70ksv9_2b",
+          "toolCallId": "call_td_70ksv9_2",
+          "status": "success",
+          "output": "6 todos (5 completed, 0 in progress)\n[\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"List mcp\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Check memory for context\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Print file contents\",\n    \"status\": \"cancelled\"\n  },\n  {\n    \"content\": \"Find files\",\n    \"status\": \"completed\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783897835300_f051e6",
+          "segmentId": "seg_td_70ksv9_2c",
+          "items": [
+            {
+              "content": "Activate the right tools",
+              "status": "completed"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "completed"
+            },
+            {
+              "content": "List mcp",
+              "status": "completed"
+            },
+            {
+              "content": "Check memory for context",
+              "status": "completed"
+            },
+            {
+              "content": "Print file contents",
+              "status": "cancelled"
+            },
+            {
+              "content": "Find files",
+              "status": "completed"
+            }
+          ]
         },
         {
           "kind": "active_model",
@@ -238,6 +400,14 @@
         "call_00_1JtDvRFaoxz1GGetkEzc6045": {
           "startedAt": 1783897862561,
           "endedAt": 1783897863489
+        },
+        "call_td_70ksv9_2": {
+          "startedAt": 1783897864089,
+          "endedAt": 1783897864129
+        },
+        "call_td_70ksv9_1": {
+          "startedAt": 1783897845797,
+          "endedAt": 1783897845837
         }
       },
       "stopReason": "end_turn",
@@ -368,7 +538,7 @@
       "apiMs": 44698,
       "turns": 2,
       "apiCalls": 9,
-      "toolCalls": 9,
+      "toolCalls": 11,
       "inputTokens": 126700,
       "outputTokens": 1693,
       "cacheReadTokens": 163712,
@@ -380,7 +550,7 @@
       "elapsedMs": 18685,
       "apiMs": 16938,
       "apiCalls": 3,
-      "toolCalls": 2,
+      "toolCalls": 4,
       "inputTokens": 65135,
       "outputTokens": 500,
       "cacheReadTokens": 56192,

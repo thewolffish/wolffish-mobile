@@ -27,6 +27,82 @@
         {
           "kind": "tool_call",
           "turnId": "hb_mrcmnzsf",
+          "segmentId": "seg_td_ub94rz_1a",
+          "toolCallId": "call_td_ub94rz_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “top AI news today July 2026” and 2 more",
+                "status": "in_progress"
+              },
+              {
+                "content": "Read the top sources (3 pages)",
+                "status": "pending"
+              },
+              {
+                "content": "Search the web for “AI news July 8 2026 Fable 5 CNBC Chinese mo…” and 2 more",
+                "status": "pending"
+              },
+              {
+                "content": "Read the top sources (3 pages)",
+                "status": "pending"
+              },
+              {
+                "content": "Search the web for “Trump cancels AI executive order July 8 2026” and 2 more",
+                "status": "pending"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mrcmnzsf",
+          "segmentId": "seg_td_ub94rz_1b",
+          "toolCallId": "call_td_ub94rz_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Search the web for “top AI news today July 2026” and 2 more\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Read the top sources (3 pages)\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Search the web for “AI news July 8 2026 Fable 5 CNBC Chinese mo…” and 2 more\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the top sources (3 pages)\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Search the web for “Trump cancels AI executive order July 8 2026” and 2 more\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mrcmnzsf",
+          "segmentId": "seg_td_ub94rz_1c",
+          "items": [
+            {
+              "content": "Search the web for “top AI news today July 2026” and 2 more",
+              "status": "in_progress"
+            },
+            {
+              "content": "Read the top sources (3 pages)",
+              "status": "pending"
+            },
+            {
+              "content": "Search the web for “AI news July 8 2026 Fable 5 CNBC Chinese mo…” and 2 more",
+              "status": "pending"
+            },
+            {
+              "content": "Read the top sources (3 pages)",
+              "status": "pending"
+            },
+            {
+              "content": "Search the web for “Trump cancels AI executive order July 8 2026” and 2 more",
+              "status": "pending"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "hb_mrcmnzsf",
           "segmentId": "seg_2",
           "toolCallId": "call_00_0xhfeP1M55RmK36EAnWQ6256",
           "name": "web_search",
@@ -496,6 +572,82 @@
           "output": "Sent. message_id=1199 to=8417306252 kind=document"
         },
         {
+          "kind": "tool_call",
+          "turnId": "hb_mrcmnzsf",
+          "segmentId": "seg_td_ub94rz_2a",
+          "toolCallId": "call_td_ub94rz_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “top AI news today July 2026” and 2 more",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (3 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Search the web for “AI news July 8 2026 Fable 5 CNBC Chinese mo…” and 2 more",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (3 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Search the web for “Trump cancels AI executive order July 8 2026” and 2 more",
+                "status": "completed"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mrcmnzsf",
+          "segmentId": "seg_td_ub94rz_2b",
+          "toolCallId": "call_td_ub94rz_2",
+          "status": "success",
+          "output": "6 todos (6 completed, 0 in progress)\n[\n  {\n    \"content\": \"Search the web for “top AI news today July 2026” and 2 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (3 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search the web for “AI news July 8 2026 Fable 5 CNBC Chinese mo…” and 2 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (3 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search the web for “Trump cancels AI executive order July 8 2026” and 2 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mrcmnzsf",
+          "segmentId": "seg_td_ub94rz_2c",
+          "items": [
+            {
+              "content": "Search the web for “top AI news today July 2026” and 2 more",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (3 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Search the web for “AI news July 8 2026 Fable 5 CNBC Chinese mo…” and 2 more",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (3 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Search the web for “Trump cancels AI executive order July 8 2026” and 2 more",
+              "status": "completed"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "hb_mrcmnzsf",
           "segmentId": "seg_54",
@@ -526,7 +678,7 @@
     "allTime": {
       "turns": 1,
       "apiCalls": 1,
-      "toolCalls": 21,
+      "toolCalls": 23,
       "inputTokens": 77,
       "outputTokens": 27131,
       "cacheReadTokens": 0,
@@ -544,7 +696,7 @@
       "elapsedMs": 238050,
       "apiMs": 195201,
       "apiCalls": 1,
-      "toolCalls": 21,
+      "toolCalls": 23,
       "inputTokens": 77,
       "outputTokens": 27131,
       "cacheReadTokens": 0,

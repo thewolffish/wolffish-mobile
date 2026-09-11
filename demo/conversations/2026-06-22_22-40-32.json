@@ -39,7 +39,14 @@
           "segmentId": "seg_3",
           "toolCallId": "call_00_jW2WD00hIconvkyUWASQ8997",
           "status": "success",
-          "output": "2026-06-22"
+          "output": "2026-06-22",
+          "meta": {
+            "label": "Run shell command",
+            "cwd": "/Users/younes",
+            "durationMs": 32,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",

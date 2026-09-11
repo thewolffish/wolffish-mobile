@@ -140,6 +140,60 @@
         {
           "kind": "tool_call",
           "turnId": "turn_1782394885933_6v4p3t",
+          "segmentId": "seg_td_1k4hi3p_1a",
+          "toolCallId": "call_td_1k4hi3p_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Reply with a voice note",
+                "status": "in_progress",
+                "priority": "high"
+              },
+              {
+                "content": "Upload stt transcribe",
+                "status": "pending"
+              },
+              {
+                "content": "Reply with a voice note",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782394885933_6v4p3t",
+          "segmentId": "seg_td_1k4hi3p_1b",
+          "toolCallId": "call_td_1k4hi3p_1",
+          "status": "success",
+          "output": "3 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Reply with a voice note\",\n    \"status\": \"in_progress\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Upload stt transcribe\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Reply with a voice note\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782394885933_6v4p3t",
+          "segmentId": "seg_td_1k4hi3p_1c",
+          "items": [
+            {
+              "content": "Reply with a voice note",
+              "status": "in_progress",
+              "priority": "high"
+            },
+            {
+              "content": "Upload stt transcribe",
+              "status": "pending"
+            },
+            {
+              "content": "Reply with a voice note",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1782394885933_6v4p3t",
           "segmentId": "seg_2",
           "toolCallId": "call_00_JzWAf4N4VjjXHarWJ91D4316",
           "name": "voice_respond",
@@ -206,6 +260,60 @@
           "output": "{\"filePath\":\"/Users/younes/.wolffish/workspace/speech/conv-2026-06-25_16-39-36/1782394908067-d9872769.mp3\",\"fileName\":\"1782394908067-d9872769.mp3\",\"sizeBytes\":106460,\"voice\":\"af_bella\",\"speed\":1,\"isResponse\":true,\"textLength\":161}"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1782394885933_6v4p3t",
+          "segmentId": "seg_td_1k4hi3p_2a",
+          "toolCallId": "call_td_1k4hi3p_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Reply with a voice note",
+                "status": "completed",
+                "priority": "high"
+              },
+              {
+                "content": "Upload stt transcribe",
+                "status": "completed"
+              },
+              {
+                "content": "Reply with a voice note",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782394885933_6v4p3t",
+          "segmentId": "seg_td_1k4hi3p_2b",
+          "toolCallId": "call_td_1k4hi3p_2",
+          "status": "success",
+          "output": "3 todos (3 completed, 0 in progress)\n[\n  {\n    \"content\": \"Reply with a voice note\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Upload stt transcribe\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Reply with a voice note\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782394885933_6v4p3t",
+          "segmentId": "seg_td_1k4hi3p_2c",
+          "items": [
+            {
+              "content": "Reply with a voice note",
+              "status": "completed",
+              "priority": "high"
+            },
+            {
+              "content": "Upload stt transcribe",
+              "status": "completed"
+            },
+            {
+              "content": "Reply with a voice note",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "turn_1782394885933_6v4p3t",
           "segmentId": "seg_10",
@@ -239,6 +347,14 @@
         "call_00_2S7dW3syQizBsZ3hj3OP0580": {
           "startedAt": 1782394907955,
           "endedAt": 1782394912195
+        },
+        "call_td_1k4hi3p_2": {
+          "startedAt": 1782394912795,
+          "endedAt": 1782394912835
+        },
+        "call_td_1k4hi3p_1": {
+          "startedAt": 1782394893818,
+          "endedAt": 1782394893858
         }
       },
       "stopReason": "end_turn",
@@ -249,7 +365,7 @@
     "allTime": {
       "turns": 2,
       "apiCalls": 2,
-      "toolCalls": 5,
+      "toolCalls": 7,
       "inputTokens": 1650,
       "outputTokens": 442,
       "cacheReadTokens": 13379,
@@ -267,7 +383,7 @@
       "elapsedMs": 1000,
       "apiMs": 820,
       "apiCalls": 1,
-      "toolCalls": 3,
+      "toolCalls": 5,
       "inputTokens": 829,
       "outputTokens": 284,
       "cacheReadTokens": 13379,

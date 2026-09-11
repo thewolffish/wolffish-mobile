@@ -24,6 +24,80 @@
           "model": "deepseek-v4-pro"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1782428888411_l1b7x7",
+          "segmentId": "seg_td_1r8d7hg_1a",
+          "toolCallId": "call_td_1r8d7hg_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Reload skill",
+                "status": "in_progress"
+              },
+              {
+                "content": "Search skill",
+                "status": "pending"
+              },
+              {
+                "content": "List skill",
+                "status": "pending"
+              },
+              {
+                "content": "Create skill",
+                "status": "pending"
+              },
+              {
+                "content": "Read the file",
+                "status": "pending"
+              },
+              {
+                "content": "List skill",
+                "status": "pending"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782428888411_l1b7x7",
+          "segmentId": "seg_td_1r8d7hg_1b",
+          "toolCallId": "call_td_1r8d7hg_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Reload skill\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Search skill\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"List skill\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Create skill\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the file\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"List skill\",\n    \"status\": \"pending\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782428888411_l1b7x7",
+          "segmentId": "seg_td_1r8d7hg_1c",
+          "items": [
+            {
+              "content": "Reload skill",
+              "status": "in_progress"
+            },
+            {
+              "content": "Search skill",
+              "status": "pending"
+            },
+            {
+              "content": "List skill",
+              "status": "pending"
+            },
+            {
+              "content": "Create skill",
+              "status": "pending"
+            },
+            {
+              "content": "Read the file",
+              "status": "pending"
+            },
+            {
+              "content": "List skill",
+              "status": "pending"
+            }
+          ]
+        },
+        {
           "kind": "text",
           "turnId": "turn_1782428888411_l1b7x7",
           "segmentId": "seg_2",
@@ -457,6 +531,80 @@
           "output": "## Skills (28)\n\n- **ask** [official] — Ask the user a multiple-choice question with an interactive in-app card — pause for their decision, then continue with the option they pick or the custom instructions they type. · 1 tool\n- **browser** [official] — Automate web browsers — navigate sites, fill forms, click buttons, extract data, take screenshots, and run multi-step web workflows · 25 tools\n- **browser-extension** [official] — Control the user's connected Chrome/Brave browser via the Wolffish extension — navigate pages, click elements, fill forms, take screenshots, read content, manage tabs, and execute JavaScript in the user's real browser session. · 58 tools\n- **cloudflared** [official] — Cloudflare Tunnel CLI for exposing local services · 4 tools\n- **computer-use** [official] — Desktop automation — take screenshots, move/click mouse, type text, press keys. Used for visual tasks where the agent needs to see and interact with the user's screen. · 8 tools\n- **document** [official] — Read, create, modify, convert, and merge documents (docx, html, markdown, plain text) · 10 tools\n- **ffmpeg** [official] — FFmpeg multimedia framework for video/audio processing · 4 tools\n- **filesystem** [official] — Read, write, and edit files on the local system · 3 tools\n- **git** [official] — Git operations and conventions, layered on top of the shell capability. · no tools (procedure only)\n- **github** [official] — GitHub integration — repos, issues, pull requests, branches, CI/Actions, code search, releases, gists, collaborators, labels, milestones, reviews, notifications, stars, forks, and more via the GitHub API · 53 tools\n- **google** [official] — Google Workspace integration — Gmail, Drive, Calendar, Contacts, Tasks, and Sheets via gogcli · 29 tools\n- **introspect** [official] — Check Wolffish's own status, performance, and memory · 5 tools\n- **memes** [official] — Find, generate, and share memes and GIFs. Can create custom captioned memes from popular templates or search for reaction GIFs. · 5 tools\n- **node** [official] — Node.js runtime and npm package manager · 3 tools\n- **notion** [official] — Read, create, update, and manage Notion pages, databases, and blocks · 15 tools\n- **package-manager** [official] — Cross-platform system package manager. Uses Homebrew on macOS (auto-installs if missing), winget on Windows (pre-installed), apt on Debian/Ubuntu, dnf on Fedora/RHEL. · 3 tools\n- **pdf** [official] — Read, create, modify, merge, split, secure, and compress PDF documents · 9 tools\n- **planning** [official] — Think before acting. Plan tasks with clear phases, success criteria, and verification steps before executing any tools. · no tools (procedure only)\n- **python** [official] — Hermetic Python runtime (uv-managed CPython) for native Python plugins · 2 tools\n- **secrets** [official] — Save and list the user's secrets and variables (Settings > Variables) — API keys, tokens, base URLs, and other reusable values · 2 tools\n- **shell** [official] — Execute shell commands on the local system · 1 tool\n- **skills** [official] — Manage and create Wolffish's own skills (capabilities) — list, search, enable, disable, delete, and author brand-new skills at runtime · 8 tools\n- **speech-to-text** [official] — Transcribe audio files into text using faster-whisper (CTranslate2). Supports 99+ languages with automatic detection. Runs entirely locally — no API keys, no cloud, fully offline after setup. · 4 tools\n- **spreadsheet** [official] — Read, create, modify, analyze, and convert spreadsheet files (xlsx, csv, tsv) · 10 tools\n- **system** [official] — Open and close applications, open files/folders/URLs, and control machine power (restart, shutdown, sleep, lock, logout) · 5 tools\n- **text-to-speech** [official] — Generate voice memos from text using a fully local neural TTS engine (Kokoro). Convert any text to spoken audio, respond with voice memos, or create voice summaries — entirely on-device, no cloud. · 3 tools\n- **utilities** [official] — Small built-in utility tools that don't belong to a bigger capability — currently delivering files to the user as attachments. · 1 tool\n- **web-search** [official] — Search the web and read web pages for current information, documentation, news, and research · 2 tools\n\nLegend: *custom* skills can be disabled or deleted; *official* skills can be disabled but not deleted."
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1782428888411_l1b7x7",
+          "segmentId": "seg_td_1r8d7hg_2a",
+          "toolCallId": "call_td_1r8d7hg_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Reload skill",
+                "status": "completed"
+              },
+              {
+                "content": "Search skill",
+                "status": "completed"
+              },
+              {
+                "content": "List skill",
+                "status": "completed"
+              },
+              {
+                "content": "Create skill",
+                "status": "cancelled"
+              },
+              {
+                "content": "Read the file",
+                "status": "completed"
+              },
+              {
+                "content": "List skill",
+                "status": "completed"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782428888411_l1b7x7",
+          "segmentId": "seg_td_1r8d7hg_2b",
+          "toolCallId": "call_td_1r8d7hg_2",
+          "status": "success",
+          "output": "6 todos (5 completed, 0 in progress)\n[\n  {\n    \"content\": \"Reload skill\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search skill\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"List skill\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Create skill\",\n    \"status\": \"cancelled\"\n  },\n  {\n    \"content\": \"Read the file\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"List skill\",\n    \"status\": \"completed\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782428888411_l1b7x7",
+          "segmentId": "seg_td_1r8d7hg_2c",
+          "items": [
+            {
+              "content": "Reload skill",
+              "status": "completed"
+            },
+            {
+              "content": "Search skill",
+              "status": "completed"
+            },
+            {
+              "content": "List skill",
+              "status": "completed"
+            },
+            {
+              "content": "Create skill",
+              "status": "cancelled"
+            },
+            {
+              "content": "Read the file",
+              "status": "completed"
+            },
+            {
+              "content": "List skill",
+              "status": "completed"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "turn_1782428888411_l1b7x7",
           "segmentId": "seg_237",
@@ -538,6 +686,14 @@
         "call_01_gaUCOgVrflxBCXd6fj756161": {
           "startedAt": 1782428955666,
           "endedAt": 1782428955706
+        },
+        "call_td_1r8d7hg_2": {
+          "startedAt": 1782428956306,
+          "endedAt": 1782428956346
+        },
+        "call_td_1r8d7hg_1": {
+          "startedAt": 1782428894862,
+          "endedAt": 1782428894902
         }
       },
       "stopReason": "end_turn",
@@ -548,7 +704,7 @@
     "allTime": {
       "turns": 1,
       "apiCalls": 1,
-      "toolCalls": 15,
+      "toolCalls": 17,
       "inputTokens": 46,
       "outputTokens": 7815,
       "cacheReadTokens": 0,
@@ -566,7 +722,7 @@
       "elapsedMs": 1000,
       "apiMs": 820,
       "apiCalls": 1,
-      "toolCalls": 15,
+      "toolCalls": 17,
       "inputTokens": 46,
       "outputTokens": 7815,
       "cacheReadTokens": 0,

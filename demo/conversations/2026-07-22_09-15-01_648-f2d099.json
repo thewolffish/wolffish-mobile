@@ -50,6 +50,74 @@
           "model": "deepseek-v4-pro"
         },
         {
+          "kind": "tool_call",
+          "turnId": "hb_mrvou51s",
+          "segmentId": "seg_td_ljd4vx_1a",
+          "toolCallId": "call_td_ljd4vx_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Activate the right tools",
+                "status": "in_progress"
+              },
+              {
+                "content": "Check the connected Google accounts",
+                "status": "pending"
+              },
+              {
+                "content": "Read the unread emails",
+                "status": "pending"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "pending",
+                "priority": "high"
+              },
+              {
+                "content": "Mark them read",
+                "status": "pending"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mrvou51s",
+          "segmentId": "seg_td_ljd4vx_1b",
+          "toolCallId": "call_td_ljd4vx_1",
+          "status": "success",
+          "output": "5 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Check the connected Google accounts\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the unread emails\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Mark them read\",\n    \"status\": \"pending\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mrvou51s",
+          "segmentId": "seg_td_ljd4vx_1c",
+          "items": [
+            {
+              "content": "Activate the right tools",
+              "status": "in_progress"
+            },
+            {
+              "content": "Check the connected Google accounts",
+              "status": "pending"
+            },
+            {
+              "content": "Read the unread emails",
+              "status": "pending"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "content": "Mark them read",
+              "status": "pending"
+            }
+          ]
+        },
+        {
           "kind": "text",
           "turnId": "hb_mrvou51s",
           "segmentId": "seg_5",
@@ -281,7 +349,9 @@
           "name": "google_gmail_mark_read",
           "args": {
             "account": "youneswolf@gmail.com",
-            "ids": ["19f83e53c6fb1965"]
+            "ids": [
+              "19f83e53c6fb1965"
+            ]
           }
         },
         {
@@ -292,7 +362,9 @@
           "name": "google_gmail_mark_read",
           "args": {
             "account": "younes@wolffi.sh",
-            "ids": ["19f8872e11627c60"]
+            "ids": [
+              "19f8872e11627c60"
+            ]
           }
         },
         {
@@ -318,6 +390,74 @@
           "toolCallId": "call_02_aN2cBmGtAxsWXBwTIwgf4883",
           "status": "success",
           "output": "{\"action\":\"marked as read\",\"addedLabels\":null,\"count\":1,\"removedLabels\":[\"UNREAD\"]}"
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "hb_mrvou51s",
+          "segmentId": "seg_td_ljd4vx_2a",
+          "toolCallId": "call_td_ljd4vx_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Activate the right tools",
+                "status": "completed"
+              },
+              {
+                "content": "Check the connected Google accounts",
+                "status": "completed"
+              },
+              {
+                "content": "Read the unread emails",
+                "status": "completed"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "completed",
+                "priority": "high"
+              },
+              {
+                "content": "Mark them read",
+                "status": "completed"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "hb_mrvou51s",
+          "segmentId": "seg_td_ljd4vx_2b",
+          "toolCallId": "call_td_ljd4vx_2",
+          "status": "success",
+          "output": "5 todos (5 completed, 0 in progress)\n[\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Check the connected Google accounts\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the unread emails\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  },\n  {\n    \"content\": \"Mark them read\",\n    \"status\": \"completed\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "hb_mrvou51s",
+          "segmentId": "seg_td_ljd4vx_2c",
+          "items": [
+            {
+              "content": "Activate the right tools",
+              "status": "completed"
+            },
+            {
+              "content": "Check the connected Google accounts",
+              "status": "completed"
+            },
+            {
+              "content": "Read the unread emails",
+              "status": "completed"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "completed",
+              "priority": "high"
+            },
+            {
+              "content": "Mark them read",
+              "status": "completed"
+            }
+          ]
         },
         {
           "kind": "active_model",
@@ -352,7 +492,7 @@
       "apiMs": 67172,
       "turns": 1,
       "apiCalls": 9,
-      "toolCalls": 12,
+      "toolCalls": 14,
       "inputTokens": 77748,
       "outputTokens": 3466,
       "cacheReadTokens": 407424,
@@ -364,7 +504,7 @@
       "elapsedMs": 76616,
       "apiMs": 67172,
       "apiCalls": 9,
-      "toolCalls": 12,
+      "toolCalls": 14,
       "inputTokens": 77748,
       "outputTokens": 3466,
       "cacheReadTokens": 407424,

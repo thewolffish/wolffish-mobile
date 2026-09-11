@@ -24,6 +24,80 @@
           "model": "deepseek-v4-pro"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1782419993525_dtircy",
+          "segmentId": "seg_td_b4zvkn_1a",
+          "toolCallId": "call_td_b4zvkn_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search skill",
+                "status": "in_progress"
+              },
+              {
+                "content": "List skill",
+                "status": "pending"
+              },
+              {
+                "content": "Create skill",
+                "status": "pending"
+              },
+              {
+                "content": "Search skill",
+                "status": "pending"
+              },
+              {
+                "content": "Read the file",
+                "status": "pending"
+              },
+              {
+                "content": "Search skill",
+                "status": "pending"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782419993525_dtircy",
+          "segmentId": "seg_td_b4zvkn_1b",
+          "toolCallId": "call_td_b4zvkn_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Search skill\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"List skill\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Create skill\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Search skill\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the file\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Search skill\",\n    \"status\": \"pending\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782419993525_dtircy",
+          "segmentId": "seg_td_b4zvkn_1c",
+          "items": [
+            {
+              "content": "Search skill",
+              "status": "in_progress"
+            },
+            {
+              "content": "List skill",
+              "status": "pending"
+            },
+            {
+              "content": "Create skill",
+              "status": "pending"
+            },
+            {
+              "content": "Search skill",
+              "status": "pending"
+            },
+            {
+              "content": "Read the file",
+              "status": "pending"
+            },
+            {
+              "content": "Search skill",
+              "status": "pending"
+            }
+          ]
+        },
+        {
           "kind": "text",
           "turnId": "turn_1782419993525_dtircy",
           "segmentId": "seg_2",
@@ -863,6 +937,80 @@
           "output": "No skill matches \"coinflip\". You may need to create one — see the \"skills\" procedure, then call skill_create."
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1782419993525_dtircy",
+          "segmentId": "seg_td_b4zvkn_2a",
+          "toolCallId": "call_td_b4zvkn_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search skill",
+                "status": "completed"
+              },
+              {
+                "content": "List skill",
+                "status": "completed"
+              },
+              {
+                "content": "Create skill",
+                "status": "completed"
+              },
+              {
+                "content": "Search skill",
+                "status": "completed"
+              },
+              {
+                "content": "Read the file",
+                "status": "completed"
+              },
+              {
+                "content": "Search skill",
+                "status": "completed"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782419993525_dtircy",
+          "segmentId": "seg_td_b4zvkn_2b",
+          "toolCallId": "call_td_b4zvkn_2",
+          "status": "success",
+          "output": "6 todos (6 completed, 0 in progress)\n[\n  {\n    \"content\": \"Search skill\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"List skill\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Create skill\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search skill\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the file\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search skill\",\n    \"status\": \"completed\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782419993525_dtircy",
+          "segmentId": "seg_td_b4zvkn_2c",
+          "items": [
+            {
+              "content": "Search skill",
+              "status": "completed"
+            },
+            {
+              "content": "List skill",
+              "status": "completed"
+            },
+            {
+              "content": "Create skill",
+              "status": "completed"
+            },
+            {
+              "content": "Search skill",
+              "status": "completed"
+            },
+            {
+              "content": "Read the file",
+              "status": "completed"
+            },
+            {
+              "content": "Search skill",
+              "status": "completed"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "turn_1782419993525_dtircy",
           "segmentId": "seg_779",
@@ -992,6 +1140,14 @@
         "call_00_iUdi8vpYJwZaNAvby32W3431": {
           "startedAt": 1782420176816,
           "endedAt": 1782420176854
+        },
+        "call_td_b4zvkn_2": {
+          "startedAt": 1782420177454,
+          "endedAt": 1782420177494
+        },
+        "call_td_b4zvkn_1": {
+          "startedAt": 1782420001624,
+          "endedAt": 1782420001664
         }
       },
       "stopReason": "end_turn",
@@ -1002,7 +1158,7 @@
     "allTime": {
       "turns": 1,
       "apiCalls": 1,
-      "toolCalls": 27,
+      "toolCalls": 29,
       "inputTokens": 146,
       "outputTokens": 12717,
       "cacheReadTokens": 0,
@@ -1020,7 +1176,7 @@
       "elapsedMs": 1000,
       "apiMs": 820,
       "apiCalls": 1,
-      "toolCalls": 27,
+      "toolCalls": 29,
       "inputTokens": 146,
       "outputTokens": 12717,
       "cacheReadTokens": 0,

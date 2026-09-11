@@ -27,6 +27,64 @@
         {
           "kind": "tool_call",
           "turnId": "turn_1783764333236_f7z8ab",
+          "segmentId": "seg_td_1470fvo_1a",
+          "toolCallId": "call_td_1470fvo_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “OpenAI model forces Anthropic bundle Fable…” and 1 more",
+                "status": "in_progress"
+              },
+              {
+                "content": "Read the top sources (4 pages)",
+                "status": "pending"
+              },
+              {
+                "content": "Search the web for “OpenAI GPT-5.6 launch forces Anthropic Fabl…”",
+                "status": "pending"
+              },
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "pending"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783764333236_f7z8ab",
+          "segmentId": "seg_td_1470fvo_1b",
+          "toolCallId": "call_td_1470fvo_1",
+          "status": "success",
+          "output": "4 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Search the web for “OpenAI model forces Anthropic bundle Fable…” and 1 more\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Read the top sources (4 pages)\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Search the web for “OpenAI GPT-5.6 launch forces Anthropic Fabl…”\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"pending\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783764333236_f7z8ab",
+          "segmentId": "seg_td_1470fvo_1c",
+          "items": [
+            {
+              "content": "Search the web for “OpenAI model forces Anthropic bundle Fable…” and 1 more",
+              "status": "in_progress"
+            },
+            {
+              "content": "Read the top sources (4 pages)",
+              "status": "pending"
+            },
+            {
+              "content": "Search the web for “OpenAI GPT-5.6 launch forces Anthropic Fabl…”",
+              "status": "pending"
+            },
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1783764333236_f7z8ab",
           "segmentId": "seg_2",
           "toolCallId": "call_00_LVMC7sHSDwln5kei6IIu0736",
           "name": "web_search",
@@ -226,6 +284,64 @@
           "output": "# OpenAI Rumored to Launch GPT-5.6 to Public, Exactly Timing Anthropic Fable 5 Limit Expiration\n\nAI Podcast\n\nOpenAI is poised to launch its GPT-5.6 series, featuring three specialized sub-models—Sol, Terra, and Luna—designed to compete directly with Anthropic by offering superior performance at significantly lower price points. Code leaks and market indicators suggest a targeted release window starting July 7, strategically timed during a shift in Anthropic's service model. While the flagship Sol model demonstrates industry-leading benchmark results, full public access remains contingent on US regulatory approval. Consequently, the rollout may prioritize enterprise users initially, reflecting a phased deployment strategy amid heightened government oversight and competitive pressure within the AI sector.\n\nTradingKey - Recently, anticipation for the release of GPT-5.6 has continued to build within the developer community. Prediction data from Polymarket showed that the probability of the model being officially released to the public today (July 7) once reached 68% to 74.5%.\n\nOn the X platform, developers have also found direct evidence in the code. Within the underlying code of OpenAI's Codex application, adaptation entries for three major sub-models—Sol, Terra, and Luna—have already appeared, along with a brand-new \"speed dial\" feature, hinting that users may be able to freely adjust between response speed and generation quality in the future.\n\nEven more intriguing than the code leaks is the timing of the release.\n\nSources say that OpenAI has internally locked its target window between July 7 and July 9. July 7 happens to be the first day that competitor Anthropic's Claude Fable 5 is removed from subscription packages and transitioned to pay-as-you-go. At a time when Anthropic is facing a surge in user complaints due to overly strict safety mechanisms, OpenAI's decision to release at this juncture is being interpreted by the market as a long-planned commercial preemptive strike.\n\n## A three-tier structure: a clear pricing system\n\nGPT-5.6 has abandoned the traditional Mini/Standard/Ultra tiering system, opting instead for astrophysical naming, with a highly distinct division of labor among the three models.\n\nSol is the undisputed flagship, targeting high-difficulty reasoning, complex coding, and cybersecurity. In the Terminal-Bench 2.1 programming benchmark, Sol Ultra achieved a score of 91.9%, surpassing Claude Mythos 5's 88%. In terms of pricing, Sol costs $5 per million input tokens and $30 per million output tokens—with input costs at just half of Claude Fable 5's, and output costs at roughly 60%.\n\nTerra is positioned as the \"all-rounder\" (hexagon warrior), offering performance on par with GPT-5.5 but at literally half the price, with input at $2.5 per million tokens and output at $15 per million tokens.\n\nLuna is geared towards high-frequency, high-volume task scenarios, prioritizing speed and cost. It is the lowest-priced model in the GPT-5.6 series, costing $1 per million input tokens and $6 per million output tokens.\n\n## The Largest Variable: Regulatory Scrutiny\n\nHowever, a full launch still faces a key hurdle: regulatory scrutiny by the US government.\n\nAs early as June 26, the GPT-5.6 series was \"released,\" but only as a limited preview for a small number of \"trusted partners,\" and was not open to the general public. The US government has required OpenAI to adopt a phased rollout strategy, with customers needing approval for access on a case-by-case basis. OpenAI CEO Sam Altman made it clear in an internal memo that complying with such reviews is not the company's preferred long-term operating model, and the goal is to achieve a broader opening in a few weeks.\n\nAs of now, OpenAI has still not officially announced a clear timeline for a full rollout. There are rumors that GPT-5.6 \"will be officially launched in the next day or two, at which point it will no longer be limited to a few partners and will be available to all users.\" The July 7 window is highly likely to be just an expansion from \"limited preview\" to \"more enterprise users,\" rather than an immediate full-scale launch for products like ChatGPT. Regardless, market expectations for this commercial chess game have reached a fever pitch.\n\nThis content was translated using AI and reviewed for clarity. It is for informational purposes only.\n\n### Comments (0)\n\nClick the $ button, enter the symbol, and select to link a stock, ETF, or other ticker.\n\n## Recommended Articles\n\n### OpenAI Partners With Broadcom to Create Jalapeño Chip: A 'Break Free From Nvidia' Gamble, Will It Succeed?\n\n### Broadcom Stock Price Forecast: $30 Billion Apple Partnership Ignites Shares, Expected to Rise to $500 in July\n\n### Samsung Electronics Stock Price Forecast: 2026 First Half Surge Over 100%, Second Half Continue Frantic New Highs or Severe Avalanche?\n\n### Nasdaq 100 Index ETFs: What Are the Differences Between QQQ and QQQM?\n\n### Apple Sues OpenAI for Stealing Trade Secrets, Latter’s IPO Valuation Logic to Face Clear Pressure"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1783764333236_f7z8ab",
+          "segmentId": "seg_td_1470fvo_2a",
+          "toolCallId": "call_td_1470fvo_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “OpenAI model forces Anthropic bundle Fable…” and 1 more",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (4 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Search the web for “OpenAI GPT-5.6 launch forces Anthropic Fabl…”",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "completed"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783764333236_f7z8ab",
+          "segmentId": "seg_td_1470fvo_2b",
+          "toolCallId": "call_td_1470fvo_2",
+          "status": "success",
+          "output": "4 todos (4 completed, 0 in progress)\n[\n  {\n    \"content\": \"Search the web for “OpenAI model forces Anthropic bundle Fable…” and 1 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (4 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search the web for “OpenAI GPT-5.6 launch forces Anthropic Fabl…”\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"completed\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783764333236_f7z8ab",
+          "segmentId": "seg_td_1470fvo_2c",
+          "items": [
+            {
+              "content": "Search the web for “OpenAI model forces Anthropic bundle Fable…” and 1 more",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (4 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Search the web for “OpenAI GPT-5.6 launch forces Anthropic Fabl…”",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "completed"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "turn_1783764333236_f7z8ab",
           "segmentId": "seg_24",
@@ -283,6 +399,14 @@
         "call_01_f3Exj4DRfhv14G6FSWD29617": {
           "startedAt": 1783764388644,
           "endedAt": 1783764391923
+        },
+        "call_td_1470fvo_2": {
+          "startedAt": 1783764392523,
+          "endedAt": 1783764392563
+        },
+        "call_td_1470fvo_1": {
+          "startedAt": 1783764352743,
+          "endedAt": 1783764352783
         }
       },
       "stopReason": "end_turn"
@@ -295,7 +419,7 @@
       "apiMs": 48848,
       "turns": 1,
       "apiCalls": 6,
-      "toolCalls": 9,
+      "toolCalls": 11,
       "inputTokens": 23477,
       "outputTokens": 1922,
       "cacheReadTokens": 106496,
@@ -307,7 +431,7 @@
       "elapsedMs": 79960,
       "apiMs": 48848,
       "apiCalls": 6,
-      "toolCalls": 9,
+      "toolCalls": 11,
       "inputTokens": 23477,
       "outputTokens": 1922,
       "cacheReadTokens": 106496,

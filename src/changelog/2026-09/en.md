@@ -1,4 +1,26 @@
-## v1.0.52 — 2026-09-05 `Latest`
+## v1.0.53 — 2026-09-11 `Latest`
+
+### Plan First, Change Things After
+
+A new **Plan** switch sits in the chat controls, beside the model and thinking knobs. Turn it on and the turns that follow **only look**: the agent reads, searches and works the problem out, then writes you **a plan to approve** — nothing on your machine is touched while the switch is on. A small **Plan** chip sits in the composer the whole time it is, so the stance is never hidden from the conversation, and one tap on that chip ends it. It is **the same stance the desktop's composer holds**: set it here and the chip over there follows, set it there and this one does, so the two can never disagree about what the next turn is allowed to do.
+
+### Edits and Commands Show Without Turning Anything On
+
+A clean feed used to mean replies and delivered files and nothing else — while the agent edited files and ran commands entirely out of sight. **Every file edit, write and shell run now draws its own compact row**, whatever the tool-activity switch says, because a change in your project is not tool mechanics. The row names the **file or the command**, carries a green **+N** and a red **−M** for an edit or the **exit code** for a run, and how long it took. Tap it open and you get the real thing: the **red-and-green diff with line numbers** for an edit, the output for a command — and, when an output was too large to hold, **where the whole of it was saved**. The switch itself is plainer about all this now: it reads **Show all tool activity**, and says exactly what stays visible when it is off.
+
+### The Task List Ticks Itself Off
+
+When the agent breaks a job into a checklist, that checklist is now **a card in the conversation** — a mark against every item, a red **high** tag where one earned it, and a **done-of-total** count with a progress bar across the top. It **updates in place** instead of reprinting itself: an item moves from waiting to running to done on the card already sitting there, and a list the agent picks back up **several turns later resolves the original card**, where you first saw it, rather than starting a second one.
+
+### Choosing a Model Is One Row
+
+The **Local / Cloud** switch has gone. Providers now sit in **a single row** — **Ollama among them**, listed whenever its daemon is up on your desktop, exactly as a cloud provider is listed once it has a key — and under that row, the models that provider actually has. Picking settles local-versus-cloud **by itself**, which is all that switch was ever doing behind the scenes, so there is one decision where there used to be two.
+
+### The Floating Run Cards Retire
+
+The live cards that floated over whatever screen you were on while an automation, a procedure, the nightly reflection or the daily tidy-up ran are **gone**, and so are their **four switches** on Settings › Channels and Settings › Knowledge. They shipped switched off and were best left that way: a run on a machine you are not looking at should not interrupt the one you are. **Nothing about the runs themselves changes** — same schedules, same notifications — and the **Automations** and **Knowledge** screens still report exactly what ran and when. The one card that stays is the **memory index rebuild**, because that one really does mean your desktop has stopped answering, and a phone left guessing why is worse than a card.
+
+## v1.0.52 — 2026-09-05
 
 ### The Thinking Card Is Now Yours to Hide
 

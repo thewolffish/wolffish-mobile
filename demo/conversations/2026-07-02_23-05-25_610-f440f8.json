@@ -24,6 +24,56 @@
           "model": "deepseek-v4-pro"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1783019125622_6vw7u7",
+          "segmentId": "seg_td_17dsdfs_1a",
+          "toolCallId": "call_td_17dsdfs_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "List the enabled zapier actions",
+                "status": "in_progress"
+              },
+              {
+                "content": "Execute the zapier read action",
+                "status": "pending"
+              },
+              {
+                "content": "Execute the zapier write action",
+                "status": "pending"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783019125622_6vw7u7",
+          "segmentId": "seg_td_17dsdfs_1b",
+          "toolCallId": "call_td_17dsdfs_1",
+          "status": "success",
+          "output": "3 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"List the enabled zapier actions\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Execute the zapier read action\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Execute the zapier write action\",\n    \"status\": \"pending\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783019125622_6vw7u7",
+          "segmentId": "seg_td_17dsdfs_1c",
+          "items": [
+            {
+              "content": "List the enabled zapier actions",
+              "status": "in_progress"
+            },
+            {
+              "content": "Execute the zapier read action",
+              "status": "pending"
+            },
+            {
+              "content": "Execute the zapier write action",
+              "status": "pending"
+            }
+          ]
+        },
+        {
           "kind": "text",
           "turnId": "turn_1783019125622_6vw7u7",
           "segmentId": "seg_2",
@@ -203,6 +253,56 @@
           "output": "{\"results\":\"Confirmation message was sent\",\"feedbackUrl\":\"https://mcp.zapier.com/mcp/servers/963d4004-a389-4f38-8aed-ffb804db22d6/history/executions/e765f791-006e-4bb8-9dbd-b7b754ca1c2d\",\"execution\":{\"id\":\"e765f791-006e-4bb8-9dbd-b7b754ca1c2d\",\"actionId\":\"16283c9b-0b68-4992-8bcb-2cac041dec83\",\"mcpServerId\":\"963d4004-a389-4f38-8aed-ffb804db22d6\",\"toolName\":\"discord_send_channel_message\",\"actionDisplayName\":\"Discord: Send Channel Message\",\"actionSelectedApi\":\"DiscordCLIAPI\",\"instructions\":\"Send a simple \\\"hello world\\\" message to the general channel on the Wolffish Discord server\",\"params\":{\"content\":\"hello world 👋🐟\",\"channel_id\":\"1505175587197812829\",\"output_hint\":\"Confirmation message was sent\",\"instructions\":\"Send a simple \\\"hello world\\\" message to the general channel on the Wolffish Discord server\"},\"resolvedParams\":{\"content\":{\"name\":\"Message Text\",\"label\":null,\"value\":\"hello world 👋🐟\",\"reason\":\"top-level-hint\",\"status\":\"locked\"},\"channel_id\":{\"name\":\"Channel\",\"label\":null,\"value\":\"1505175587197812829\",\"reason\":\"id-like\",\"status\":\"locked\"}},\"status\":\"SUCCESS\",\"createdDT\":\"2026-07-02T19:06:10.344Z\",\"invocationId\":\"57c76d45-e27e-478c-b9f4-d90ccc3c3c4f\",\"moderationResult\":null},\"isPreview\":false}"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1783019125622_6vw7u7",
+          "segmentId": "seg_td_17dsdfs_2a",
+          "toolCallId": "call_td_17dsdfs_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "List the enabled zapier actions",
+                "status": "completed"
+              },
+              {
+                "content": "Execute the zapier read action",
+                "status": "completed"
+              },
+              {
+                "content": "Execute the zapier write action",
+                "status": "completed"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783019125622_6vw7u7",
+          "segmentId": "seg_td_17dsdfs_2b",
+          "toolCallId": "call_td_17dsdfs_2",
+          "status": "success",
+          "output": "3 todos (3 completed, 0 in progress)\n[\n  {\n    \"content\": \"List the enabled zapier actions\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Execute the zapier read action\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Execute the zapier write action\",\n    \"status\": \"completed\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783019125622_6vw7u7",
+          "segmentId": "seg_td_17dsdfs_2c",
+          "items": [
+            {
+              "content": "List the enabled zapier actions",
+              "status": "completed"
+            },
+            {
+              "content": "Execute the zapier read action",
+              "status": "completed"
+            },
+            {
+              "content": "Execute the zapier write action",
+              "status": "completed"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "turn_1783019125622_6vw7u7",
           "segmentId": "seg_94",
@@ -248,6 +348,14 @@
         "call_00_02li3tOzTk3ba3FV4aTq3575": {
           "startedAt": 1783019163058,
           "endedAt": 1783019171726
+        },
+        "call_td_17dsdfs_2": {
+          "startedAt": 1783019172326,
+          "endedAt": 1783019172366
+        },
+        "call_td_17dsdfs_1": {
+          "startedAt": 1783019136295,
+          "endedAt": 1783019136335
         }
       },
       "stopReason": "end_turn",
@@ -258,7 +366,7 @@
     "allTime": {
       "turns": 1,
       "apiCalls": 1,
-      "toolCalls": 6,
+      "toolCalls": 8,
       "inputTokens": 19,
       "outputTokens": 1943,
       "cacheReadTokens": 0,
@@ -276,7 +384,7 @@
       "elapsedMs": 1000,
       "apiMs": 820,
       "apiCalls": 1,
-      "toolCalls": 6,
+      "toolCalls": 8,
       "inputTokens": 19,
       "outputTokens": 1943,
       "cacheReadTokens": 0,

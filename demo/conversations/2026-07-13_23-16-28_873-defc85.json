@@ -50,6 +50,82 @@
           "model": "deepseek-v4-pro"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1783973789696_kounwx",
+          "segmentId": "seg_td_stw2w5_1a",
+          "toolCallId": "call_td_stw2w5_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “bootstrapped B2B AI SaaS sold fast high rev…” and 15 more",
+                "status": "in_progress"
+              },
+              {
+                "content": "Read the top sources (6 pages)",
+                "status": "pending"
+              },
+              {
+                "content": "Search the web for “site:indiehackers.com AI B2B sold acquired…” and 6 more",
+                "status": "pending"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "pending"
+              },
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "pending"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783973789696_kounwx",
+          "segmentId": "seg_td_stw2w5_1b",
+          "toolCallId": "call_td_stw2w5_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Search the web for “bootstrapped B2B AI SaaS sold fast high rev…” and 15 more\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Read the top sources (6 pages)\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Search the web for “site:indiehackers.com AI B2B sold acquired…” and 6 more\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783973789696_kounwx",
+          "segmentId": "seg_td_stw2w5_1c",
+          "items": [
+            {
+              "content": "Search the web for “bootstrapped B2B AI SaaS sold fast high rev…” and 15 more",
+              "status": "in_progress"
+            },
+            {
+              "content": "Read the top sources (6 pages)",
+              "status": "pending"
+            },
+            {
+              "content": "Search the web for “site:indiehackers.com AI B2B sold acquired…” and 6 more",
+              "status": "pending"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "pending"
+            },
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "pending"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "text",
           "turnId": "turn_1783973789696_kounwx",
           "segmentId": "seg_5",
@@ -886,6 +962,82 @@
           "output": "Sent. message_id=1395 to=8417306252 kind=document"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1783973789696_kounwx",
+          "segmentId": "seg_td_stw2w5_2a",
+          "toolCallId": "call_td_stw2w5_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “bootstrapped B2B AI SaaS sold fast high rev…” and 15 more",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (6 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Search the web for “site:indiehackers.com AI B2B sold acquired…” and 6 more",
+                "status": "completed"
+              },
+              {
+                "content": "Activate the right tools",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783973789696_kounwx",
+          "segmentId": "seg_td_stw2w5_2b",
+          "toolCallId": "call_td_stw2w5_2",
+          "status": "success",
+          "output": "6 todos (6 completed, 0 in progress)\n[\n  {\n    \"content\": \"Search the web for “bootstrapped B2B AI SaaS sold fast high rev…” and 15 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (6 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search the web for “site:indiehackers.com AI B2B sold acquired…” and 6 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Activate the right tools\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783973789696_kounwx",
+          "segmentId": "seg_td_stw2w5_2c",
+          "items": [
+            {
+              "content": "Search the web for “bootstrapped B2B AI SaaS sold fast high rev…” and 15 more",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (6 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Search the web for “site:indiehackers.com AI B2B sold acquired…” and 6 more",
+              "status": "completed"
+            },
+            {
+              "content": "Activate the right tools",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "turn_1783973789696_kounwx",
           "segmentId": "seg_362",
@@ -1055,6 +1207,14 @@
         "call_00_ACWQKs4y4gJvtQyP8EOS2184": {
           "startedAt": 1783974122744,
           "endedAt": 1783974123973
+        },
+        "call_td_stw2w5_2": {
+          "startedAt": 1783974124573,
+          "endedAt": 1783974124613
+        },
+        "call_td_stw2w5_1": {
+          "startedAt": 1783973805913,
+          "endedAt": 1783973805953
         }
       },
       "stopReason": "end_turn"
@@ -1102,6 +1262,74 @@
           "segmentId": "seg_4",
           "provider": "deepseek",
           "model": "deepseek-v4-pro"
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1783988931624_6m6kew",
+          "segmentId": "seg_td_1cdjbkn_1a",
+          "toolCallId": "call_td_1cdjbkn_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “AI sales call coaching conversation intelli…” and 19 more",
+                "status": "in_progress"
+              },
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "pending"
+              },
+              {
+                "content": "Render the PDF",
+                "status": "pending"
+              },
+              {
+                "content": "Read the page",
+                "status": "pending"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783988931624_6m6kew",
+          "segmentId": "seg_td_1cdjbkn_1b",
+          "toolCallId": "call_td_1cdjbkn_1",
+          "status": "success",
+          "output": "5 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Search the web for “AI sales call coaching conversation intelli…” and 19 more\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Render the PDF\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the page\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783988931624_6m6kew",
+          "segmentId": "seg_td_1cdjbkn_1c",
+          "items": [
+            {
+              "content": "Search the web for “AI sales call coaching conversation intelli…” and 19 more",
+              "status": "in_progress"
+            },
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "pending"
+            },
+            {
+              "content": "Render the PDF",
+              "status": "pending"
+            },
+            {
+              "content": "Read the page",
+              "status": "pending"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
         },
         {
           "kind": "text",
@@ -1661,6 +1889,74 @@
           "output": "Sent. message_id=1430 to=8417306252 kind=document"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1783988931624_6m6kew",
+          "segmentId": "seg_td_1cdjbkn_2a",
+          "toolCallId": "call_td_1cdjbkn_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “AI sales call coaching conversation intelli…” and 19 more",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Render the PDF",
+                "status": "completed"
+              },
+              {
+                "content": "Read the page",
+                "status": "completed"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1783988931624_6m6kew",
+          "segmentId": "seg_td_1cdjbkn_2b",
+          "toolCallId": "call_td_1cdjbkn_2",
+          "status": "success",
+          "output": "5 todos (5 completed, 0 in progress)\n[\n  {\n    \"content\": \"Search the web for “AI sales call coaching conversation intelli…” and 19 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Render the PDF\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the page\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1783988931624_6m6kew",
+          "segmentId": "seg_td_1cdjbkn_2c",
+          "items": [
+            {
+              "content": "Search the web for “AI sales call coaching conversation intelli…” and 19 more",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Render the PDF",
+              "status": "completed"
+            },
+            {
+              "content": "Read the page",
+              "status": "completed"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "turn_1783988931624_6m6kew",
           "segmentId": "seg_117",
@@ -1786,6 +2082,14 @@
         "call_00_FXYz2iQEGBkQnRlVAJhl0703": {
           "startedAt": 1783989327153,
           "endedAt": 1783989328073
+        },
+        "call_td_1cdjbkn_2": {
+          "startedAt": 1783989328673,
+          "endedAt": 1783989328713
+        },
+        "call_td_1cdjbkn_1": {
+          "startedAt": 1783988947823,
+          "endedAt": 1783988947863
         }
       },
       "stopReason": "end_turn"
@@ -1833,6 +2137,74 @@
           "segmentId": "seg_4",
           "provider": "deepseek",
           "model": "deepseek-v4-pro"
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1784067341904_to5cll",
+          "segmentId": "seg_td_1mcao2z_1a",
+          "toolCallId": "call_td_1mcao2z_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “AI scheduling booking tool SMB barber resta…” and 23 more",
+                "status": "in_progress"
+              },
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "pending"
+              },
+              {
+                "content": "Render the PDF",
+                "status": "pending"
+              },
+              {
+                "content": "Read the page",
+                "status": "pending"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "pending",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1784067341904_to5cll",
+          "segmentId": "seg_td_1mcao2z_1b",
+          "toolCallId": "call_td_1mcao2z_1",
+          "status": "success",
+          "output": "5 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Search the web for “AI scheduling booking tool SMB barber resta…” and 23 more\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Render the PDF\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the page\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"pending\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1784067341904_to5cll",
+          "segmentId": "seg_td_1mcao2z_1c",
+          "items": [
+            {
+              "content": "Search the web for “AI scheduling booking tool SMB barber resta…” and 23 more",
+              "status": "in_progress"
+            },
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "pending"
+            },
+            {
+              "content": "Render the PDF",
+              "status": "pending"
+            },
+            {
+              "content": "Read the page",
+              "status": "pending"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
         },
         {
           "kind": "text",
@@ -2502,6 +2874,74 @@
           "output": "Sent. message_id=1464 to=8417306252 kind=document"
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1784067341904_to5cll",
+          "segmentId": "seg_td_1mcao2z_2a",
+          "toolCallId": "call_td_1mcao2z_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Search the web for “AI scheduling booking tool SMB barber resta…” and 23 more",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Render the PDF",
+                "status": "completed"
+              },
+              {
+                "content": "Read the page",
+                "status": "completed"
+              },
+              {
+                "content": "Send it on Telegram",
+                "status": "completed",
+                "priority": "high"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1784067341904_to5cll",
+          "segmentId": "seg_td_1mcao2z_2b",
+          "toolCallId": "call_td_1mcao2z_2",
+          "status": "success",
+          "output": "5 todos (5 completed, 0 in progress)\n[\n  {\n    \"content\": \"Search the web for “AI scheduling booking tool SMB barber resta…” and 23 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Render the PDF\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the page\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Send it on Telegram\",\n    \"status\": \"completed\",\n    \"priority\": \"high\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1784067341904_to5cll",
+          "segmentId": "seg_td_1mcao2z_2c",
+          "items": [
+            {
+              "content": "Search the web for “AI scheduling booking tool SMB barber resta…” and 23 more",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Render the PDF",
+              "status": "completed"
+            },
+            {
+              "content": "Read the page",
+              "status": "completed"
+            },
+            {
+              "content": "Send it on Telegram",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "turn_1784067341904_to5cll",
           "segmentId": "seg_123",
@@ -2647,6 +3087,14 @@
         "call_00_WMH7Rar9XTlSn83UfkE44052": {
           "startedAt": 1784067653282,
           "endedAt": 1784067656588
+        },
+        "call_td_1mcao2z_2": {
+          "startedAt": 1784067657188,
+          "endedAt": 1784067657228
+        },
+        "call_td_1mcao2z_1": {
+          "startedAt": 1784067356660,
+          "endedAt": 1784067356700
         }
       },
       "stopReason": "end_turn"
@@ -2659,7 +3107,7 @@
       "apiMs": 957530,
       "turns": 3,
       "apiCalls": 45,
-      "toolCalls": 97,
+      "toolCalls": 103,
       "inputTokens": 619794,
       "outputTokens": 57838,
       "cacheReadTokens": 2835200,
@@ -2671,7 +3119,7 @@
       "elapsedMs": 319788,
       "apiMs": 288659,
       "apiCalls": 15,
-      "toolCalls": 32,
+      "toolCalls": 38,
       "inputTokens": 119051,
       "outputTokens": 19602,
       "cacheReadTokens": 1122432,

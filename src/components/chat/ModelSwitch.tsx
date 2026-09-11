@@ -1,85 +1,12 @@
-import { OllamaLogo, PROVIDER_LABELS, ProviderMark } from '@/components/core/providerLogos'
+import { PROVIDER_LABELS, ProviderMark } from '@/components/core/providerLogos'
 import { cn } from '@/lib/utils/cn'
 import { setConfigValue, useConfigValue, useDemoConfig } from '@/state/demoConfig'
 import { useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 
-/**
- * The desktop composer's ModelSwitch as a full-width control: two tabs —
- * Local (Ollama logo + local model) and Cloud (active provider logo + model,
- * truncated). Picking a side flips llm.localOnly exactly like the desktop;
- * below it, the active side's model picker.
- */
-
-export function ModelSwitch(): React.JSX.Element {
-  const { t } = useTranslation()
-  const localOnly = useConfigValue('localOnly')
-  const localEnabled = useConfigValue('localEnabled')
-  const localModel = useConfigValue('localModel')
-  const brainProvider = useConfigValue('brainProvider')
-  const brainModel = useConfigValue('brainModel')
-
-  const localActive = localOnly && localEnabled
-
-  return (
-    <View className="border-border bg-bg w-full flex-row items-stretch rounded-lg border p-0.5">
-      <Pressable
-        accessibilityRole="tab"
-        accessibilityState={{ selected: localActive, disabled: !localEnabled }}
-        disabled={!localEnabled}
-        onPress={() => setConfigValue('localOnly', true)}
-        className={cn(
-          'h-11 flex-1 flex-row items-center justify-center gap-2 rounded-md px-3',
-          // No shadow class here: toggling one on/off between renders makes
-          // NativeWind "upgrade" the view, and its dev-only upgrade warning
-          // stringifies props — which walks React Navigation's throwing
-          // context getters and red-boxes the app on every switch tap.
-          localActive && 'bg-primary',
-          !localEnabled && 'opacity-50'
-        )}
-      >
-        <OllamaLogo size={16} className={localActive ? 'text-primary-fg' : 'text-muted'} />
-        <Text
-          numberOfLines={1}
-          className={cn(
-            'font-sans-medium flex-shrink text-xs',
-            localActive ? 'text-primary-fg' : 'text-muted'
-          )}
-          style={{ writingDirection: 'ltr' }}
-        >
-          {localEnabled && localModel ? localModel : t('settings.model.noModel')}
-        </Text>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="tab"
-        accessibilityState={{ selected: !localActive }}
-        onPress={() => setConfigValue('localOnly', false)}
-        className={cn(
-          'h-11 flex-1 flex-row items-center justify-center gap-2 rounded-md px-3',
-          !localActive && 'bg-primary'
-        )}
-      >
-        <ProviderMark
-          provider={brainProvider}
-          size={16}
-          className={!localActive ? 'text-primary-fg' : 'text-muted'}
-        />
-        <Text
-          numberOfLines={1}
-          className={cn(
-            'font-sans-medium flex-shrink text-xs',
-            !localActive ? 'text-primary-fg' : 'text-muted'
-          )}
-          style={{ writingDirection: 'ltr' }}
-        >
-          {brainModel || t('settings.model.noModel')}
-        </Text>
-      </Pressable>
-    </View>
-  )
-}
+/** The provider id Ollama wears in the provider row — the same key its logo and label sit under. */
+const OLLAMA = 'ollama'
 
 /**
  * A picker row in the project chips' shape: the whole list on one x-scrolling
@@ -139,6 +66,7 @@ function ChipRow({
             <Pressable
               key={chip.value}
               accessibilityRole="tab"
+              accessibilityLabel={chip.label}
               accessibilityState={{ selected: active }}
               onLayout={active ? (event) => onActiveLayout(event.nativeEvent.layout.x) : undefined}
               onPress={() => onChange(chip.value)}
@@ -152,7 +80,7 @@ function ChipRow({
                 numberOfLines={1}
                 className={cn('font-sans-medium text-xs', active ? 'text-primary-fg' : 'text-fg')}
                 // Provider and model names are identifiers, not sentences —
-                // keep them LTR under an RTL locale like the switch above does.
+                // keep them LTR under an RTL locale.
                 style={{ writingDirection: 'ltr' }}
               >
                 {chip.label}
@@ -165,98 +93,124 @@ function ChipRow({
   )
 }
 
-/** The active side's model picker(s) — provider + model chips on cloud, model chips on local. */
-export function ModelSelector(): React.JSX.Element {
+/**
+ * The model answering, picked the way the desktop's composer card picks it:
+ * a provider, then one of that provider's models. Two chip rows — providers
+ * on top, the lit provider's models below — and the same control in both
+ * places it is mounted (the chat menu sheet and the Model settings screen).
+ *
+ * There is no Local/Cloud switch. Ollama sits in the provider row exactly as
+ * a cloud provider does, listed while it can answer: a cloud provider needs
+ * its key, Ollama needs the daemon up on the desktop (the snapshot's
+ * `running`). The desktop's `localOnly` flag still exists underneath — it is
+ * what its runtime reads to route a turn — but here it is a consequence of the
+ * pick, never a thing to flip on its own: choosing Ollama (or one of its
+ * models) sets it, choosing a cloud provider clears it, which is exactly what
+ * the desktop's own picker does behind a click.
+ *
+ * The lit provider always has a chip and the lit model always has a chip,
+ * even when the list the desktop sent has lost them (a key removed mid-
+ * session, a daemon that stopped, a catalog not yet landed) — a row with
+ * nothing lit would hide what is answering.
+ */
+export function ModelSwitch(): React.JSX.Element {
   const { t } = useTranslation()
   const localOnly = useConfigValue('localOnly')
-  const localEnabled = useConfigValue('localEnabled')
   const localModel = useConfigValue('localModel')
+  const localModels = useDemoConfig((state) => state.localModels)
+  const ollamaRunning = useDemoConfig((state) => state.ollamaRunning)
   const brainProvider = useConfigValue('brainProvider')
   const brainModel = useConfigValue('brainModel')
   const providers = useDemoConfig((state) => state.providers)
+
+  const activeProvider = localOnly ? OLLAMA : brainProvider
 
   const providerChips = useMemo(() => {
     const markFor = (id: string) => (active: boolean) => (
       <ProviderMark provider={id} size={16} className={active ? 'text-primary-fg' : 'text-muted'} />
     )
-    const rows = providers.map((provider) => ({
-      value: provider.id,
-      label: PROVIDER_LABELS[provider.id] ?? provider.id,
-      icon: markFor(provider.id)
-    }))
-    // A brain whose provider is missing from that list still needs a chip, or
-    // the row would show nothing lit.
-    if (brainProvider && !providers.some((provider) => provider.id === brainProvider)) {
-      rows.push({
-        value: brainProvider,
-        label: PROVIDER_LABELS[brainProvider] ?? brainProvider,
-        icon: markFor(brainProvider)
-      })
+    const chipFor = (id: string) => ({
+      value: id,
+      label: PROVIDER_LABELS[id] ?? id,
+      icon: markFor(id)
+    })
+    const rows: ReturnType<typeof chipFor>[] = []
+    // Ollama leads, as it does in the desktop's list — while the daemon is
+    // up, or while it is the side answering (the lit provider keeps its chip).
+    if (ollamaRunning || localOnly) rows.push(chipFor(OLLAMA))
+    for (const provider of providers) {
+      if (provider.hasKey && provider.id !== OLLAMA) rows.push(chipFor(provider.id))
+    }
+    if (!localOnly && brainProvider && !rows.some((row) => row.value === brainProvider)) {
+      rows.push(chipFor(brainProvider))
     }
     return rows
-  }, [providers, brainProvider])
+  }, [providers, brainProvider, localOnly, ollamaRunning])
 
-  const localModels = useDemoConfig((state) => state.localModels)
-  const localChips = useMemo(() => {
-    const rows = localModels.map((model) => ({ value: model, label: model }))
-    if (localModel && !localModels.includes(localModel)) {
-      rows.push({ value: localModel, label: localModel })
-    }
-    return rows
-  }, [localModels, localModel])
-
-  const activeProvider = providers.find((provider) => provider.id === brainProvider)
+  const cloudProvider = providers.find((provider) => provider.id === brainProvider)
   const modelChips = useMemo(() => {
-    const models = activeProvider?.models?.length ? [...activeProvider.models] : []
-    // The chosen model can sit outside the provider's list (or the list can be
-    // empty) — it still needs a chip, or the row would show nothing lit.
+    if (localOnly) {
+      const models = [...localModels]
+      if (localModel && !models.includes(localModel)) models.push(localModel)
+      return models.map((model) => ({ value: model, label: model }))
+    }
+    const models = cloudProvider?.models?.length ? [...cloudProvider.models] : []
     if (brainModel && !models.includes(brainModel)) models.push(brainModel)
     return models.map((model) => ({ value: model, label: model }))
-  }, [activeProvider, brainModel])
+  }, [localOnly, localModels, localModel, cloudProvider, brainModel])
 
-  if (localOnly && localEnabled) {
-    return (
-      <ChipRow
-        label={t('settings.model.localTitle')}
-        chips={localChips}
-        value={localModel}
-        onChange={(model) => setConfigValue('localModel', model)}
-      />
+  const pickProvider = (id: string): void => {
+    if (id === activeProvider) return
+    if (id === OLLAMA) {
+      // Same courtesy a cloud chip extends: land on a model, not on "No
+      // model", when the desktop has one pulled and none was chosen yet.
+      if (!localModel && localModels[0]) setConfigValue('localModel', localModels[0])
+      setConfigValue('localOnly', true)
+      return
+    }
+    const provider = providers.find((candidate) => candidate.id === id)
+    if (!provider) return
+    setConfigValue('brainProvider', provider.id)
+    setConfigValue('brainModel', provider.model ?? provider.models[0] ?? '')
+    // Picking a cloud provider while running local means "use this one" —
+    // the desktop's picker flips the runtime behind the same click.
+    if (localOnly) setConfigValue('localOnly', false)
+  }
+
+  const pickModel = (model: string): void => {
+    if (localOnly) {
+      if (model !== localModel) setConfigValue('localModel', model)
+      return
+    }
+    if (model === brainModel) return
+    setConfigValue('brainModel', model)
+    // Mirror onto the provider entry like the desktop's setBrain.
+    setConfigValue(
+      'providers',
+      useDemoConfig
+        .getState()
+        .providers.map((provider) =>
+          provider.id === brainProvider ? { ...provider, model } : provider
+        )
     )
   }
 
   return (
     <View className="flex-col gap-4">
       <ChipRow
-        label={t('settings.model.providersTitle')}
+        label={t('settings.model.providerLabel')}
         chips={providerChips}
-        value={brainProvider}
-        onChange={(id) => {
-          const provider = providers.find((candidate) => candidate.id === id)
-          if (!provider) return
-          setConfigValue('brainProvider', provider.id)
-          setConfigValue('brainModel', provider.model ?? provider.models[0] ?? '')
-        }}
+        value={activeProvider}
+        onChange={pickProvider}
       />
       <ChipRow
         // Switching provider swaps the whole chip set: remount so the fresh
         // row starts at its left edge and carries the new lit chip in.
-        key={brainProvider}
+        key={activeProvider}
         label={t('settings.model.brainLabel')}
         chips={modelChips}
-        value={brainModel}
-        onChange={(model) => {
-          setConfigValue('brainModel', model)
-          // Mirror onto the provider entry like the desktop's setBrain.
-          setConfigValue(
-            'providers',
-            useDemoConfig
-              .getState()
-              .providers.map((provider) =>
-                provider.id === brainProvider ? { ...provider, model } : provider
-              )
-          )
-        }}
+        value={localOnly ? localModel : brainModel}
+        onChange={pickModel}
       />
     </View>
   )

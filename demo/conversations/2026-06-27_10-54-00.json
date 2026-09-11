@@ -26,6 +26,64 @@
         {
           "kind": "tool_call",
           "turnId": "turn_1782546840947_s5ssv6",
+          "segmentId": "seg_td_1gubhwz_1a",
+          "toolCallId": "call_td_1gubhwz_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Check the automations",
+                "status": "in_progress"
+              },
+              {
+                "content": "List files",
+                "status": "pending"
+              },
+              {
+                "content": "Check the automations",
+                "status": "pending"
+              },
+              {
+                "content": "List files",
+                "status": "pending"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782546840947_s5ssv6",
+          "segmentId": "seg_td_1gubhwz_1b",
+          "toolCallId": "call_td_1gubhwz_1",
+          "status": "success",
+          "output": "4 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Check the automations\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"List files\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Check the automations\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"List files\",\n    \"status\": \"pending\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782546840947_s5ssv6",
+          "segmentId": "seg_td_1gubhwz_1c",
+          "items": [
+            {
+              "content": "Check the automations",
+              "status": "in_progress"
+            },
+            {
+              "content": "List files",
+              "status": "pending"
+            },
+            {
+              "content": "Check the automations",
+              "status": "pending"
+            },
+            {
+              "content": "List files",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1782546840947_s5ssv6",
           "segmentId": "seg_2",
           "toolCallId": "call_00_XgEVuVMUMMHtL9czar9b8782",
           "name": "automation_create",
@@ -171,7 +229,14 @@
           "segmentId": "seg_42",
           "toolCallId": "call_00_Z1hcrzur9Ch68QnD3A2R3554",
           "status": "success",
-          "output": "FILE NOT FOUND"
+          "output": "FILE NOT FOUND",
+          "meta": {
+            "label": "List files",
+            "cwd": "/Users/younes",
+            "durationMs": 24,
+            "exitCode": 0,
+            "truncated": false
+          }
         },
         {
           "kind": "active_model",
@@ -235,7 +300,72 @@
           "segmentId": "seg_50",
           "toolCallId": "call_01_VA8NpTqIwF7PGaFABRMd5596",
           "status": "success",
-          "output": "-rw-r--r--@ 1 younes  staff  39 Jun 27 10:54 /Users/younes/Desktop/hello.md\nGood morning ☀️\n2026-06-27 10:54:25"
+          "output": "-rw-r--r--@ 1 younes  staff  39 Jun 27 10:54 /Users/younes/Desktop/hello.md\nGood morning ☀️\n2026-06-27 10:54:25",
+          "meta": {
+            "label": "List files",
+            "cwd": "/Users/younes",
+            "durationMs": 27,
+            "exitCode": 0,
+            "truncated": false
+          }
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1782546840947_s5ssv6",
+          "segmentId": "seg_td_1gubhwz_2a",
+          "toolCallId": "call_td_1gubhwz_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Check the automations",
+                "status": "completed"
+              },
+              {
+                "content": "List files",
+                "status": "completed"
+              },
+              {
+                "content": "Check the automations",
+                "status": "completed"
+              },
+              {
+                "content": "List files",
+                "status": "completed"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1782546840947_s5ssv6",
+          "segmentId": "seg_td_1gubhwz_2b",
+          "toolCallId": "call_td_1gubhwz_2",
+          "status": "success",
+          "output": "4 todos (4 completed, 0 in progress)\n[\n  {\n    \"content\": \"Check the automations\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"List files\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Check the automations\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"List files\",\n    \"status\": \"completed\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1782546840947_s5ssv6",
+          "segmentId": "seg_td_1gubhwz_2c",
+          "items": [
+            {
+              "content": "Check the automations",
+              "status": "completed"
+            },
+            {
+              "content": "List files",
+              "status": "completed"
+            },
+            {
+              "content": "Check the automations",
+              "status": "completed"
+            },
+            {
+              "content": "List files",
+              "status": "completed"
+            }
+          ]
         },
         {
           "kind": "active_model",
@@ -295,6 +425,14 @@
         "call_01_VA8NpTqIwF7PGaFABRMd5596": {
           "startedAt": 1782546871868,
           "endedAt": 1782546871895
+        },
+        "call_td_1gubhwz_2": {
+          "startedAt": 1782546872495,
+          "endedAt": 1782546872535
+        },
+        "call_td_1gubhwz_1": {
+          "startedAt": 1782546851298,
+          "endedAt": 1782546851338
         }
       },
       "stopReason": "end_turn",
@@ -785,7 +923,7 @@
     "allTime": {
       "turns": 5,
       "apiCalls": 5,
-      "toolCalls": 21,
+      "toolCalls": 23,
       "inputTokens": 70,
       "outputTokens": 2651,
       "cacheReadTokens": 55630,
@@ -803,7 +941,7 @@
       "elapsedMs": 1000,
       "apiMs": 820,
       "apiCalls": 1,
-      "toolCalls": 9,
+      "toolCalls": 11,
       "inputTokens": 7,
       "outputTokens": 737,
       "cacheReadTokens": 14377,

@@ -83,8 +83,8 @@ async function draw(node: React.ReactElement): Promise<void> {
 /**
  * Press one segment of the Off | On pair belonging to a named row.
  *
- * `nth` disambiguates the rows that deliberately share a label: "Verbose task
- * results" is the wording every non-phone channel uses, so the screen carries
+ * `nth` disambiguates the rows that deliberately share a label: "Show all tool
+ * activity" is the wording every non-phone channel uses, so the screen carries
  * four of them (in-app, Telegram, WhatsApp, CLI) and they are told apart by the
  * card they sit in — which is exactly the desktop's own rule for these labels.
  */
@@ -165,8 +165,8 @@ describe('Channels — the desktop-owned rows', () => {
 
   it('the in-app feed switch writes inappVerbose to the desktop', async () => {
     await draw(<ChannelsScreen />)
-    // The first "Verbose task results" on the screen is the in-app card's.
-    pressSegment('Verbose task results', 'On', 0)
+    // The first "Show all tool activity" on the screen is the in-app card's.
+    pressSegment('Show all tool activity', 'On', 0)
     await waitFor(() => {
       expect(configSetCalls()).toEqual([[Rpc.configSet, { settings: { inappVerbose: true } }]])
     })
@@ -253,9 +253,9 @@ describe('Channels — the terminal', () => {
 
   it('switching the terminal feed on writes cliVerbose to the desktop', async () => {
     await draw(<ChannelsScreen />)
-    // The fourth "Verbose task results" on the screen: in-app, Telegram,
+    // The fourth "Show all tool activity" on the screen: in-app, Telegram,
     // WhatsApp, then the terminal's, in the order the cards render.
-    pressSegment('Verbose task results', 'On', 3)
+    pressSegment('Show all tool activity', 'On', 3)
     await waitFor(() => {
       expect(configSetCalls()).toEqual([[Rpc.configSet, { settings: { cliVerbose: true } }]])
     })
@@ -264,7 +264,7 @@ describe('Channels — the terminal', () => {
 
   it('a change made on the desktop moves the row without a remount', async () => {
     await draw(<ChannelsScreen />)
-    const row = (): unknown => screen.getAllByLabelText('Verbose task results')[3]
+    const row = (): unknown => screen.getAllByLabelText('Show all tool activity')[3]
     expect(
       (row() as { props: { accessibilityState: { checked: boolean } } }).props.accessibilityState
         .checked

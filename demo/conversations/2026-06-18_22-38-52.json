@@ -27,6 +27,80 @@
         {
           "kind": "tool_call",
           "turnId": "turn_1781811742441_j2f9rp",
+          "segmentId": "seg_td_1r38kpl_1a",
+          "toolCallId": "call_td_1r38kpl_1",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "in_progress"
+              },
+              {
+                "content": "Search the web for “Anthropic \"International Managing Director\"…” and 2 more",
+                "status": "pending"
+              },
+              {
+                "content": "Read the top sources (4 pages)",
+                "status": "pending"
+              },
+              {
+                "content": "Search the web for “Chris Ciauri Anthropic Seoul office Fable 5…” and 1 more",
+                "status": "pending"
+              },
+              {
+                "content": "Read the top sources (4 pages)",
+                "status": "pending"
+              },
+              {
+                "content": "Read the page",
+                "status": "pending"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1781811742441_j2f9rp",
+          "segmentId": "seg_td_1r38kpl_1b",
+          "toolCallId": "call_td_1r38kpl_1",
+          "status": "success",
+          "output": "6 todos (0 completed, 1 in progress)\n[\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"in_progress\"\n  },\n  {\n    \"content\": \"Search the web for “Anthropic \\\"International Managing Director\\\"…” and 2 more\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the top sources (4 pages)\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Search the web for “Chris Ciauri Anthropic Seoul office Fable 5…” and 1 more\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the top sources (4 pages)\",\n    \"status\": \"pending\"\n  },\n  {\n    \"content\": \"Read the page\",\n    \"status\": \"pending\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1781811742441_j2f9rp",
+          "segmentId": "seg_td_1r38kpl_1c",
+          "items": [
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "in_progress"
+            },
+            {
+              "content": "Search the web for “Anthropic \"International Managing Director\"…” and 2 more",
+              "status": "pending"
+            },
+            {
+              "content": "Read the top sources (4 pages)",
+              "status": "pending"
+            },
+            {
+              "content": "Search the web for “Chris Ciauri Anthropic Seoul office Fable 5…” and 1 more",
+              "status": "pending"
+            },
+            {
+              "content": "Read the top sources (4 pages)",
+              "status": "pending"
+            },
+            {
+              "content": "Read the page",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "kind": "tool_call",
+          "turnId": "turn_1781811742441_j2f9rp",
           "segmentId": "seg_2",
           "toolCallId": "call_00_ZtpL9PtZlaB2OmjAf5b63585",
           "name": "ext_navigate",
@@ -428,6 +502,80 @@
           "output": "Browser session closed."
         },
         {
+          "kind": "tool_call",
+          "turnId": "turn_1781811742441_j2f9rp",
+          "segmentId": "seg_td_1r38kpl_2a",
+          "toolCallId": "call_td_1r38kpl_2",
+          "name": "todo_write",
+          "args": {
+            "todos": [
+              {
+                "content": "Read the top sources (2 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Search the web for “Anthropic \"International Managing Director\"…” and 2 more",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (4 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Search the web for “Chris Ciauri Anthropic Seoul office Fable 5…” and 1 more",
+                "status": "completed"
+              },
+              {
+                "content": "Read the top sources (4 pages)",
+                "status": "completed"
+              },
+              {
+                "content": "Read the page",
+                "status": "completed"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool_result",
+          "turnId": "turn_1781811742441_j2f9rp",
+          "segmentId": "seg_td_1r38kpl_2b",
+          "toolCallId": "call_td_1r38kpl_2",
+          "status": "success",
+          "output": "6 todos (6 completed, 0 in progress)\n[\n  {\n    \"content\": \"Read the top sources (2 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search the web for “Anthropic \\\"International Managing Director\\\"…” and 2 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (4 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Search the web for “Chris Ciauri Anthropic Seoul office Fable 5…” and 1 more\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the top sources (4 pages)\",\n    \"status\": \"completed\"\n  },\n  {\n    \"content\": \"Read the page\",\n    \"status\": \"completed\"\n  }\n]"
+        },
+        {
+          "kind": "todo",
+          "turnId": "turn_1781811742441_j2f9rp",
+          "segmentId": "seg_td_1r38kpl_2c",
+          "items": [
+            {
+              "content": "Read the top sources (2 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Search the web for “Anthropic \"International Managing Director\"…” and 2 more",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (4 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Search the web for “Chris Ciauri Anthropic Seoul office Fable 5…” and 1 more",
+              "status": "completed"
+            },
+            {
+              "content": "Read the top sources (4 pages)",
+              "status": "completed"
+            },
+            {
+              "content": "Read the page",
+              "status": "completed"
+            }
+          ]
+        },
+        {
           "kind": "active_model",
           "turnId": "turn_1781811742441_j2f9rp",
           "segmentId": "seg_83",
@@ -517,6 +665,14 @@
         "call_00_9Ng2PLHZIWXGNKWtPSJD5240": {
           "startedAt": 1781811849046,
           "endedAt": 1781811849530
+        },
+        "call_td_1r38kpl_2": {
+          "startedAt": 1781811850130,
+          "endedAt": 1781811850170
+        },
+        "call_td_1r38kpl_1": {
+          "startedAt": 1781811754557,
+          "endedAt": 1781811754597
         }
       },
       "stopReason": "end_turn"
@@ -527,7 +683,7 @@
     "allTime": {
       "turns": 1,
       "apiCalls": 1,
-      "toolCalls": 17,
+      "toolCalls": 19,
       "inputTokens": 64,
       "outputTokens": 15441,
       "cacheReadTokens": 0,
@@ -545,7 +701,7 @@
       "elapsedMs": 113418,
       "apiMs": 93003,
       "apiCalls": 1,
-      "toolCalls": 17,
+      "toolCalls": 19,
       "inputTokens": 64,
       "outputTokens": 15441,
       "cacheReadTokens": 0,
