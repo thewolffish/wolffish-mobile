@@ -217,8 +217,11 @@ export const WorkflowCard = memo(function WorkflowCard({
       ? ArrowLeft01Icon
       : ArrowRight01Icon
 
+  // The agent's width, like the rest of the feed's cards — a summary of what
+  // the agent's own sub-agents did belongs on the agent's side of the
+  // conversation, not across the whole transcript.
   return (
-    <View className="bg-surface border-border w-full flex-col gap-2 rounded-xl border px-3 py-2.5">
+    <View className="bg-surface border-border w-[85%] flex-col gap-2 self-start rounded-xl border px-3 py-2.5">
       <Text
         onPress={() => setExpanded((value) => !value)}
         suppressHighlighting

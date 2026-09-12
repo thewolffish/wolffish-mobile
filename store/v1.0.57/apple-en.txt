@@ -1,0 +1,5 @@
+The rows that report an edit, a write or a shell run, and the card that summarises a workflow, now stop where the rest of the agent's cards stop.
+
+Until now those two ran the full width of the conversation, sitting flush against both edges, while every other card the agent draws stopped short of them. Flush to the edges they read as part of the screen rather than as something the agent had done, and a single conversation showed two different margins.
+
+Everything inside the cards is unchanged: the same status, the same label naming the file or the command, and the same tap to open the diff or the full output.
