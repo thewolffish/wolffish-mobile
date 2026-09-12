@@ -4,6 +4,10 @@
 
 The compact rows that report an edit, a write or a shell run, and the card that summarises a workflow, ran the **full width of the chat** while every other card the agent produces stopped short of it. Flush against both edges, they read as part of the screen rather than as something the agent had done — two different left margins in one conversation. Both now **stop where the reply stops** and **hold to the agent's side**, the same width as the Tasks card and the file, media and run cards they sit among. Nothing inside them moved: the same status, the same label, the same tap that opens the diff or the full output.
 
+### The Working Row Actually Turns
+
+The item the agent is on right now wears a spinner that **actually spins**. The glyph that used to sit there only faded in and out in place — it never rotated, so a list mid-flight read as a **frozen screen** rather than work in progress. It is a **real spinner** now, sized to match the ticks and dots on the rows beside it, so one glance at the task list tells you the agent is still moving.
+
 ## v1.0.56 — 2026-09-12
 
 ### One Library for Automations, Projects and Procedures

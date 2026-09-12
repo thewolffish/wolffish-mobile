@@ -1,3 +1,0 @@
-• The rows that report an edit, a write or a shell run now stop where the agent's other cards stop, instead of running the full width of the chat.
-• The card that summarises a workflow lines up on the same edge.
-• Nothing inside the cards changed: same status, same label, same tap to open the diff or the full output.
