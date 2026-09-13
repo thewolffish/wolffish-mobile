@@ -1,4 +1,10 @@
-## v1.0.57 — 2026-09-12 `Latest`
+## v1.0.58 — 2026-09-13 `Latest`
+
+### A Restart Counts Down on Your Phone, With the Button That Stops It
+
+When you ask the agent to restart, shut down or log out of your desktop, it no longer does it while still writing to you. The action is **armed instead of run**: the agent finishes its answer, the conversation is saved, and then a **countdown card** appears in the chat carrying the action's name, a bar draining over a few seconds, and an **Abort** button. The card is part of the conversation, so it reaches your phone like any other card — and **the Abort button works from here**, which matters most when the machine going down is the one you are not sitting at. Let the bar empty and the action runs; press Abort and it never does. Open the conversation later and the card says exactly what happened: **it ran, you aborted it, or it was dropped** because the turn was stopped before its answer landed.
+
+## v1.0.57 — 2026-09-12
 
 ### Every Card the Agent Draws Stops at the Same Edge
 

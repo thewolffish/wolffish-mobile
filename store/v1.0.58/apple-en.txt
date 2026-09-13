@@ -1,0 +1,5 @@
+When you ask the agent to restart, shut down or log out of your desktop, it now finishes its answer first, then counts down on a card you can stop.
+
+The card appears in the chat with the action's name, a bar draining over a few seconds, and an Abort button that works from your phone. Let the bar empty and the action runs. Press Abort and it never does.
+
+Open the conversation later and the card tells you what happened: it ran, you aborted it, or it was dropped because the turn was stopped before its answer arrived.

@@ -104,6 +104,31 @@ export type WorkflowSnapshot = {
 
 export type TaskStatus = 'submitted' | 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
 
+export type CountdownStatus = 'armed' | 'counting' | 'fired' | 'aborted' | 'failed'
+export type CountdownAbortReason = 'user' | 'stop' | 'superseded' | 'relaunch'
+
+/**
+ * A turn-end countdown — mirrors the desktop's CountdownSnapshot in broca.ts.
+ * The card that shows the user an action (a restart, say) will run N seconds
+ * after the reply that armed it, with an Abort button. Snapshots REPLACE each
+ * other by countdownId; the card derives its bar from fireAt locally.
+ */
+export type CountdownSnapshot = {
+  countdownId: string
+  conversationId: string | null
+  turnId: string | null
+  label: string
+  seconds: number
+  status: CountdownStatus
+  armedAt: number
+  fireAt: number | null
+  endedAt: number | null
+  target: { tool: string; args: Record<string, unknown> }
+  result?: string
+  error?: string
+  abortedBy?: CountdownAbortReason
+}
+
 /**
  * Async generation task (MiniMax H3 video today; `kind` leaves room for
  * future generators). Mirrors the desktop's TaskSnapshot in broca.ts —
@@ -206,6 +231,7 @@ export type Segment =
   | { kind: 'separator'; turnId: string; segmentId: string }
   | { kind: 'workflow'; turnId: string; segmentId: string; snapshot: WorkflowSnapshot }
   | { kind: 'task'; turnId: string; segmentId: string; snapshot: TaskSnapshot }
+  | { kind: 'countdown'; turnId: string; segmentId: string; snapshot: CountdownSnapshot }
   | {
       kind: 'compaction_started'
       turnId: string

@@ -1,0 +1,3 @@
+• Restart, shut down and log out now wait for the agent's answer, then count down on a card in the chat.
+• The card carries an Abort button that works from your phone — press it and the action never runs.
+• Reopen the conversation and the card says what happened: it ran, you aborted it, or it was dropped.

@@ -41,6 +41,7 @@ import { FileBlock } from '@/components/chat/FileBlock'
 import { MarkdownView, markdownHasTable } from '@/components/chat/MarkdownView'
 import { NEEDS_SELECT_SHEET, openSelectMarkdown } from '@/components/chat/SelectTextSheet'
 import { QuestionCard } from '@/components/chat/QuestionCard'
+import { CountdownCard } from '@/components/chat/CountdownCard'
 import { TaskCard } from '@/components/chat/TaskCard'
 import { ThinkingIndicator } from '@/components/chat/ThinkingIndicator'
 import { TodoCard } from '@/components/chat/TodoCard'
@@ -454,6 +455,9 @@ function renderBlock(
       // Generic async-generation card (video). Deliberately outside the
       // verbose gate above — like workflow, it is output FOR the user.
       return <TaskCard snapshot={block.snapshot} conversationId={conversationId} />
+    case 'countdown':
+      // Turn-end countdown — output FOR the user, never verbose-gated.
+      return <CountdownCard snapshot={block.snapshot} />
     case 'todo':
       // The model's task list — output FOR the user, so never verbose-gated.
       return <TodoCard items={block.items} />
