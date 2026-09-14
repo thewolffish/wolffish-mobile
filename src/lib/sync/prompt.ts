@@ -312,10 +312,98 @@ export async function seedActiveRuns(): Promise<void> {
       // them can be minutes away across a long tool call. Ask the desktop
       // for the turn-so-far instead of waiting for it.
       if (!liveFor(id)?.base?.id) await recoverTurnSoFar(id, issuedAt)
+      // The mid-turn messages parked on this run, which this phone may have
+      // missed the pushes for — or sent itself before a relaunch.
+      await seedPendingInterjections(id)
+    }
+    // A conversation with pending rows but no run cannot have any: the turn
+    // ended while this phone was away and the withdraw pushes went with it.
+    // Only judged against a real answer — an older desktop threw above.
+    //
+    // The rows go, but OUR words do not go with them. Missing the pushes is
+    // exactly missing the answer to "was it read?", so this is the one sweep
+    // that cannot know — and between dropping a message the user wrote and
+    // handing it back to the composer it was written in, only one of those is
+    // recoverable. A row another surface sent is merely un-drawn, as its
+    // `withdrawn` push would have done.
+    const running = new Set(ids.filter((id): id is string => typeof id === 'string'))
+    const runtime = useChatRuntime.getState()
+    for (const [key, rows] of Object.entries(runtime.pending)) {
+      if (key.startsWith('\u0000')) continue // the id-less screen key is not a conversation
+      if (running.has(key)) continue
+      for (const row of rows) {
+        if (!row.id || !sentInterjections.delete(row.id)) continue
+        if (row.content && !row.voicePrompt) runtime.restoreDraft(key, row.content)
+      }
+      runtime.clearPending(key)
     }
   } catch {
     // Silent, and deliberately not reportRpcFailure: a desktop that predates
     // this method is not a sick tunnel, and nothing the user asked for failed.
+  }
+}
+
+/**
+ * Replace one running conversation's pending list with the desktop's
+ * (Rpc.pendingInterjections). Never throws — an older desktop answers with
+ * an unknown-method error and the phone keeps whatever rows it has.
+ */
+async function seedPendingInterjections(conversationId: string): Promise<void> {
+  const tunnel = tunnelClient.active
+  if (!tunnel || !tunnelClient.connected) return
+  let answer: unknown
+  try {
+    answer = await tunnel.rpc(Rpc.pendingInterjections, { conversationId })
+  } catch {
+    return
+  }
+  const raw = (answer as { pending?: unknown } | null)?.pending
+  if (!Array.isArray(raw)) return
+  const rows = raw.map(interjectionRow).filter((row): row is ConversationMessage => row !== null)
+  // Re-adopt the ones this phone sent. Ownership lives in `sentInterjections`,
+  // which is module state and therefore gone after a relaunch — and without
+  // it a `withdrawn` push for our own message reads as another surface's and
+  // is merely un-drawn, losing words the user wrote. `channel` is what the
+  // desktop files each row under, and the phone is the only `mobile` sender
+  // on a pairing, so it survives the process where the set does not.
+  for (const row of raw) {
+    const sender = (row as { channel?: unknown; messageId?: unknown } | null)?.channel
+    const id = (row as { messageId?: unknown } | null)?.messageId
+    if (sender === 'mobile' && typeof id === 'string' && id) sentInterjections.add(id)
+  }
+  useChatRuntime.getState().setPending(conversationId, rows)
+}
+
+/**
+ * A pending-row message off the wire — the shape Rpc.pendingInterjections
+ * lists and Event.interjection carries — or null if it is not one. The id
+ * is mandatory for the same reason the prompt's is: it is what lets the
+ * `user_message` segment retire the row.
+ */
+function interjectionRow(value: unknown): ConversationMessage | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as {
+    messageId?: unknown
+    text?: unknown
+    attachments?: unknown
+    voicePrompt?: unknown
+    voiceLang?: unknown
+    sentAt?: unknown
+  }
+  if (typeof raw.messageId !== 'string' || !raw.messageId) return null
+  const attachments = Array.isArray(raw.attachments)
+    ? (raw.attachments as MessageAttachment[]).filter(
+        (a) => a && typeof a === 'object' && typeof a.filePath === 'string'
+      )
+    : []
+  return {
+    id: raw.messageId,
+    role: 'user',
+    content: typeof raw.text === 'string' ? raw.text : '',
+    timestamp: typeof raw.sentAt === 'number' ? raw.sentAt : Date.now(),
+    ...(attachments.length > 0 ? { attachments } : {}),
+    ...(raw.voicePrompt === true ? { voicePrompt: true } : {}),
+    ...(typeof raw.voiceLang === 'string' && raw.voiceLang ? { voiceLang: raw.voiceLang } : {})
   }
 }
 
@@ -775,6 +863,194 @@ export function attachTurnStream(): void {
     invalidateConversationList()
     void settleTurn(conversationId)
   })
+
+  tunnel.onEvent(Event.interjection, (payload) => {
+    const ev = (payload ?? {}) as {
+      conversationId?: unknown
+      state?: unknown
+      reason?: unknown
+    } & Record<string, unknown>
+    const conversationId = typeof ev.conversationId === 'string' ? ev.conversationId : ''
+    const row = interjectionRow(ev)
+    if (!conversationId || !row) return
+    const runtime = useChatRuntime.getState()
+    // Whether THIS phone sent it — its id was minted here (interject below).
+    // Another surface's message only ever adds or removes a pending row.
+    const mine = sentInterjections.has(row.id ?? '')
+    switch (ev.state) {
+      case 'pending':
+        // Replaces the optimistic row under the same id with the desktop's
+        // copy: a voice note comes back with its transcript as the text.
+        runtime.putPending(conversationId, row)
+        return
+      case 'delivered':
+        // The agent read it. The `user_message` segment in the next mirror
+        // draws it inside the assistant card; the pending row comes down.
+        runtime.dropPending(conversationId, row.id ?? '')
+        sentInterjections.delete(row.id ?? '')
+        return
+      case 'withdrawn': {
+        runtime.dropPending(conversationId, row.id ?? '')
+        if (!mine) return
+        sentInterjections.delete(row.id ?? '')
+        if (ev.reason === 'turn_ended' || ev.reason === 'error') {
+          // The turn finished without reading it. It is still a message the
+          // user sent, so it goes as the next turn — a normal send under the
+          // same id, with the desktop's own copy of the files, and the
+          // transcript as the text so a voice note is not transcribed twice.
+          void sendPrompt({
+            conversationId,
+            text: row.content,
+            attachments: row.attachments,
+            voicePrompt: row.voicePrompt,
+            messageId: row.id
+          }).catch(() => undefined)
+          return
+        }
+        // Withdrawn by the user, or the turn was stopped: not sent. The
+        // words go back to the composer, where they were.
+        if (row.content && !row.voicePrompt) runtime.restoreDraft(conversationId, row.content)
+        return
+      }
+      default:
+        return
+    }
+  })
+}
+
+// ------------------------------------------------------------ interject
+
+export type InterjectInput = {
+  conversationId: string
+  /** Minted by the screen at the tap — the pending bubble's id. */
+  messageId: string
+  text: string
+  /** Already uploaded: real desktop paths, as sendPrompt's are. */
+  attachments?: MessageAttachment[]
+  voicePrompt?: boolean
+}
+
+export type InterjectResult = { status: 'pending' } | { status: 'no_live_turn' }
+
+/**
+ * The ids of the mid-turn messages THIS phone sent and the agent has not yet
+ * read. What decides whether a `withdrawn` push is ours to act on — restore
+ * the draft, or re-send as a turn — or someone else's to merely un-draw.
+ */
+const sentInterjections = new Set<string>()
+
+/**
+ * Whether an RPC failed because the desktop predates the method. The
+ * desktop's tunnel answers an unregistered method with exactly this text
+ * (wolffish-app tunnel.ts); matched on the message rather than the error
+ * class so this module stays free of the tunnel's crypto imports.
+ */
+function isUnknownRpc(error: unknown): boolean {
+  return error instanceof Error && /^no handler for /.test(error.message)
+}
+
+/**
+ * Hand a message to the conversation's RUNNING turn. Deliberately touches
+ * none of the turn machinery — no beginTurn, no endStream, no markRun, no
+ * cards — because it is not a turn: the turn on screen is the one being
+ * steered, and it keeps its overlay, its cards and its prompt throughout.
+ *
+ * The pending row goes up under the caller's id before the wire is touched
+ * (the screen usually put it there already; this is the copy with the
+ * uploaded files) and comes down again unless the desktop accepts it.
+ * `no_live_turn` — and an older desktop, which has no such method — both
+ * mean the same thing to the caller: send it as a normal turn.
+ */
+export async function interject(input: InterjectInput): Promise<InterjectResult> {
+  const tunnel = tunnelClient.active
+  const message: ConversationMessage = {
+    id: input.messageId,
+    role: 'user',
+    content: input.text,
+    timestamp: Date.now(),
+    ...(input.attachments && input.attachments.length > 0
+      ? { attachments: input.attachments }
+      : {}),
+    ...(input.voicePrompt ? { voicePrompt: true } : {})
+  }
+  const runtime = useChatRuntime.getState()
+  runtime.putPending(input.conversationId, message)
+  if (!tunnel || !tunnelClient.connected) {
+    runtime.dropPending(input.conversationId, input.messageId)
+    return { status: 'no_live_turn' }
+  }
+  sentInterjections.add(input.messageId)
+  let result: { status?: unknown }
+  try {
+    result = (await tunnel.rpc(
+      Rpc.interject,
+      {
+        conversationId: input.conversationId,
+        messageId: input.messageId,
+        text: input.text,
+        attachments: input.attachments ?? [],
+        voicePrompt: input.voicePrompt === true
+      },
+      // A voice note is transcribed before the desktop answers — the same
+      // allowance the bulk transfers get, for the same reason: slow is not dead.
+      input.voicePrompt ? INTERJECT_VOICE_TIMEOUT_MS : undefined
+    )) as { status?: unknown }
+  } catch (error) {
+    sentInterjections.delete(input.messageId)
+    useChatRuntime.getState().dropPending(input.conversationId, input.messageId)
+    if (isUnknownRpc(error)) return { status: 'no_live_turn' }
+    throw error
+  }
+  if (result?.status === 'pending') return { status: 'pending' }
+  sentInterjections.delete(input.messageId)
+  useChatRuntime.getState().dropPending(input.conversationId, input.messageId)
+  return { status: 'no_live_turn' }
+}
+
+const INTERJECT_VOICE_TIMEOUT_MS = 120_000
+
+/**
+ * Take a pending message back. The row comes down at the tap; the desktop's
+ * `withdrawn` push (reason `user`) is what puts the words back in the
+ * composer. A desktop that says no — the agent read it a beat ago — has
+ * already pushed `delivered`, and the segment is on screen.
+ *
+ * Unless the desktop is never reached at all. Then no push is coming: not a
+ * `withdrawn`, not a `delivered`, nothing — and a row taken down on a promise
+ * nobody made takes the user's words with it. So the ask is made first and
+ * the give-back is OURS whenever it did not land, which is the one case the
+ * desktop cannot be the authority on.
+ */
+export async function withdrawInterjection(
+  conversationId: string,
+  messageId: string
+): Promise<void> {
+  const runtime = useChatRuntime.getState()
+  const row = (runtime.pending[conversationId] ?? []).find((m) => m.id === messageId)
+  runtime.dropPending(conversationId, messageId)
+  const tunnel = tunnelClient.active
+  const giveBack = (): void => {
+    sentInterjections.delete(messageId)
+    // A voice note's words are its transcript, which lives on the desktop —
+    // there is nothing here to put back in the field.
+    if (row?.content && !row.voicePrompt) {
+      useChatRuntime.getState().restoreDraft(conversationId, row.content)
+    }
+  }
+  if (!tunnel || !tunnelClient.connected) {
+    giveBack()
+    return
+  }
+  const answer = await tunnel
+    .rpc(Rpc.withdrawInterjection, { conversationId, messageId })
+    .catch(() => null)
+  // A transfer that failed is the offline case with extra steps.
+  if (answer === null) giveBack()
+}
+
+/** Test seam: whether an id is one this phone is waiting on. */
+export function isOwnInterjection(messageId: string): boolean {
+  return sentInterjections.has(messageId)
 }
 
 // ----------------------------------------------------------------- send

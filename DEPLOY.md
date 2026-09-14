@@ -14,7 +14,7 @@ There are two, and the whole procedure exists to pick correctly between them:
 | Notes you author  | In-app changelog only                       | In-app changelog **+ store notes** (App Store “What's New” · Play release notes) |
 | Left for the user | Nothing                                     | EAS build → submit → `npm run release`                                           |
 
-**`ota` is a publish.** It reaches users before anyone can look at it again. `provision` reaches no one. That asymmetry drives every rule below.
+**`ota` is a publish.** It reaches users before anyone can look at it again. `provision` reaches no one — but it also reaches _no one_, which is its own cost: a batch that could have gone over the air and didn't sits in git waiting on a store round trip for nothing. `ota` is the ordinary path; `provision` is for what an OTA cannot carry or cannot take back.
 
 Follow the steps **in order**. If anything looks wrong, **stop and report** (see [If issues are found](#if-issues-are-found--stop)).
 
@@ -23,7 +23,7 @@ Follow the steps **in order**. If anything looks wrong, **stop and report** (see
 ## Non-negotiables (read before doing anything)
 
 - **You run exactly one ship command, once, at the end: `ota` or `provision`.** Never both, never one after the other. Step 4 decides which; everything before it is preparation.
-- **`provision` is for a hard risk, not for doubt.** Provisioning a batch that could have gone over the air costs one build number and a store round trip. Sending a batch over the air that needed a store build is an incident on every installed phone, so the burden of proof sits on `ota`: matching fingerprints and a clear gate B. But that proof is **obtainable in about a minute**, and a `src/`-only batch with no hard risk clears it — which is the ordinary case, not the exception. **Escalate on a hard risk; resolve doubt by looking.**
+- **`provision` is for what an OTA cannot carry, not for doubt.** Gate A is a machine fact — if the shipped binaries cannot receive the update, it is a store build and there is nothing to weigh. Past that, the only escalations are a change an OTA cannot take back (a lossy on-device migration) and the user asking for a store build. Everything else on a `src/`-only batch goes over the air: that is the ordinary outcome, and provisioning such a batch spends a build number and a store round trip to deliver nothing. **Resolve doubt by looking, not by escalating.**
 - **Never set `OTA_SKIP_RUNTIME_CHECK=1`.** It disables the one guard that makes an agent-run OTA safe. There is no situation in this procedure that calls for it.
 - **Never run `npm run release` or `npm run rollback`.** `release` asserts a store build passed review — you cannot know that. `rollback` is the emergency lever for an OTA that went wrong, and the user pulls it.
 - **Never run `eas` yourself** beyond the read-only `eas build:list` in step 4, and **never create or push a tag by hand.** `ota` publishes and tags on its own; hand-driving either is how a tag ends up pointing at a tree that was never built.
@@ -67,22 +67,24 @@ npx jest --silent
 
 ### 3. The sync gate
 
-The phone is a mirror of a desktop it reaches over an end-to-end encrypted tunnel, and **the connection is the product**. If the diff touches `src/lib/tunnel/`, `src/lib/sync/`, or `src/state/demoConfig.ts`, these checks run before anything else happens. A deploy that splits the protocol from the desktop is the one failure this app cannot recover from on its own: paired phones stop syncing, and the fix has to travel through the same broken channel.
+The phone is a mirror of a desktop it reaches over an end-to-end encrypted tunnel, and **the connection is the product**. If the diff touches `src/lib/tunnel/`, `src/lib/sync/`, or `src/state/demoConfig.ts`, these checks run before anything else happens.
+
+**The desktop ships alongside the phone.** Assume the paired desktop is updated whenever a mobile update goes out — a protocol change is not held back waiting for it, and "the desktop half isn't deployed yet" is never a reason to provision or to stop. What this gate is actually looking for is a **split**: the two repos' wire files disagreeing, or a mobile call with no counterpart written on the desktop side at all. That one this app cannot recover from — paired phones stop syncing and the fix has to travel through the same broken channel — and it is a stop on **either** path, not an argument for a store build.
 
 1. **Wire files are shared with `wolffish-app`.** `noise.ts` is **byte-identical** with `wolffish-app/src/main/tunnel/`; `protocol.ts` is **code-identical** — its doc comments are allowed to differ, because each repo's copy narrates the contract from its own seat (a mobile-only relay frame reads "the desktop never sends or receives it" over there); `pairing.ts` and `tunnel.ts` are identical **except for import specifiers** (`@/lib/tunnel/…` here, `./` there) plus two handler generics in `tunnel.ts`. Verify with:
    ```bash
    diff -r src/lib/tunnel ../wolffish-app/src/main/tunnel
    ```
    Beyond those known deltas, any diff line outside a `/** … */` comment is a protocol split. **Stop and report it.**
-2. **A new `Rpc` method or `Event` topic is a two-repo change.** The mobile half alone compiles fine and does nothing — the desktop must serve the method or emit the topic, and a `configSet` key must be on the desktop's whitelist. If the desktop half isn't in place, the batch is half-finished: stop.
-3. **Both directions still work.** Confirm against a real paired desktop, not by typecheck: pair, background and foreground the app (the socket dies on suspend by design and must re-handshake), and check that an edit made on the phone lands on the desktop and an edit made on the desktop lands on the phone.
+2. **A new `Rpc` method or `Event` topic is a two-repo change.** The mobile half alone compiles fine and does nothing — the desktop must serve the method or emit the topic, and a `configSet` key must be on the desktop's whitelist. Check the sibling repo's source for the counterpart. If it is **written**, the batch is whole; ship it, on whichever path the gates choose — it goes out with the desktop. If it does not exist anywhere, the batch is half-finished: stop.
+3. **Both directions still work.** Worth confirming against a real paired desktop rather than by typecheck: pair, background and foreground the app (the socket dies on suspend by design and must re-handshake), and check that an edit made on the phone lands on the desktop and an edit made on the desktop lands on the phone. This is a **practice, not a gate** — a check you couldn't run is something to say in the report, not a reason to change paths. A check you ran that came back **wrong** is a step-2 stop.
 4. **Reconnect is idempotent.** `attachLiveUpdates` / `attachTurnStream` re-run on every connection and must replace handlers, not stack them. New push-only state also needs a seed on connect — see `seedOverlays`.
 
-If any of these can't be confirmed, the deploy isn't ready. Report and stop.
+A split found in 1, or a call with no desktop counterpart at all in 2, means the deploy isn't ready: report and stop. Nothing in this step routes a batch to `provision`.
 
 ### 4. The ship gate — OTA or store build
 
-**This is the step that must not be wrong.** Two gates. **Both** must pass for `ota`. Gate A is absolute; gate B escalates on hard risks rather than on doubt — so read both its lists before reaching for `provision`, because a `src/`-only batch is meant to go over the air.
+**This is the step that must not be wrong.** Two gates. **Both** must pass for `ota`. Gate A is a machine fact you measure; gate B is a two-item list of things an OTA cannot take back. **`ota` is the default answer** — `provision` is what you fall back to when gate A says the binaries cannot receive the update, or when one of gate B's two items is a yes.
 
 #### Gate A — the machine gate: can the shipped binaries even receive this?
 
@@ -108,35 +110,37 @@ The `fix:fingerprint` line is not ceremony, and it is the one false mismatch thi
 
 `ota` re-runs this exact comparison itself and exits before writing, committing or publishing anything if it fails — so a wrong answer here fails safe rather than shipping. That is a backstop, **not** a substitute for deciding: "run it and see if it stops me" is not a decision, and it is not what gate B checks at all.
 
-#### Gate B — the judgment gate: should every phone have this in ten minutes?
+#### Gate B — the judgment gate: is there anything here an OTA cannot take back?
 
-Gate A is blind to `src/`, and that is where the batch's actual risk lives. But the bar is a **hard risk, not a feeling**: a batch confined to `src/` ships over the air by default, and `provision` is the exception that has to earn its reason.
+Gate A is blind to `src/`, and that is where the batch's actual risk lives. But the bar is **irreversibility, not risk** — and it is a short list.
 
-What sets that bar is **recoverability**. An OTA that renders wrong reaches every phone and is undone by the next OTA — a version, a tag, ten minutes. What is _not_ recoverable by another OTA is a batch that breaks the channel the fix would travel through, or rewrites data `rollback` cannot restore. Those are the escalations below. Everything else is `ota`.
+An OTA that renders wrong reaches every phone and is undone by the next OTA: a version, a tag, ten minutes. That is cheap, and it is the whole reason a `src/`-only batch ships over the air by default. What another OTA cannot undo is a change that has already rewritten something by the time anyone looks. Two things clear that bar; nothing else does.
 
-**Escalate — any yes here means `provision`, regardless of how cleanly gate A passed:**
+**Escalate — either of these means `provision`:**
 
-- **Does it touch the tunnel, sync or protocol, without step 3's live two-way check having actually been run against a real paired desktop?** An OTA that splits the protocol lands on every phone at once and breaks the only channel the fix can travel through. A green typecheck is not evidence here.
-- **Does it bump `SCHEMA_VERSION` in `src/lib/db/database.ts`, or otherwise rewrite on-device data?** Migrations are forward-only — `rollback` restores the JS, never the database. An additive column survives a rollback; a destructive migration leaves the restored JS reading a database it no longer understands.
-- **Is any `EXPO_PUBLIC_*` variable set in your shell?** Check before you publish:
+- **Does it rewrite on-device data in a way `rollback` cannot restore?** `SCHEMA_VERSION` in `src/lib/db/database.ts`, or any migration that drops, collapses or rewrites existing rows. Migrations are forward-only: `rollback` restores the JS, never the database. An **additive** column survives a rollback fine and is **not** an escalation — the restored JS simply ignores it. A destructive or lossy one leaves the restored JS reading a database it no longer understands, and that is the one thing an OTA genuinely cannot walk back.
+- **Did the user say this is going to the store**, or ask for a build, or mention review or TestFlight? Their intent wins over both gates.
+
+That is the entire list. If neither is a yes and gate A passed, the answer is `ota`.
+
+**Not grounds for `provision` — these resolve by looking, fixing, or just shipping:**
+
+- **Tunnel, sync or protocol changes.** **Assume the paired desktop is updated whenever a mobile update ships** — the two move together, so "the desktop isn't deployed yet" is not a thing this gate weighs. What still matters is that the two repos **agree**, which step 3 already checked: a wire-file split, or a mobile call with no desktop counterpart written at all, is a stop-and-report on _either_ path — not a reason to pick `provision`. A protocol change that matches the sibling repo is an ordinary OTA, and the live two-way check is a practice you report on, not a gate that reroutes you.
+- **A UI or behavior change nobody has exercised yet.** The device check is a _practice_, not an escalation: seeing the change run is the cure, not the gate. Size it to the diff — a class change needs the card on screen, a new screen needs that screen, a copy change needs the copy. Report what you actually saw (step 8). Escalate only when the check **cannot clear the change**: a render that comes back wrong, a screen you cannot reach at all, an outcome you still don't understand after looking — and note that all three of those are step-2 stops, where nothing ships on either path, rather than reasons to provision. "I didn't run it" is a reason to run it.
+- **An `EXPO_PUBLIC_*` variable live in your shell.** A fix, not an escalation — clear it and publish from a clean shell. Check before you publish:
   ```bash
   env | grep EXPO_PUBLIC
   ```
-  Expo inlines these **at bundle time**, and `ota` bundles from wherever it is run. There is no `.env` file in this repo, so a live shell is the only way one can reach a bundle — but the demo workflow sets `EXPO_PUBLIC_DEMO_BASE_URL` to a local bundle server, and a shell that has it lives as long as its terminal tab. Inlined into an OTA it points every phone's demo mode at a machine that isn't theirs, and nothing catches it: not the fingerprint, not `tsc`, not jest. Production wants them **unset** so the code takes its own defaults (`src/lib/demo/importer.ts:39`, `src/lib/api/client.ts:9`). Anything set → clear it and publish from a clean shell.
-- **Is anything half-finished, feature-flagged off, or waiting on a desktop half that isn't live yet?** Store review is a useful delay; OTA removes it.
-- **Did the user say this is going to the store**, or ask for a build, or mention review or TestFlight? Their intent wins over both gates.
-
-**Not grounds for `provision` — these resolve by looking, not by escalating:**
-
-- **A UI or behavior change nobody has exercised yet.** The device check is a _practice_, not an escalation: seeing the change run is the cure, not the gate. Size it to the diff — a class change needs the card on screen, a new screen needs that screen, a copy change needs the copy. Report what you actually saw (step 8). Escalate only when the check **cannot clear the change**: a render that comes back wrong, a screen you cannot reach at all, an outcome you still don't understand after looking. "I didn't run it" is a reason to run it, not a reason to `provision`.
-- **`CODE_VERSION` in `app.config.ts` ahead of the build gate A matched against.** A provisioned build that never shipped, so users are still on the older binary and the update reaches them fine — `ota` just labels the commit `over build <CODE_VERSION>` rather than the build it verified against. Find out why before publishing over it: that is an investigation, not an escalation, unless the answer turns out to be one of the hard risks above.
+  Expo inlines these **at bundle time**, and `ota` bundles from wherever it is run. There is no `.env` file in this repo, so a live shell is the only way one can reach a bundle — but the demo workflow sets `EXPO_PUBLIC_DEMO_BASE_URL` to a local bundle server, and a shell that has it lives as long as its terminal tab. Inlined into an OTA it points every phone's demo mode at a machine that isn't theirs, and nothing catches it: not the fingerprint, not `tsc`, not jest. Production wants them **unset** so the code takes its own defaults (`src/lib/demo/importer.ts:39`, `src/lib/api/client.ts:9`).
+- **`CODE_VERSION` in `app.config.ts` ahead of the build gate A matched against.** A provisioned build that never shipped, so users are still on the older binary and the update reaches them fine — `ota` just labels the commit `over build <CODE_VERSION>` rather than the build it verified against. Find out why before publishing over it: that is an investigation, not an escalation, unless the answer turns out to be one of the two escalations above.
+- **Something feature-flagged off, or a surface that isn't finished being built.** Code no user can reach is inert on every path. Work that is _actually_ half-finished — broken, incoherent, obviously unshippable — is a step-2 stop where **nothing** ships, not a provision; store review is not a place to park a mistake.
 - **There is nothing user-facing in the batch at all.** Not a risk — a no-op. An OTA would burn a version, tag it and fire the Release workflow for a change no user can see. Commit and push the work (step 6) and ship nothing, or `provision` it to ride along with the next store build — say which in the report.
 
-**Gate A is absolute; intent can only move gate B, and only toward `provision`.** A request for an OTA never overrides a mismatched fingerprint and never justifies `OTA_SKIP_RUNTIME_CHECK` — if gate A fails, or a hard risk above is a yes, don't run either command: report which one fired and why, and let the user decide. But a batch confined to `src/` is meant to go over the air: if you find yourself provisioning most batches, you are reading this gate wrong. Drastic changes are rare, so most `src/`-only work is `ota`.
+**Gate A is absolute; intent can only move gate B, and only toward `provision`.** A request for an OTA never overrides a mismatched fingerprint and never justifies `OTA_SKIP_RUNTIME_CHECK` — if gate A fails or one of the two escalations is a yes, don't run either command: report which one fired and why, and let the user decide. But a batch confined to `src/` is meant to go over the air, and the list above is deliberately short: **if you are provisioning a `src/`-only batch, you should be able to name which of the two escalations fired.** If you can't, it's an `ota`.
 
 #### Then decide
 
-Both gates clean → **`ota`**. Gate A failing, or any hard risk above → **`provision`**. Write the decision and the reason down now; step 8 has you report it, and a reason invented after the command ran is not a reason.
+Both gates clean → **`ota`**, which is the ordinary outcome. Gate A failing, or one of gate B's two escalations → **`provision`**. Write the decision and the reason down now; step 8 has you report it, and a reason invented after the command ran is not a reason. If the reason for a `provision` isn't a fingerprint mismatch, a lossy migration, or the user asking for a build, it isn't a reason — reread gate B.
 
 ### 5. Write the release notes
 
@@ -278,7 +282,7 @@ To ship an explicit version rather than a patch bump: `npm run ota 1.1.0` / `npm
 
 Tell the user, briefly:
 
-- **Which command you ran, and why that one and not the other.** This is the first thing in the report, not the last. Name the deciding evidence: for `ota`, the matching fingerprints from gate A (both platforms, with build numbers), that gate B raised no hard risk, and **what you saw** when you exercised the change; for `provision`, the specific thing that ruled OTA out — the mismatched hash, the native file, the schema bump, the live `EXPO_PUBLIC_*`.
+- **Which command you ran, and why that one and not the other.** This is the first thing in the report, not the last. Name the deciding evidence: for `ota`, the matching fingerprints from gate A (both platforms, with build numbers), that neither gate B escalation fired, and **what you saw** when you exercised the change; for `provision`, the specific thing that ruled OTA out — the mismatched hash and the native file behind it, the lossy migration, or the user's own request for a build. Those are the only three sentences a `provision` can end with.
 - What's in the release, and the version the script created — `vX.Y.Z (build N)` for a provision, `vX.Y.Z (over build N)` for an OTA, straight from its output.
 - **If you published:** say plainly that it is live on every installed phone, and that `npm run rollback` is the user's lever if it turns out wrong.
 - **If you provisioned:** what's left for them — EAS build → submit → `npm run release` — and that the store notes are written and committed at `store/v<X.Y.Z>/`, naming both files and where each one goes (App Store What's New; Play release notes). **Quote both blocks inline in the report** so they can be pasted without opening a file, and give the Play block's character count against the 500 limit. Say if a skipped, never-shipped provision's changes are folded into them.
@@ -313,7 +317,7 @@ All four scripts refuse a dirty working tree — which is why step 6 commits bef
 
 ## If issues are found — STOP
 
-Applies to any blocker: a failing typecheck or test, a bad or breaking change spotted in step 2, a formatting error that can't be fixed without changing behavior, a protocol split against `wolffish-app`, an unclear diff — anything that means this should not be shipped as-is. (Plain formatting failures are NOT blockers — step 2 has you fix those yourself and continue. **A failed ship gate is not a blocker either** — it is an answer: `provision`.)
+Applies to any blocker: a failing typecheck or test, a bad or breaking change spotted in step 2, a formatting error that can't be fixed without changing behavior, a protocol split against `wolffish-app`, an unclear diff — anything that means this should not be shipped as-is. (Plain formatting failures are NOT blockers — step 2 has you fix those yourself and continue. **A failed ship gate is not a blocker either** — it is an answer: `provision`. And a blocker is a blocker on **both** paths: nothing here is ever resolved by provisioning it instead.)
 
 1. **Stop immediately.** Do not write the changelog, do not commit, do not push, and above all do not run `npm run ota` or `npm run provision` — a version bumped over a known problem is a version someone has to unpick, and a _published_ one is a version every user already has.
 2. **Report the issues minimally** — just _what_ they are, briefly. One line each. No fixes applied, no long analysis.
@@ -345,15 +349,16 @@ npx prettier --check "**/*.{js,jsx,ts,tsx}" --ignore-path .gitignore     # 2. fo
 npx tsc --noEmit && npx jest --silent                                    #    types/tests/code: STOP
 diff -r src/lib/tunnel ../wolffish-app/src/main/tunnel                   # 3. sync gate, if relevant
 npm run fix:fingerprint                                                  # 4. undo node_modules drift, then …
-#    ship gate: fingerprint local vs shipped store build (both platforms) + the judgment list
-#    no hard risk + fingerprints match -> ota   ·   hard risk or mismatch -> provision
+#    ship gate: fingerprint local vs shipped store build (both platforms), then gate B's two items
+#    fingerprints match + no lossy migration + user didn't ask for a build -> ota (the default)
+#    mismatch, lossy migration, or user asked for a build -> provision
 # 5a. write src/changelog/<YYYY-MM>/{en,ar}.md  (next = patch bump of APP_VERSION) — both paths
 # 5b. provision ONLY: store/v<X.Y.Z>/{apple-en,play-en}.txt   (store listings are English only)
 #     plain text · apple ≤ 4000 chars · play ≤ 500 chars · never on the ota path
 git add -A && git commit -m "<summary>"   # 6. one regular commit (changelog + store notes), then …
 git push origin main                      #    … plain push — no tags, nothing publishes
-npm run ota          # 7a. src/-only, no hard risk (the usual case): bumps, publishes to every phone, tags, pushes
-npm run provision    # 7b. hard risk above, or a fingerprint mismatch: bumps version + build + badge, commits, pushes. No tag.
+npm run ota          # 7a. the default for a src/-only batch: bumps, publishes to every phone, tags, pushes
+npm run provision    # 7b. fingerprint mismatch, lossy migration, or user asked: bumps version + build + badge, commits, pushes. No tag.
 ```
 
-**One-line summary:** analyze → run the three checks (formatting: fix yourself; types, tests, code: stop) → run the sync gate if the diff touches the tunnel → **run the ship gate: fingerprints match on every shipped platform _and_ gate B raises no hard risk → `ota` (the ordinary outcome for a `src/`-only batch); anything else → `provision`** → write this app's own EN+AR changelog, plus — on the `provision` path only — the English App Store and Play store notes under `store/v<X.Y.Z>/` → commit and push the work → run the one command the gate chose → report which one and why. `ota` publishes to users and cannot be undone by you; `provision` publishes nothing. `release` and `rollback` stay the user's.
+**One-line summary:** analyze → run the three checks (formatting: fix yourself; types, tests, code: stop) → run the sync gate if the diff touches the tunnel (it can stop the deploy; it never reroutes it to `provision`) → **run the ship gate: fingerprints match on every shipped platform _and_ neither gate B escalation fired → `ota`, which is the ordinary outcome; a mismatch, a lossy migration, or the user asking for a build → `provision`** → write this app's own EN+AR changelog, plus — on the `provision` path only — the English App Store and Play store notes under `store/v<X.Y.Z>/` → commit and push the work → run the one command the gate chose → report which one and why. `ota` publishes to users and cannot be undone by you; `provision` publishes nothing. `release` and `rollback` stay the user's.

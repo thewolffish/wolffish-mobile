@@ -11,7 +11,10 @@
  *    running where it was sent (that IS concurrency), but its result must not
  *    drag the user back into a chat they have left, and must not mark a send
  *    they have since started in the NEW one as finished.
- *  - a queue that belonged to the turn being walked away from.
+ *  - a mid-turn message sent into the turn being walked away from. That one is
+ *    the DESKTOP's, parked in its turn runner under the conversation it was
+ *    sent to, so leaving must not take it back — it goes off screen with that
+ *    conversation and is drawn again on the way in.
  *
  * Both are silent when wrong: the screen simply shows the wrong conversation, or
  * refuses to send, with nothing thrown anywhere.
@@ -67,35 +70,35 @@ jest.mock('@/components/chat/Composer', () => {
   return {
     Composer: ({
       onSubmit,
-      streaming,
-      queued
+      streaming
     }: {
       onSubmit: (p: { kind: 'text'; text: string; files: [] }) => void
       streaming: boolean
-      queued: unknown[]
     }) => (
-      <>
-        <Text testID="send" onPress={() => onSubmit({ kind: 'text', text: 'hello', files: [] })}>
-          {streaming ? 'stop' : 'send'}
-        </Text>
-        <Text testID="queued">{String(queued.length)}</Text>
-      </>
+      <Text testID="send" onPress={() => onSubmit({ kind: 'text', text: 'hello', files: [] })}>
+        {streaming ? 'stop' : 'send'}
+      </Text>
     )
   }
 })
 
 /**
  * The sheet, reduced to the one thing this file is about: a way to ask for
- * another conversation. What it actually draws is pinned in
+ * another conversation — either of the two, since coming BACK is half of what
+ * switching in place has to get right. What it actually draws is pinned in
  * components/chat/__tests__/ConversationsSheet.test.tsx.
  */
 jest.mock('@/components/chat/ConversationsSheet', () => {
-  const { Text } = require('react-native')
+  const { Text, View } = require('react-native')
   return {
     ConversationsSheet: ({ onSelect }: { onSelect: (id: string) => void }) => (
-      <Text testID="open-b" onPress={() => onSelect('conv-b')}>
-        sheet
-      </Text>
+      <View>
+        {['conv-a', 'conv-b'].map((id) => (
+          <Text key={id} testID={`open-${id}`} onPress={() => onSelect(id)}>
+            sheet
+          </Text>
+        ))}
+      </View>
     )
   }
 })
@@ -108,11 +111,14 @@ jest.mock('@/lib/sync/prompt', () => ({
   sendPrompt: jest.fn(
     () => new Promise<{ conversationId: string }>((resolve) => (mockResolveSend = resolve))
   ),
+  interject: jest.fn(async () => ({ status: 'pending' })),
+  withdrawInterjection: jest.fn(async () => undefined),
   beginTurn: jest.fn(),
   abortTurn: jest.fn()
 }))
 
 import ChatScreen from '@/app/chat'
+import { interject, withdrawInterjection } from '@/lib/sync/prompt'
 import { queryClient } from '@/lib/query/queryClient'
 import { ThemeContext } from '@/providers/theme/useTheme'
 import { ToastProvider } from '@/providers/toast/ToastProvider'
@@ -145,9 +151,15 @@ async function mount(): Promise<void> {
   )
 }
 
-const queuedCount = (): string => view.getByTestId('queued').props.children as string
 const sendLabel = (): string => view.getByTestId('send').props.children as string
 const press = (testID: string): Promise<void> => fireEvent.press(view.getByTestId(testID))
+/** The caption under a message the agent has not read yet. */
+const PENDING_CAPTION = 'Read at the next step'
+/** The mid-turn messages the runtime holds for one conversation. */
+const pendingFor = (conversationId: string): unknown[] =>
+  useChatRuntime.getState().pending[conversationId] ?? []
+const interjectMock = interject as jest.MockedFunction<typeof interject>
+const withdraw = withdrawInterjection as jest.MockedFunction<typeof withdrawInterjection>
 
 /** A turn is running in this conversation, from wherever it was started. */
 const runTurn = async (conversationId: string): Promise<void> => {
@@ -161,9 +173,11 @@ const runTurn = async (conversationId: string): Promise<void> => {
 
 beforeEach(() => {
   useAppStore.setState({ paired: true })
-  useChatRuntime.setState({ streams: {} })
+  useChatRuntime.setState({ streams: {}, pending: {}, draftRestores: {} })
   mockConversation.data = null
   mockConversation.isFetching = false
+  interjectMock.mockClear()
+  withdraw.mockClear()
 })
 
 afterEach(() => {
@@ -180,7 +194,7 @@ describe('switching conversations in place', () => {
     // Walk away. The turn is not stopped — nothing on this screen can stop a
     // turn by navigating — so the entry is still there, and the conversation
     // now on screen has no turn of its own.
-    await press('open-b')
+    await press('open-conv-b')
     expect(useChatRuntime.getState().streams['conv-a']).toBeTruthy()
     expect(sendLabel()).toBe('send')
 
@@ -190,14 +204,35 @@ describe('switching conversations in place', () => {
     expect(sendLabel()).toBe('stop')
   })
 
-  it('drops messages queued behind the turn being left', async () => {
+  /**
+   * The old shape of this was a queue: a mid-turn message waited on THIS
+   * screen, so walking away threw it out. It does not wait here any more — it
+   * is handed to the running turn at the tap and parked in the desktop's
+   * inbox under the conversation it was sent to. So leaving is not a
+   * cancellation: nothing is withdrawn, the row simply belongs to a
+   * conversation that is no longer on screen, and it is back the moment that
+   * conversation is. (What a switch DOES drop is a message written before the
+   * chat had an id — it never left the phone; see chatInterject.test.tsx.)
+   */
+  it('leaves a mid-turn message with the conversation it was sent to', async () => {
     await mount()
     await runTurn('conv-a')
     await press('send')
-    expect(queuedCount()).toBe('1')
+    expect(interjectMock).toHaveBeenCalledTimes(1)
+    expect(interjectMock.mock.calls[0]?.[0]?.conversationId).toBe('conv-a')
+    expect(view.getByText(PENDING_CAPTION)).toBeTruthy()
 
-    await press('open-b')
-    expect(queuedCount()).toBe('0')
+    // Off screen with the conversation it is steering — and untouched: the
+    // desktop is still holding it, and nothing here asked for it back.
+    await press('open-conv-b')
+    expect(view.queryByText(PENDING_CAPTION)).toBeNull()
+    expect(pendingFor('conv-a')).toHaveLength(1)
+    expect(withdraw).not.toHaveBeenCalled()
+
+    // And drawn again on the way back, under the same turn it is waiting on.
+    await press('open-conv-a')
+    expect(view.getByText(PENDING_CAPTION)).toBeTruthy()
+    expect(sendLabel()).toBe('stop')
   })
 
   it('a send settling after the switch does not drag the user back', async () => {
@@ -206,7 +241,7 @@ describe('switching conversations in place', () => {
     await press('send')
     expect(sendLabel()).toBe('stop')
 
-    await press('open-b')
+    await press('open-conv-b')
     // The new conversation is idle — the send in flight belongs to the old one.
     expect(sendLabel()).toBe('send')
 

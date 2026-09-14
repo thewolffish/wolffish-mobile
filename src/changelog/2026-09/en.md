@@ -1,4 +1,18 @@
-## v1.0.58 — 2026-09-13 `Latest`
+## v1.0.59 — 2026-09-15 `Latest`
+
+### Say Something While the Agent Is Still Working
+
+A message written while the agent was mid-job used to **wait its turn** — it sat above the composer until the work finished and then went as the next thing you said, which is exactly too late to be any use. It now goes **into the work already running**. "Skip the tests folder", "use the other file", "leave the config alone" reach the agent **at its next step**, while there is still something left to steer.
+
+Your message joins the conversation the moment you send it, as your own bubble, with one quiet line under it saying it will be **read at the next step**. When the agent does read it, that bubble **moves inside the reply**, at the exact point it was taken in — so the conversation shows both what you said and where the answer turned. Change your mind before it is read and **one tap takes it back**, with the words returned to the composer you wrote them in. Nothing about the run is disturbed by any of it: the reply keeps streaming, the cards stay where they are, and **Stop still stops**.
+
+It carries a photo, a file or a voice note just as an ordinary message does. In **demo mode** it works the same way, with the tour's own agent reading it exactly as a real one would.
+
+### Plan Moves to the Composer
+
+The **Plan** stance has left the controls sheet for **the composer's own row**, beside the model chip — where the desktop keeps it, and where the message it shapes is actually written. It is a **switch there, not just a sign**: one tap turns planning on, another turns it off, and the chip says which way it is set without opening anything. It stands in **demo mode** too, so the tour shows you the control instead of hiding it. When your desktop is out of reach the chip stays where it is and dims, and a tap tells you why rather than setting a stance nothing would receive.
+
+## v1.0.58 — 2026-09-13
 
 ### A Restart Counts Down on Your Phone, With the Button That Stops It
 
