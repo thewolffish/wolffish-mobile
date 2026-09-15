@@ -1,4 +1,16 @@
-## v1.0.59 — 2026-09-15 `Latest`
+## v1.0.60 — 2026-09-16 `Latest`
+
+### The Reconnecting Card Now Shows, Whatever You Have Open
+
+When the link to your desktop drops, the card that says so — and the one that covers the first sync afterwards — is the app's one chance to explain itself. With anything open over the chat, though, that card was **drawn underneath it**: the conversations list, an attachment picker, any dialog a settings page opens, and you saw **nothing at all**, on precisely the occasion the app most needed to speak. It now sits in **a layer above every screen and every sheet**, so the wait is always the thing in front of you, wherever you happen to be when the link goes. What it says and what it does are unchanged — the same progress, the same clock, the same way out where there is one.
+
+### A Message Sent Mid-Job No Longer Depends on Your Phone Being Awake
+
+Speaking into a job already running is only worth having if the words **actually arrive**. When the work finished before the agent reached your message, that message went out as the next thing you said — but only if your phone was **there to notice the moment**. Backgrounded, relaunching, or off the link for those few seconds, and it was simply gone, with nothing to say it had been. **Your desktop keeps it now.** It holds the message until it has somewhere to be, sends it as the next turn itself, and cannot miss the moment because it is the one that decides it — so the words survive a phone that was in your pocket.
+
+A message whose run **you stopped** is the one case that is not sent on, and it is not thrown away either: stopping the work is not the same as taking back what you wrote. Open that conversation again and the words are **back in the composer** you wrote them in, to send, change or drop as you like.
+
+## v1.0.59 — 2026-09-15
 
 ### Say Something While the Agent Is Still Working
 

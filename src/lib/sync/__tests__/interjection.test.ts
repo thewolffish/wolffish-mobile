@@ -13,7 +13,8 @@ jest.mock('@react-native-async-storage/async-storage', () =>
  *   pending     the desktop's copy replaces the optimistic row (same id)
  *   delivered   the agent read it — the row comes down, the segment draws it
  *   withdrawn   user / canceled → the words go back to the composer;
- *               turn_ended / error → it goes as the next turn, same id
+ *               turn_ended / error → nothing here; the desktop re-sends it
+ *                                    as the next turn under the same id
  *
  * …and only for a message THIS phone sent. Another surface's message merely
  * adds and removes a row. Plus the two ways the hand-over is not one after
@@ -211,24 +212,32 @@ describe('what the desktop says became of it', () => {
     expect(callsTo(Rpc.sendMessage)).toHaveLength(0)
   })
 
-  it('sends it as the next turn, same id, when the turn ended before reading it', async () => {
+  /**
+   * The turn ended before the agent read it, so the message becomes the next
+   * turn — sent by the DESKTOP, not by this phone.
+   *
+   * It used to be sent here, and that was the hole: this handler only runs if
+   * the push arrives, and a phone that is backgrounded, relaunching or off the
+   * tunnel at that moment never sees it. The desktop cannot miss an event it
+   * emits itself, it holds the transcript, and it keeps the message parked on
+   * disk until one exists — so the re-send moved there, and the words survive
+   * a phone that is not listening. All this side does now is let the row go;
+   * the fresh turn arrives as a normal `message.appended` under the same id.
+   */
+  it('leaves the re-send to the desktop when the turn ended before reading it', async () => {
     emit(Event.interjection, withdrawnEvent('turn_ended'))
     await flush()
     expect(pendingIds()).toEqual([])
     expect(useChatRuntime.getState().draftRestores[CONVERSATION]).toBeUndefined()
-    const sends = callsTo(Rpc.sendMessage)
-    expect(sends).toHaveLength(1)
-    expect(sends[0].messageId).toBe(ID)
-    expect(sends[0].text).toBe('skip the tests')
-    expect(sends[0].conversationId).toBe(CONVERSATION)
-    // A normal turn, with everything a normal turn has: its overlay is open.
-    expect(useChatRuntime.getState().streams[CONVERSATION]?.status).toBe('streaming')
+    // Never from here — a second sender under the same id is a duplicate turn.
+    expect(callsTo(Rpc.sendMessage)).toHaveLength(0)
   })
 
   it('does the same when the turn died', async () => {
     emit(Event.interjection, withdrawnEvent('error'))
     await flush()
-    expect(callsTo(Rpc.sendMessage)).toHaveLength(1)
+    expect(pendingIds()).toEqual([])
+    expect(callsTo(Rpc.sendMessage)).toHaveLength(0)
   })
 
   it('only adds and removes rows for a message another surface sent', async () => {
@@ -293,17 +302,20 @@ describe('coming back to a turn this phone already spoke into', () => {
     expect(isOwnInterjection(relaunched)).toBe(false)
   }
 
-  it('re-adopts the rows it sent, so a turn that ends unread still sends them', async () => {
+  it('re-adopts the rows it sent, so a stop still returns them to the composer', async () => {
     seed('mobile')
     await seedActiveRuns()
     expect(pendingIds()).toEqual([relaunched])
     expect(isOwnInterjection(relaunched)).toBe(true)
 
-    emit(Event.interjection, withdrawnEvent('turn_ended', relaunched))
+    // Ownership is what decides whether a `withdrawn` push touches OUR
+    // composer or merely un-draws someone else's row. The re-send after a
+    // turn_ended is the desktop's job now, but a STOP still hands the words
+    // back here, and that needs the row to be recognised as ours.
+    emit(Event.interjection, withdrawnEvent('canceled', relaunched))
     await flush()
-    const [sent] = callsTo(Rpc.sendMessage)
-    expect(sent?.text).toBe('skip the tests')
-    expect(sent?.messageId).toBe(relaunched)
+    expect(pendingIds()).toEqual([])
+    expect(useChatRuntime.getState().draftRestores[CONVERSATION]).toBe('skip the tests')
   })
 
   it('does not adopt a row another surface sent', async () => {

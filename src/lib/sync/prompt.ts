@@ -359,7 +359,39 @@ async function seedPendingInterjections(conversationId: string): Promise<void> {
   }
   const raw = (answer as { pending?: unknown } | null)?.pending
   if (!Array.isArray(raw)) return
-  const rows = raw.map(interjectionRow).filter((row): row is ConversationMessage => row !== null)
+  // HELD rows (`held: true`) are not waiting on anything: their run was
+  // stopped before the agent read them, and the desktop parks them on disk
+  // rather than resending work the user aborted. Drawing them as pending would
+  // promise a delivery that is never coming, so their words go straight back
+  // to the composer they were written in — and the withdraw is this phone
+  // saying it has them, without which the park would hand them over again on
+  // every reconnect.
+  const heldRows = raw.filter((row) => (row as { held?: unknown } | null)?.held === true)
+  const runtimeForHeld = useChatRuntime.getState()
+  for (const held of heldRows) {
+    const row = interjectionRow(held)
+    if (!row?.id) continue
+    // Claim before restoring. restoreDraft APPENDS and the withdraw that
+    // releases the park is a round trip, so two overlapping seeds — a
+    // reconnect racing a screen re-entry — would each restore the same words.
+    if (!restoredHeld.has(row.id)) {
+      restoredHeld.add(row.id)
+      sentInterjections.delete(row.id)
+      if (row.content && !row.voicePrompt) runtimeForHeld.restoreDraft(conversationId, row.content)
+    }
+    // Retried on every seed until it lands, which is why it sits OUTSIDE the
+    // claim above. A tunnel that dropped between the answer and here sends
+    // nothing at all — there is no call to fail, only an absent one — and a
+    // park that is never released comes back on the next connect, where the
+    // claim would skip the restore and the words would go nowhere at all.
+    void tunnelClient.active
+      ?.rpc(Rpc.withdrawInterjection, { conversationId, messageId: row.id })
+      .catch(() => undefined)
+  }
+  const rows = raw
+    .filter((row) => (row as { held?: unknown } | null)?.held !== true)
+    .map(interjectionRow)
+    .filter((row): row is ConversationMessage => row !== null)
   // Re-adopt the ones this phone sent. Ownership lives in `sentInterjections`,
   // which is module state and therefore gone after a relaunch — and without
   // it a `withdrawn` push for our own message reads as another surface's and
@@ -367,6 +399,7 @@ async function seedPendingInterjections(conversationId: string): Promise<void> {
   // desktop files each row under, and the phone is the only `mobile` sender
   // on a pairing, so it survives the process where the set does not.
   for (const row of raw) {
+    if ((row as { held?: unknown } | null)?.held === true) continue
     const sender = (row as { channel?: unknown; messageId?: unknown } | null)?.channel
     const id = (row as { messageId?: unknown } | null)?.messageId
     if (sender === 'mobile' && typeof id === 'string' && id) sentInterjections.add(id)
@@ -895,16 +928,16 @@ export function attachTurnStream(): void {
         sentInterjections.delete(row.id ?? '')
         if (ev.reason === 'turn_ended' || ev.reason === 'error') {
           // The turn finished without reading it. It is still a message the
-          // user sent, so it goes as the next turn — a normal send under the
-          // same id, with the desktop's own copy of the files, and the
-          // transcript as the text so a voice note is not transcribed twice.
-          void sendPrompt({
-            conversationId,
-            text: row.content,
-            attachments: row.attachments,
-            voicePrompt: row.voicePrompt,
-            messageId: row.id
-          }).catch(() => undefined)
+          // user sent, so it goes as the next turn — but the DESKTOP sends it
+          // now, not this phone. It emitted this very event, so it cannot miss
+          // it; it holds the transcript; and it keeps the message parked on
+          // disk until one exists. A phone that was backgrounded, relaunching
+          // or off the tunnel at this moment used to lose the words outright,
+          // which is the whole reason the hand-back moved over there.
+          //
+          // Nothing to do here but let the row go: the fresh turn arrives as a
+          // normal `message.appended` with the prompt attached, under the same
+          // message id, so the feed shows it exactly once.
           return
         }
         // Withdrawn by the user, or the turn was stopped: not sent. The
@@ -938,6 +971,13 @@ export type InterjectResult = { status: 'pending' } | { status: 'no_live_turn' }
  * the draft, or re-send as a turn — or someone else's to merely un-draw.
  */
 const sentInterjections = new Set<string>()
+
+/**
+ * Held messages (a stopped run's, see seedPendingInterjections) already handed
+ * back to a composer by this process. Guards the double-restore: the give-back
+ * appends, so restoring one twice duplicates the user's words in the field.
+ */
+const restoredHeld = new Set<string>()
 
 /**
  * Whether an RPC failed because the desktop predates the method. The
