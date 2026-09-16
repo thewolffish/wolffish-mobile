@@ -14,7 +14,8 @@ import {
   useDemoConfig,
   useSettingsReadOnly,
   type DemoConfigValues,
-  type ExtensionBrowser
+  type ExtensionBrowser,
+  type ExtensionReadiness
 } from '@/state/demoConfig'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -321,6 +322,50 @@ function BrowserCard({ browser }: { browser: ExtensionBrowser }): React.JSX.Elem
   )
 }
 
+/**
+ * The desktop's readiness verdict, reduced to one row.
+ *
+ * It renders NOTHING when there is nothing to say — no desktop has reported
+ * yet, or one reported a tier of 'none' with no blockers. A permanently grey
+ * "unknown" row would be worse than silence here: the whole point of the row
+ * is that something is worth acting on, and every fix for it lives on the
+ * desktop, so the phone can only ever point at it.
+ */
+function ReadinessRow({ readiness }: { readiness: ExtensionReadiness }): React.JSX.Element | null {
+  const { t } = useTranslation()
+  if (!readiness.ready && readiness.blockers === 0 && readiness.tier === 'none') return null
+  const label = readiness.ready
+    ? t('settings.services.browserExtension.readinessReady')
+    : readiness.blockers > 0
+      ? t('settings.services.browserExtension.readinessBlockers', { count: readiness.blockers })
+      : t('settings.services.browserExtension.readinessLimited')
+  return (
+    <View className="bg-bg flex-col gap-1 rounded-xl px-3 py-2.5">
+      <View className="flex-row items-center gap-2">
+        <StatusDot tone={readiness.ready ? 'ok' : readiness.blockers > 0 ? 'error' : 'busy'} />
+        {/* The label is a sentence, so it wraps rather than truncating — but it
+            has to give up its width first, or the tier chip is pushed off the
+            card (the same min-w-0/flex-1 the browser rows above use). */}
+        <Text className="text-fg font-sans-medium min-w-0 flex-1 text-left text-sm">{label}</Text>
+        <Text className="bg-surface text-muted rounded px-1.5 py-0.5 font-mono text-[11px]">
+          {t(`settings.services.browserExtension.tier.${readiness.tier}`, {
+            defaultValue: readiness.tier
+          })}
+        </Text>
+      </View>
+      {/* The first blocker only. The desktop walks the user through the rest. */}
+      {readiness.top ? (
+        <Text className="text-muted text-left font-sans text-xs leading-5">{readiness.top}</Text>
+      ) : null}
+      {!readiness.ready ? (
+        <Text className="text-muted text-left font-sans text-xs leading-5">
+          {t('settings.services.browserExtension.readinessFixOnDesktop')}
+        </Text>
+      ) : null}
+    </View>
+  )
+}
+
 function DesktopNote(): React.JSX.Element {
   const { t } = useTranslation()
   return (
@@ -336,6 +381,7 @@ export default function ServicesScreen(): React.JSX.Element {
   const { t } = useTranslation()
   const services = useDemoConfig((state) => state.services)
   const extensionBrowsers = useDemoConfig((state) => state.extensionBrowsers)
+  const extensionReadiness = useDemoConfig((state) => state.extensionReadiness)
   const port = useConfigValue('browserExtensionPort')
   const byKey = new Map(services.map((service) => [service.key, service]))
 
@@ -501,6 +547,7 @@ export default function ServicesScreen(): React.JSX.Element {
         {extensionBrowsers.map((browser, index) => (
           <BrowserCard key={`${browser.browser}-${index}`} browser={browser} />
         ))}
+        <ReadinessRow readiness={extensionReadiness} />
         {/* The port stays the desktop's: moving it restarts the pairing
             server that extension connections dial into. */}
         <View className="flex-col gap-1.5">

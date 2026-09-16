@@ -623,6 +623,13 @@ export type ConfigSnapshot = {
       screenshotQuality?: number
       /** Absent in bundles published before multi-browser shipped. */
       connected?: boolean
+      /** Absent from desktops older than 1.0.300, which sent no readiness. */
+      readiness?: {
+        ready?: boolean
+        tier?: string
+        blockers?: number
+        top?: string | null
+      }
       browsers?: Array<{
         browser?: string
         name?: string
@@ -851,6 +858,21 @@ export type ExtensionBrowser = {
   connectedAt: number | null
 }
 
+/**
+ * The desktop's browser-extension readiness verdict, as the phone receives it.
+ * A summary, deliberately: the blockers list, the fix steps and the buttons
+ * that run them all live on the desktop, and the phone's job is to say whether
+ * there is anything to go and look at.
+ */
+export type ExtensionReadiness = {
+  ready: boolean
+  /** full | degraded | managed | none — how much of the browser is reachable. */
+  tier: string
+  blockers: number
+  /** The first blocker's title, already user-facing prose. */
+  top: string | null
+}
+
 export type DemoConfigState = DemoConfigValues & {
   /** Read-only service surface state (desktop-managed). */
   services: ServiceStatus[]
@@ -859,6 +881,8 @@ export type DemoConfigState = DemoConfigValues & {
    * rows behind the Services screen's browser cards.
    */
   extensionBrowsers: ExtensionBrowser[]
+  /** The desktop's readiness verdict for the extension — one row on Services. */
+  extensionReadiness: ExtensionReadiness
   /** Capability descriptions from the real workspace's SKILL.md files. */
   capabilityInfo: Record<
     string,
@@ -1081,6 +1105,7 @@ const INITIAL_STATE = {
   ...DEFAULTS,
   services: READ_ONLY_SERVICES,
   extensionBrowsers: [] as ExtensionBrowser[],
+  extensionReadiness: { ready: false, tier: 'none', blockers: 0, top: null } as ExtensionReadiness,
   capabilityInfo: {} as DemoConfigState['capabilityInfo'],
   compactionRuns: { daily: null, weekly: null } as CompactionRuns,
   usage: [] as UsageDay[],
@@ -1297,6 +1322,16 @@ export const useDemoConfig = create<DemoConfigState>()(
               extensionVersion: browser.extensionVersion ?? null,
               connectedAt: typeof browser.connectedAt === 'number' ? browser.connectedAt : null
             })),
+            // A desktop older than 1.0.300 sends no readiness at all, and
+            // 'none' + zero blockers is exactly the shape the row reads as
+            // "nothing to say" — so an old desktop renders no row rather than
+            // a permanently grey one.
+            extensionReadiness: {
+              ready: services.browserExtension?.readiness?.ready === true,
+              tier: services.browserExtension?.readiness?.tier ?? 'none',
+              blockers: services.browserExtension?.readiness?.blockers ?? 0,
+              top: services.browserExtension?.readiness?.top ?? null
+            },
             services: [
               {
                 key: 'google',
@@ -1372,6 +1407,7 @@ export const useDemoConfig = create<DemoConfigState>()(
         const persisted: Record<string, unknown> = {
           capabilityInfo: state.capabilityInfo,
           extensionBrowsers: state.extensionBrowsers,
+          extensionReadiness: state.extensionReadiness,
           compactionRuns: state.compactionRuns,
           usage: state.usage,
           desktop: state.desktop,

@@ -1,4 +1,14 @@
-## v1.0.60 — 2026-09-16 `Latest`
+## v1.0.61 — 2026-09-16 `Latest`
+
+### Your Browser Extension Now Says Whether It Can Actually Work
+
+The Services page listed every browser your extension had connected, which told you the link existed — and nothing at all about whether Wolffish could **do anything through it**. A browser can be connected and still be shut out: permissions withheld, site access narrowed to whatever tab you opened by hand, a workplace policy holding the door. You found out the way anyone finds out, by asking for something and watching it not happen.
+
+Under the browser rows there is now **one line with the verdict**: everything is in place, part of the browser is reachable, or a count of the things standing in the way. Beside it sits a badge for **how much of the browser Wolffish can reach** — Full, Limited, Managed or Not reachable — and underneath, **the first thing blocking it, in plain words**. Every fix for any of it lives on your desktop, so the line says that too, and points you at the panel that walks you through it.
+
+It speaks **only when there is something to say**. A desktop with nothing to report, or one too old to have an opinion, leaves the page exactly as it was rather than parking a grey question mark on it forever.
+
+## v1.0.60 — 2026-09-16
 
 ### The Reconnecting Card Now Shows, Whatever You Have Open
 

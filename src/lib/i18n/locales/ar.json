@@ -209,7 +209,22 @@
         "quality": "جودة JPEG (1-100)",
         "pairingNote": "تثبيت الامتداد واقترانه يتمّان على الحاسوب.",
         "portManagedOnDesktop": "يُدار المنفذ من تطبيق الكمبيوتر.",
-        "connectedAtTime": "اتصل عند {{time}}"
+        "connectedAtTime": "اتصل عند {{time}}",
+        "readinessReady": "كل ما يحتاجه وولفيش متوفر.",
+        "readinessLimited": "لا يصل وولفيش إلا إلى جزء من متصفحك.",
+        "readinessBlockers": "{{count}} عوائق تمنع وولفيش من قيادة متصفحك.",
+        "readinessBlockers_zero": "لا شيء يمنع وولفيش من قيادة متصفحك.",
+        "readinessBlockers_one": "عائق واحد يمنع وولفيش من قيادة متصفحك.",
+        "readinessBlockers_two": "عائقان يمنعان وولفيش من قيادة متصفحك.",
+        "readinessBlockers_few": "{{count}} عوائق تمنع وولفيش من قيادة متصفحك.",
+        "readinessBlockers_many": "{{count}} عائقًا يمنع وولفيش من قيادة متصفحك.",
+        "readinessFixOnDesktop": "افتح لوحة امتداد المتصفح في تطبيق الكمبيوتر لمعالجته.",
+        "tier": {
+          "full": "كامل",
+          "degraded": "محدود",
+          "managed": "مُدار",
+          "none": "غير متاح"
+        }
       },
       "keySaved": "حُفظ على جهاز الكمبيوتر",
       "keySaveFailed": "تعذّر الحفظ — تحقق من الاتصال",
