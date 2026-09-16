@@ -18,19 +18,23 @@
  *
  * The app drives it through one entry point, `window.wolffishGoTo(index)`.
  *
- * ONE PAGE AT A TIME, always — the page is swapped, never scrolled past.
- * wolffish-app scrolls its .docx pages because a desktop card is a scrollable
- * surface; a phone card is not. It sits inside a chat list that owns the pan
- * gesture (see FileViewers' non-interactive-preview rule), so a page the
- * reader cannot scroll to is a page they cannot reach at all. Swapping also
- * means the pager's index is authoritative rather than inferred from a scroll
- * offset, so the last page is always reachable — a scrolled deck clamps at the
- * bottom and can never report its final slide as current.
+ * Two shapes, because a deck and a document are not the same kind of thing:
  *
- * `aspect` is the page's own width/height, which the card uses to size itself
- * — the same thing wolffish-app's PresentationViewer does with its aspectRatio
- * box. Whatever box the card settles on, the page is scaled to fit inside it
- * whole.
+ *   SLIDES and SHEETS are switched to. One fills the frame, the rest are
+ *   hidden behind it, and `aspect` tells the card what shape to be so the
+ *   slide fills it exactly — the same thing wolffish-app's PresentationViewer
+ *   does with its aspectRatio box.
+ *
+ *   DOCUMENTS are read. Their pages are a scrolling column at full card
+ *   width, as wolffish-app's DocxViewer lays them out, because a page shrunk
+ *   to fit a card's height needs pinch-zooming to read. The pager becomes a
+ *   position line that can also jump, which is what makes page four reachable
+ *   from the card, where the chat list owns the pan gesture.
+ *
+ * Either way every page is reachable: swapping makes the index authoritative,
+ * and the scrolling column is padded so its last page can still reach the top
+ * — a scroller clamps at the bottom otherwise and the final page could never
+ * become the current one.
  */
 ;(function () {
   var input = window.__wolffishOffice || {}
@@ -43,6 +47,13 @@
 
   /** Page elements in document order — what the pager indexes into. */
   var pages = []
+  /**
+   * How pages are reached. 'swap' shows exactly one and hides the rest — right
+   * for slides and sheets, which are discrete things you switch between.
+   * 'scroll' lays them out in a column — right for a document, which is one
+   * continuous thing you read, and which wolffish-app scrolls too.
+   */
+  var flow = 'swap'
   /** Called before a page is shown, when its content is rendered lazily. */
   var realize = null
   /** Called after a resize, for pages whose scale depends on the viewport. */
@@ -90,7 +101,7 @@
   function pageBox() {
     var box = document.createElement('div')
     box.className = 'page'
-    box.hidden = pages.length > 0
+    if (flow === 'swap') box.hidden = pages.length > 0
     doc.appendChild(box)
     pages.push(box)
     return box
@@ -99,6 +110,13 @@
   // --- paging ---------------------------------------------------------------
 
   function show(index) {
+    if (flow === 'scroll') {
+      var target = pages[index]
+      if (!target) return
+      current = index
+      window.scrollTo({ top: target.offsetTop, behavior: 'auto' })
+      return
+    }
     if (realize) realize(index)
     for (var i = 0; i < pages.length; i++) pages[i].hidden = i !== index
     current = index
@@ -116,6 +134,29 @@
   window.addEventListener('resize', function () {
     if (refit) refit(current)
   })
+
+  /**
+   * Which page is at the top of the scroller, for the position line.
+   *
+   * Measured against the VIEWPORT (0), not against #doc's own rect: the window
+   * is the scroller, so #doc moves with the pages and the difference between
+   * them never changes — every page would report as page 1.
+   */
+  function trackScroll() {
+    var onScroll = function () {
+      var index = 0
+      for (var i = 0; i < pages.length; i++) {
+        if (pages[i].getBoundingClientRect().top <= 24) index = i
+        else break
+      }
+      if (index !== current) {
+        current = index
+        post({ type: 'page', index: index })
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+  }
 
   // --- pptx -----------------------------------------------------------------
 
@@ -208,6 +249,12 @@
   }
 
   function renderDocument(data) {
+    // A document is read, not flipped through: its pages sit in one column and
+    // scroll, the way wolffish-app's DocxViewer does. The pager stays as a
+    // position line that can also jump, which is what makes page four
+    // reachable from the card, where the feed owns the pan gesture and the
+    // preview cannot be scrolled by hand.
+    flow = 'scroll'
     // docx-preview replaces whatever it is given, so it gets a scratch host
     // rather than #doc, and the pages are moved out of it afterwards.
     var host = document.createElement('div')
@@ -233,62 +280,57 @@
         var sections = host.querySelectorAll('section')
         if (!sections.length) throw new Error('document has no pages')
 
-        var aspect = null
         var limit = Math.min(sections.length, MAX_PAGES)
         for (var i = 0; i < limit; i++) {
-          var section = sections[i]
           var box = pageBox()
           box.classList.add('doc-page')
-          box.appendChild(section)
-          if (aspect === null) {
-            var w = section.offsetWidth
-            var h = section.offsetHeight
-            if (w > 0 && h > 0) aspect = w / h
-          }
+          box.appendChild(sections[i])
         }
         host.remove()
 
-        refit = fitPage
-        fitPage(0)
-        ready({ aspect: aspect, total: sections.length })
+        refit = fitDocument
+        fitDocument()
+        // No aspect: the card is a window onto a scrolling document, not a
+        // frame shaped like one page.
+        ready({ total: sections.length })
+        trackScroll()
       })
   }
 
   /**
-   * Scale a Word page to sit whole inside the card, and centre it.
+   * Scale every Word page to the width of the card, and give the column enough
+   * tail that its last page can still reach the top.
    *
-   * A page has a real size in CSS pixels (8.5in ≈ 816px wide) and the card is
-   * half that, so it is scaled rather than reflowed — the document keeps its
-   * own layout, exactly like a rasterised PDF page. Scaling to CONTAIN rather
-   * than to width is what keeps "one page at a time" true when the card's box
-   * is not the page's aspect: a Letter page in a 16:9 box would otherwise
-   * overflow the bottom and the reader would see two half pages.
+   * Fit to WIDTH, not to the whole box: a Letter page shrunk to fit a short
+   * card's height would land at about 60% and need pinch-zooming to read,
+   * whereas at full width it is the same size a PDF page would be. The page is
+   * scaled rather than reflowed either way, so the document keeps its own
+   * layout — wolffish-app's DocxViewer makes the same trade ("the viewer width
+   * IS the page width").
    */
-  function fitPage(index) {
-    var box = pages[index]
-    if (!box || box.hidden) return
-    var section = box.firstElementChild
-    if (!section) return
-    section.style.transform = ''
-    var naturalWidth = section.offsetWidth
-    var naturalHeight = section.offsetHeight
-    if (!naturalWidth || !naturalHeight) return
-    var scale = Math.min(
-      box.clientWidth / naturalWidth,
-      box.clientHeight / naturalHeight,
-      // Never blow a page up past its own size: a short page in a tall card
-      // should sit at 100%, not stretch into a poster.
-      1
-    )
-    section.style.transformOrigin = 'top left'
-    section.style.transform =
-      'translate(' +
-      (box.clientWidth - naturalWidth * scale) / 2 +
-      'px, ' +
-      Math.max(0, (box.clientHeight - naturalHeight * scale) / 2) +
-      'px) scale(' +
-      scale +
-      ')'
+  function fitDocument() {
+    var available = doc.clientWidth
+    if (!available) return
+    var lastHeight = 0
+    for (var i = 0; i < pages.length; i++) {
+      var box = pages[i]
+      var section = box.firstElementChild
+      if (!section) continue
+      section.style.transform = ''
+      var naturalWidth = section.offsetWidth
+      var naturalHeight = section.offsetHeight
+      if (!naturalWidth || !naturalHeight) continue
+      var scale = available / naturalWidth
+      section.style.transformOrigin = 'top left'
+      section.style.transform = 'scale(' + scale + ')'
+      // A transform does not change layout, so the box has to be told the
+      // height its scaled page now occupies or the pages would all pile up.
+      box.style.height = naturalHeight * scale + 'px'
+      lastHeight = naturalHeight * scale
+    }
+    // Without this the final page can never scroll its top to the top of the
+    // viewport — the scroller clamps first — and the pager could not reach it.
+    doc.style.paddingBottom = Math.max(0, window.innerHeight - lastHeight) + 'px'
   }
 
   // --- xlsx -----------------------------------------------------------------

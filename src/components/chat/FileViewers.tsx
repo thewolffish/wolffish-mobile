@@ -199,6 +199,7 @@ export function ViewerSkeleton({
   relPath,
   expectedBytes,
   bodyHeight,
+  bodyAspect,
   footerLabel,
   actions
 }: {
@@ -211,6 +212,12 @@ export function ViewerSkeleton({
   expectedBytes?: number
   /** Height of the body the loaded card will render. */
   bodyHeight: number
+  /**
+   * …or the shape it will take, for a body sized from its content's aspect
+   * (a slide). Wins over `bodyHeight`, and reserves the same box the loaded
+   * card will measure for itself.
+   */
+  bodyAspect?: number | null
   footerLabel?: string
   /** How many action buttons the loaded footer carries — they set its height. */
   actions: number
@@ -218,7 +225,10 @@ export function ViewerSkeleton({
   return (
     <CardShell align={align}>
       <CardHeader icon={icon} name={name} />
-      <View className="bg-bg border-border border-t p-3" style={{ height: bodyHeight }}>
+      <View
+        className="bg-bg border-border border-t p-3"
+        style={bodyAspect ? { aspectRatio: bodyAspect } : { height: bodyHeight }}
+      >
         <View className="bg-border h-full w-full rounded-lg opacity-40" />
         <DownloadStatus relPath={relPath} expectedBytes={expectedBytes} />
       </View>
@@ -237,25 +247,41 @@ export function ViewerSkeleton({
  * Non-interactive preview that expands on tap — see the file header note.
  * Text-ish bodies pass `maxHeight` so a two-line file gets a two-line card;
  * WebView bodies (HTML, PDF) have no intrinsic height and pass `height`.
+ *
+ * A slide passes `aspectRatio` instead, and that is the only way to get it
+ * exactly right: the card's real width is 85% of the feed's content box, which
+ * is the screen less its horizontal padding, so any height computed from the
+ * screen width is out by a few points and the slide letterboxes inside it.
+ * Handing the ratio to the layout engine derives the height from the width
+ * actually measured, which is exact by construction and stays exact if the
+ * feed's padding ever changes.
  */
 function PreviewTap({
   onPress,
   label,
   height,
   maxHeight,
+  aspectRatio,
   children
 }: {
   onPress: () => void
   label: string
   height?: number
   maxHeight?: number
+  aspectRatio?: number
   children: ReactNode
 }): React.JSX.Element {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}>
       <View
         pointerEvents="none"
-        style={height !== undefined ? { height } : { maxHeight }}
+        style={
+          aspectRatio !== undefined
+            ? { aspectRatio }
+            : height !== undefined
+              ? { height }
+              : { maxHeight }
+        }
         className="overflow-hidden"
       >
         {children}
@@ -918,12 +944,13 @@ const OFFICE_MAX_BODY = 420
  * shape to assume before the file has been read.
  *
  * The assumed aspect is what keeps the card one size: the skeleton, the
- * loading frame and the loaded page all use it, so the common case (US Letter
- * / A4 documents, 16:9 decks) never resizes when the renderer reports back.
- * A 4:3 deck still settles a little taller, which is the one nudge left.
+ * loading frame and the loaded slide all use it, so a 16:9 deck never resizes
+ * when the renderer reports back. A 4:3 deck settles a little taller, which is
+ * the one nudge left. Documents and workbooks scroll rather than fill a frame
+ * of their own shape, so they keep a plain window height throughout.
  */
 const OFFICE_KINDS = {
-  document: { kind: 'docx', position: 'chat.officeViewer.pageOf', aspect: 8.5 / 11 },
+  document: { kind: 'docx', position: 'chat.officeViewer.pageOf', aspect: null },
   workbook: { kind: 'xlsx', position: 'chat.officeViewer.sheetOf', aspect: null },
   slides: { kind: 'pptx', position: 'chat.officeViewer.slideOf', aspect: 16 / 9 }
 } as const satisfies Record<string, { kind: OfficeKind; position: string; aspect: number | null }>
@@ -1053,16 +1080,12 @@ export function OfficeFileCard({
     [frameRef, pages]
   )
 
-  // The body takes the PAGE's shape, the way wolffish-app's PresentationViewer
-  // puts its slide in an aspectRatio box: one whole page fills the card and
-  // nothing of the next one shows. Capped, because a Letter page at card width
-  // is over 400pt tall and the feed still has to be scrollable past it — the
-  // runtime scales the page to fit whatever box it ends up with.
-  const bodyHeight = useMemo(() => {
-    if (!aspect || !(aspect > 0)) return INLINE_BODY_HEIGHT + 60
-    const width = screenWidth * CARD_WIDTH_SHARE
-    return Math.round(Math.min(Math.max(width / aspect, OFFICE_MIN_BODY), OFFICE_MAX_BODY))
-  }, [aspect, screenWidth])
+  // A slide takes its own shape, the way wolffish-app's PresentationViewer puts
+  // one in an aspectRatio box — the layout engine derives the height from the
+  // width it actually measures, so the slide fills the card edge to edge with
+  // no mat. A document and a workbook are windows onto something that scrolls,
+  // so they keep a plain window height.
+  const bodyAspect = aspect && aspect > 0 ? aspect : null
 
   if (loading || (uri && !oversized && !host && !engineFailed)) {
     return (
@@ -1073,7 +1096,8 @@ export function OfficeFileCard({
         relPath={relPath}
         expectedBytes={sizeBytes}
         // Exact: the loaded document frame is pinned to this same height.
-        bodyHeight={bodyHeight}
+        bodyHeight={INLINE_BODY_HEIGHT + 60}
+        bodyAspect={bodyAspect}
         footerLabel={[classification.ext.toUpperCase(), formatBytes(sizeBytes ?? 0)]
           .filter(Boolean)
           .join(' · ')}
@@ -1130,11 +1154,12 @@ export function OfficeFileCard({
         if (message.type === 'ready') {
           setPages(message.pages ?? 0)
           setLabels(message.labels ?? null)
-          // Only a real measurement replaces the seed — a renderer that
-          // reports none (a workbook) must not collapse the card to nothing.
+          // Only a real measurement moves the card off its seeded shape; a
+          // renderer that reports none (a document, a workbook) is saying it
+          // scrolls, and the seed is already null for those.
           if (typeof message.aspect === 'number' && message.aspect > 0) {
             setAspect(message.aspect)
-          } else if (message.labels) setAspect(null)
+          }
           setTotal(message.total ?? 0)
           if (!message.pages) setEngineFailed(true)
           // A frame that just mounted starts at the top; the reader's place is
@@ -1184,7 +1209,12 @@ export function OfficeFileCard({
   return (
     <CardShell align={align}>
       <CardHeader icon={officeIcon(cardKind)} name={name} />
-      <PreviewTap onPress={() => setOpen(true)} label={name} height={bodyHeight}>
+      <PreviewTap
+        onPress={() => setOpen(true)}
+        label={name}
+        height={bodyAspect === null ? INLINE_BODY_HEIGHT + 60 : undefined}
+        aspectRatio={bodyAspect ?? undefined}
+      >
         {/* One document renderer at a time — see HtmlFileCard. */}
         {open ? <View className="bg-surface flex-1" /> : frame(cardRef)}
       </PreviewTap>

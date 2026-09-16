@@ -126,21 +126,35 @@ function styles(kind: OfficeKind, theme: OfficeTheme): string {
   return [
     `:root{--bg:${theme.bg};--surface:${theme.surface};--fg:${theme.fg};`,
     `--muted:${theme.muted};--border:${theme.border}}`,
-    // The page IS the viewport: one document page fills the frame and the
-    // others are hidden behind it, so the frame never scrolls and never shows
-    // two pages at once. The card sizes itself from the `aspect` the runtime
-    // reports, so this box is already the right shape.
-    'html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);',
-    '-webkit-text-size-adjust:100%}',
-    '#doc{position:relative;width:100%;height:100%}',
-    '.page{position:absolute;inset:0;background:#fff;overflow:hidden}',
+    'html,body{margin:0;padding:0;background:var(--bg);-webkit-text-size-adjust:100%}',
     '.page[hidden]{display:none}',
-    // The slide SVGs carry preserveAspectRatio="xMidYMid meet", so filling the
-    // box letterboxes them rather than stretching.
-    '.page svg{display:block;width:100%;height:100%}',
-    // Positioned at the origin because fitPage centres it with a transform,
-    // which needs a known starting corner.
-    '.page.doc-page > section{position:absolute;top:0;left:0;background:#fff}',
+    kind === 'docx'
+      ? [
+          // A document scrolls: its pages are a column, each one the full width
+          // of the card, separated the way paper would be.
+          '#doc{position:relative;width:100%}',
+          '.page{position:relative;width:100%;background:#fff;overflow:hidden;',
+          'margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.18)}',
+          // Pinned to the origin because fitDocument scales it from there, and
+          // a transform leaves the box's own height to be set explicitly.
+          '.page.doc-page > section{position:absolute;top:0;left:0;background:#fff}'
+        ].join('')
+      : [
+          // A slide or a sheet is switched to, not scrolled past: one fills the
+          // frame and the rest are hidden behind it.
+          'html,body{height:100%;overflow:hidden}',
+          '#doc{position:relative;width:100%;height:100%}',
+          '.page{position:absolute;inset:0;overflow:hidden}',
+          // The gutter shows only where a slide cannot fill its box — the
+          // expanded sheet, where a 4:3 slide sits in a portrait screen. In the
+          // card the box is the slide's own shape, so none of it shows. It is
+          // the theme's colour rather than white so that it reads as the mat
+          // wolffish-app paints, instead of as a bar on the slide.
+          '.page{background:var(--bg)}',
+          // The slide SVGs carry preserveAspectRatio="xMidYMid meet", so
+          // filling the box letterboxes them rather than stretching.
+          '.page svg{display:block;width:100%;height:100%}'
+        ].join(''),
     kind === 'xlsx'
       ? [
           // A sheet is not a page: it has no paper of its own, so it takes the
