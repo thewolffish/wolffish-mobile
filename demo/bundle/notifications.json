@@ -1,0 +1,114 @@
+{
+  "notifications": [
+    {
+      "id": "01KZBP5XSSSC6TKTP9TVJW0TCT",
+      "title": "Pacer test is green",
+      "body": "Found the race in the 32 KB/s pacer, fixed it, added the changelog line and pushed. Fourteen runs since, no flakes.",
+      "at": 1786025015097,
+      "conversationId": "code-showcase",
+      "deeplink": "wolffish://chat?id=code-showcase",
+      "phase": "completed",
+      "read": false,
+      "archived": false
+    },
+    {
+      "id": "01KZATHRSVCYV1V152RZJY8BQC",
+      "title": "The review deck is ready",
+      "body": "Seven slides, with the depth chart on slide 5 and speaker notes throughout. Worth a look before the review tomorrow.",
+      "at": 1785996043067,
+      "conversationId": "deck-showcase",
+      "deeplink": "wolffish://chat?id=deck-showcase",
+      "phase": "completed",
+      "read": true,
+      "archived": false
+    },
+    {
+      "id": "01KZAKNA3VA8R7BW6HT7JJ20TA",
+      "title": "Which depth column is the real one?",
+      "body": "The survey workbook has two depth columns and the averages are built from both. Tell me which one counts and I will redo the formulas.",
+      "at": 1785988819067,
+      "conversationId": "workbook-showcase",
+      "deeplink": "wolffish://chat?id=workbook-showcase",
+      "phase": "needs_input",
+      "read": false,
+      "archived": false
+    },
+    {
+      "id": "01KZACKGH3XTDFK3NARBJMBH5W",
+      "title": "Read back, and stopped there",
+      "body": "Read your user file back out loud and stopped, as you asked. Nothing in it has been changed since.",
+      "at": 1785981420067,
+      "conversationId": "voice-showcase",
+      "deeplink": "wolffish://chat?id=voice-showcase",
+      "phase": "info",
+      "read": true,
+      "archived": false
+    },
+    {
+      "id": "01KZ93DSHBENZWB64JQQJAEQMD",
+      "title": "Your Soul, User and Agents files are written",
+      "body": "All three written from the interview — one pass, no follow-ups needed. Open Customization if you want to change any of it.",
+      "at": 1785938241067,
+      "conversationId": "ask-showcase",
+      "deeplink": "wolffish://chat?id=ask-showcase",
+      "phase": "completed",
+      "read": true,
+      "archived": false
+    },
+    {
+      "id": "01KZ7T7953V3AM3ZNSSKJ8569V",
+      "title": "Approve the force-push?",
+      "body": "Rebasing the release branch onto main means force-pushing it to origin. Nothing has been pushed yet — say go and I will finish the three steps.",
+      "at": 1785895036067,
+      "conversationId": "approval-showcase",
+      "deeplink": "wolffish://chat?id=approval-showcase",
+      "phase": "needs_input",
+      "read": false,
+      "archived": false
+    },
+    {
+      "id": "01KZ6H0KWKZHH938MVP3K0GX2X",
+      "title": "Eleven chart types, one conversation",
+      "body": "Every chart the desktop can draw is now in one place: bars, lines, area, scatter, pie, radar, gauge, heatmap and the rest.",
+      "at": 1785851826067,
+      "conversationId": "chart-showcase",
+      "deeplink": "wolffish://chat?id=chart-showcase",
+      "phase": "completed",
+      "read": true,
+      "archived": false
+    },
+    {
+      "id": "01KZ57TD8VGC3PVA33NFKPK3GE",
+      "title": "The file type showcase is built",
+      "body": "One card per file type the app can open — images, video, audio, PDF, Office documents, code and archives — in a single conversation.",
+      "at": 1785808631067,
+      "conversationId": "file-showcase",
+      "deeplink": "wolffish://chat?id=file-showcase",
+      "phase": "completed",
+      "read": true,
+      "archived": true
+    },
+    {
+      "id": "01KYXZFX7P18M3KCKBNVKCP9YY",
+      "title": "Workspace disk breakdown is done",
+      "body": "2.4 GB of the 3.1 GB is sitting in downloads. I left the cache alone as you asked; the five heaviest files are listed in the reply.",
+      "at": 1785565017334,
+      "conversationId": "2026-08-01_09-14-27_412-7e41c8",
+      "deeplink": "wolffish://chat?id=2026-08-01_09-14-27_412-7e41c8",
+      "phase": "completed",
+      "read": true,
+      "archived": true
+    },
+    {
+      "id": "01KYHRPVSCWGN46XGRMPW6GX2M",
+      "title": "Telegram stopped answering",
+      "body": "The Telegram channel dropped its connection twice this morning and is offline now. Check the token in Channels when you get a moment.",
+      "at": 1785155252012,
+      "conversationId": null,
+      "deeplink": "wolffish://settings/channels",
+      "phase": "failed",
+      "read": true,
+      "archived": true
+    }
+  ]
+}

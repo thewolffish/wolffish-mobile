@@ -1,11 +1,18 @@
 import { ChannelBadge } from '@/components/conversations/ChannelBadge'
 import { chipText, chipTone, Pulse } from '@/components/conversations/ConversationChip'
-import { AiBrain01Icon, Clock01Icon, LibraryIcon, Settings02Icon } from '@/components/core/icons'
+import {
+  AiBrain01Icon,
+  Clock01Icon,
+  LibraryIcon,
+  Notification03Icon,
+  Settings02Icon
+} from '@/components/core/icons'
 import { UnreadBadge } from '@/components/core/UnreadBadge'
 import { groupByRecency } from '@/lib/conversations/grouping'
 import { useConversationList } from '@/lib/conversations/hooks'
 import { buildConversationRows, type ConversationRow } from '@/lib/conversations/rows'
 import { useBadges } from '@/state/badges'
+import { unreadNotifications, useNotifications } from '@/state/notifications'
 import { useActiveProject, useProjects } from '@/lib/sync/projects'
 import { DEFAULT_PROJECT_ICON } from '@/components/workspace/ProjectDialog'
 import { cn } from '@/lib/utils/cn'
@@ -78,8 +85,19 @@ const SLIDE_MS = 200
  * Projects and Procedures are one Library row — the three lists are tabs of
  * one screen now, as on the desktop — so the sheet carries three destinations
  * where it carried five.
+ *
+ * Notifications sits ABOVE Settings, at the very top. It is the only row here
+ * that can be waiting on you: everything below is somewhere you decide to go,
+ * and a page that carries an unread count belongs where the count is seen
+ * first. It is also the only row that gets a badge — see NAV_BADGE.
  */
 const NAV = [
+  {
+    key: 'notifications',
+    href: '/notifications',
+    Icon: Notification03Icon,
+    labelKey: 'notifications.title'
+  },
   { key: 'settings', href: '/settings', Icon: Settings02Icon, labelKey: 'settings.title' },
   {
     key: 'library',
@@ -103,6 +121,10 @@ const NAV = [
     labelKey: 'settings.tabs.conversations'
   }
 ] as const
+
+/** The one nav row that carries a count: unread notifications, the same mark
+ *  the conversation rows below wear and the same number on the app icon. */
+const NAV_BADGE = 'notifications'
 
 /**
  * One conversation. The chip carries the number and the state; the badge hangs
@@ -331,6 +353,8 @@ function SheetBody({
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const { data: metas } = useConversationList()
+  // The whole inbox's unread count, on the one row that leads to it.
+  const unread = useNotifications(unreadNotifications)
   const { data: projects } = useProjects()
   const live = useChatRuntime((state) => state.streams)
   const runs = useRunStatus((state) => state.runs)
@@ -401,12 +425,16 @@ function SheetBody({
             <View className="h-6 w-6 items-center justify-center">
               <Icon size={17} className="text-muted" />
             </View>
+            {/* min-w-0 with flex-1: the label is the growing half of the row,
+                and without it a long one pushes the badge off the panel
+                instead of truncating itself. */}
             <Text
               numberOfLines={1}
-              className="text-fg font-sans-medium flex-1 text-left text-[13px]"
+              className="text-fg font-sans-medium min-w-0 flex-1 text-left text-[13px]"
             >
               {t(labelKey)}
             </Text>
+            {key === NAV_BADGE && <UnreadBadge count={unread} />}
           </Pressable>
         ))}
         {/* The rule between what you MAKE and what you have SAID. It stays with

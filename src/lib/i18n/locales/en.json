@@ -699,7 +699,11 @@
     "officeViewer": {
       "pageOf": "Page {{index}} of {{count}}",
       "slideOf": "Slide {{index}} of {{count}}",
-      "sheetOf": "Sheet {{index}} of {{count}}"
+      "sheetOf": "Sheet {{index}} of {{count}}",
+      "partial": "Showing the first {{count}} of {{total}}"
+    },
+    "spreadsheetViewer": {
+      "sheets": "Sheets"
     },
     "viewerPager": {
       "previous": "Previous",
@@ -935,7 +939,15 @@
     "archiveAll": "Archive all",
     "markRead": "Mark as read",
     "archive": "Archive",
-    "unread": "Unread",
+    "confirmReadAll": {
+      "title": "Mark all as read?",
+      "message": "All {{count}} notifications in this list will be marked as read. Their unread marks go with them."
+    },
+    "confirmArchiveAll": {
+      "title": "Archive all?",
+      "message": "All {{count}} notifications in this list move to the archive, and are marked as read. You can still read them under Archive."
+    },
+    "new": "New",
     "empty": "No notifications yet.",
     "emptyHint": "Wolffish tells you here when a run finishes, fails or needs you.",
     "archiveEmpty": "Nothing archived.",

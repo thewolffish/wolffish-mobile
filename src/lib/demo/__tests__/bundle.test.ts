@@ -21,6 +21,13 @@ import {
 } from '@/lib/usage/stats'
 import { parseAnswers, parseQuestionsFromArgs } from '@/components/chat/QuestionCard'
 import { CUSTOMIZATION_MAX_BYTES, utf8Bytes, type ConfigSnapshot } from '@/state/demoConfig'
+import type { DemoNotification } from '@/lib/demo/importer'
+import {
+  NOTIFY_BODY_MAX,
+  NOTIFY_PHASES,
+  NOTIFY_TITLE_MAX,
+  parseDeeplink
+} from '@/lib/tunnel/protocol'
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 
@@ -645,5 +652,87 @@ describe('code activity across the dataset', () => {
     expect([...CODE_ACTIVITY_TOOLS]).toEqual(
       expect.arrayContaining(['shell_exec', 'file_write', 'file_patch', 'file_edit'])
     )
+  })
+})
+
+describe('demo notifications', () => {
+  /**
+   * The notification log the bundle seeds. Every card on the notifications
+   * page is a card the user can TAP, so the failure this guards is a dead
+   * one: a deeplink naming a conversation the dataset does not carry (or a
+   * route this build does not have) opens nothing at all, and looks exactly
+   * like a broken feature rather than missing content.
+   *
+   * The wire limits matter for the same reason the desktop enforces them —
+   * demo copy that a real notify_phone call would be refused for is copy the
+   * tour shows and the product cannot send.
+   */
+  const log = JSON.parse(readFileSync(path.join(DEMO_DIR, 'notifications.json'), 'utf8')) as {
+    notifications: DemoNotification[]
+  }
+
+  const ids = new Set(everyConversation().map(({ conversation }) => conversation.id))
+
+  it('is a curated list with something in every state the page renders', () => {
+    expect(log.notifications.length).toBeGreaterThanOrEqual(8)
+    const unread = log.notifications.filter((entry) => !entry.read)
+    const archived = log.notifications.filter((entry) => entry.archived)
+    // Unread is what puts the count on the sheet's Notifications row, and the
+    // archive tab has to open on something.
+    expect(unread.length).toBeGreaterThanOrEqual(2)
+    expect(archived.length).toBeGreaterThanOrEqual(1)
+    // Archived is always read — the store enforces it, and curated data that
+    // disagreed would be silently corrected on import rather than rendered.
+    for (const entry of archived) expect(entry.read).toBe(true)
+    // Every phase tint the page can draw is worth showing at least once.
+    expect(new Set(log.notifications.map((entry) => entry.phase)).size).toBeGreaterThanOrEqual(3)
+  })
+
+  it('opens something real from every card', () => {
+    for (const entry of log.notifications) {
+      const target = parseDeeplink(entry.deeplink)
+      expect(`${entry.id}:${entry.deeplink}`).toEqual(expect.stringContaining('wolffish://'))
+      // Resolvable by this build's own route table, not just well-formed.
+      expect(target).not.toBeNull()
+      if (target?.route === 'chat') {
+        // …and the conversation it names is in the dataset that ships with it.
+        expect(`${entry.id} → ${target.conversationId}`).toBe(
+          `${entry.id} → ${ids.has(target.conversationId ?? '') ? target.conversationId : 'MISSING'}`
+        )
+        expect(entry.conversationId).toBe(target.conversationId)
+      } else {
+        expect(entry.conversationId).toBeNull()
+      }
+    }
+  })
+
+  it('stays inside the limits a real notification is held to', () => {
+    const seen = new Set<string>()
+    for (const entry of log.notifications) {
+      expect(seen.has(entry.id)).toBe(false)
+      seen.add(entry.id)
+      expect(entry.title.trim().length).toBeGreaterThan(0)
+      expect(entry.title.length).toBeLessThanOrEqual(NOTIFY_TITLE_MAX)
+      expect(entry.body.trim().length).toBeGreaterThan(0)
+      expect(entry.body.length).toBeLessThanOrEqual(NOTIFY_BODY_MAX)
+      expect(NOTIFY_PHASES).toContain(entry.phase)
+    }
+  })
+
+  it('is dated by the conversation it came out of, never ahead of it', () => {
+    const updated = new Map(
+      everyConversation().map(({ conversation }) => [conversation.id, conversation.updatedAt])
+    )
+    for (const entry of log.notifications) {
+      expect(Number.isFinite(entry.at)).toBe(true)
+      if (!entry.conversationId) continue
+      // A notification fires when its run reaches a phase, so it cannot
+      // predate the conversation's last turn — the relative time on the card
+      // and the one on the conversation row would tell different stories.
+      const at = updated.get(entry.conversationId) ?? 0
+      expect(entry.at).toBeGreaterThanOrEqual(at)
+      // …and it belongs to that turn rather than to some later day.
+      expect(entry.at - at).toBeLessThan(10 * 60_000)
+    }
   })
 })

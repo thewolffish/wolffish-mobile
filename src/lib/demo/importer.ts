@@ -7,6 +7,8 @@ import { invalidateAutomations } from '@/lib/sync/automations'
 import { invalidateProcedures } from '@/lib/sync/procedures'
 import { invalidateProjects } from '@/lib/sync/projects'
 import { useDemoConfig, type ConfigSnapshot } from '@/state/demoConfig'
+import { useNotifications } from '@/state/notifications'
+import { NOTIFY_PHASES, type NotifyPhase } from '@/lib/tunnel/protocol'
 import { Directory, File, Paths } from 'expo-file-system'
 
 /**
@@ -64,7 +66,27 @@ export type DemoManifest = {
   conversations: number
   totalBytes: number
   config: { file: string; bytes: number }
+  /** Absent in bundles built before the notification log existed. */
+  notifications?: { file: string; bytes: number; count: number }
   shards: DemoShard[]
+}
+
+/**
+ * One line of the demo's notification log. The persisted record's shape minus
+ * the two fields the demo has no business setting: `counted`, which is forced
+ * false below, and nothing else — read/archived are part of the curated state,
+ * so the tour opens on a list that has plainly been lived in.
+ */
+export type DemoNotification = {
+  id: string
+  title: string
+  body: string
+  at: number
+  conversationId: string | null
+  deeplink: string | null
+  phase: NotifyPhase
+  read?: boolean
+  archived?: boolean
 }
 
 export type DemoProgress = {
@@ -216,6 +238,54 @@ function seedConversationFiles(conversation: DemoConversationFile): void {
   }
 }
 
+/**
+ * Seed the notification log from the bundle.
+ *
+ * DEMO NOTIFICATIONS HOLD NO BADGE, and that is enforced here rather than
+ * trusted to the data: `counted` is forced false on every record. A badge
+ * bucket is the phone's half of a count the RELAY also keeps and the OS icon
+ * renders, and a demo has neither — so a demo that minted buckets would put a
+ * number on the app icon and on conversation rows that nothing in the tour can
+ * ever clear honestly. What the demo does show is the unread count on the
+ * conversations sheet's Notifications row, which is read straight off this log
+ * and owes the relay nothing.
+ *
+ * Runs inside the import, after the purge that empties the store — so a
+ * re-import restores the curated list, while a device that has been reading
+ * and archiving between entries keeps its own state (nothing re-imports until
+ * the published version changes).
+ *
+ * Best-effort: a malformed log costs the notifications page its content, never
+ * the 171 conversations that came with it.
+ */
+function seedNotifications(raw: string): void {
+  try {
+    const payload = JSON.parse(raw) as { notifications?: DemoNotification[] }
+    if (!Array.isArray(payload.notifications)) return
+    const store = useNotifications.getState()
+    for (const entry of payload.notifications) {
+      if (!entry?.id || typeof entry.title !== 'string' || typeof entry.body !== 'string') continue
+      store.record({
+        id: entry.id,
+        title: entry.title,
+        body: entry.body,
+        at: typeof entry.at === 'number' && Number.isFinite(entry.at) ? entry.at : Date.now(),
+        conversationId: typeof entry.conversationId === 'string' ? entry.conversationId : null,
+        deeplink: typeof entry.deeplink === 'string' ? entry.deeplink : null,
+        phase: NOTIFY_PHASES.includes(entry.phase) ? entry.phase : 'info',
+        counted: false,
+        read: entry.read === true
+      })
+      // record() only ever sets `read`, so the archive state is applied after
+      // it — and archiving reads on its own, which is why a curated archived
+      // record needs no read flag of its own to come out right.
+      if (entry.archived === true) store.archive(entry.id)
+    }
+  } catch {
+    // A malformed log leaves the page empty; the tour is otherwise intact.
+  }
+}
+
 /** Persist the snapshot beside the conversations it describes. */
 function saveConfigSnapshot(raw: string): void {
   const snapshot = JSON.parse(raw) as ConfigSnapshot
@@ -283,6 +353,11 @@ export async function importDemoData(
     report('download', totalBytes > 0 ? (doneBytes / totalBytes) * DOWNLOAD_WEIGHT : 0)
   }
   const configRaw = await fetchText(bundleUrl(manifest.config.file, manifest.version))
+  // Optional, and deliberately not fatal: a bundle published before the
+  // notification log existed must still import everything else.
+  const notificationsRaw = manifest.notifications?.file
+    ? await fetchText(bundleUrl(manifest.notifications.file, manifest.version)).catch(() => null)
+    : null
 
   // ---- Purge -----------------------------------------------------------
   // Last point at which nothing has been destroyed: everything the new bundle
@@ -323,6 +398,10 @@ export async function importDemoData(
   // Last, and only once the conversations it describes are in: a saved
   // snapshot is what makes later entries work offline.
   saveConfigSnapshot(configRaw)
+  // After the conversations too, for the same reason: every line of the log
+  // deep-links into one, and a notification that lands before its conversation
+  // is a card that opens onto nothing.
+  if (notificationsRaw) seedNotifications(notificationsRaw)
   onProgress?.({ phase: 'import', ratio: 1, imported, total })
 
   return { version: manifest.version, imported, failed, total }

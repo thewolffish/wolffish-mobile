@@ -12,12 +12,12 @@ import {
   isAllowedDeeplink,
   parseDeeplink,
   parseNotification,
-  type DeeplinkTarget,
   type NotifyPhase,
   type RegisterPushFrame,
   type SetBadgeFrame,
   type UnregisterPushFrame
 } from '@/lib/tunnel/protocol'
+import { hrefFor } from '@/lib/notifications/route'
 import { toHex } from '@/lib/tunnel/pairing'
 import type { Tunnel } from '@/lib/tunnel/tunnel'
 import { invalidateConversation } from '@/lib/conversations/cache'
@@ -425,16 +425,6 @@ const routedResponses = new Set<string>()
  *  found absent or unusable. */
 let launchHref: Href | null | undefined
 
-/** The in-app route a target names. `wolffish://chat?id=X` is `/chat?id=X`,
- *  `wolffish://settings/model` is `/settings/model` — the deeplink table and
- *  this app's own routes are the same list, by construction. */
-function hrefFor(target: DeeplinkTarget): Href {
-  if (target.route === 'chat' && target.conversationId) {
-    return { pathname: '/chat', params: { id: target.conversationId } } as Href
-  }
-  return `/${target.route}` as Href
-}
-
 /**
  * Resolve a tap to a screen, once.
  *
@@ -446,7 +436,9 @@ function hrefFor(target: DeeplinkTarget): Href {
  * something arbitrary rather than nothing.
  *
  * The route table is also the whole security story: notification payloads are
- * data, and only a link naming one of this app's own screens may steer it.
+ * data, and only a link naming one of this app's own screens may steer it. It
+ * lives in ./route.ts so the notifications page — which is the banner the user
+ * missed — resolves a link exactly the way a tap on the banner would.
  */
 function takeResponseHref(response: Notifications.NotificationResponse | null): Href | null {
   if (!response) return null

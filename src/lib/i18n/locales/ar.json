@@ -703,7 +703,11 @@
     "officeViewer": {
       "pageOf": "صفحة {{index}} من {{count}}",
       "slideOf": "شريحة {{index}} من {{count}}",
-      "sheetOf": "ورقة {{index}} من {{count}}"
+      "sheetOf": "ورقة {{index}} من {{count}}",
+      "partial": "عرض أول {{count}} من {{total}}"
+    },
+    "spreadsheetViewer": {
+      "sheets": "الأوراق"
     },
     "viewerPager": {
       "previous": "السابق",
@@ -1208,7 +1212,15 @@
     "archiveAll": "أرشفة الكل",
     "markRead": "تعليم كمقروء",
     "archive": "أرشفة",
-    "unread": "غير مقروء",
+    "confirmReadAll": {
+      "title": "تعليم الكل كمقروء؟",
+      "message": "ستُعلَّم كل الإشعارات في هذه القائمة ({{count}}) كمقروءة، وتختفي علامات عدم القراءة معها."
+    },
+    "confirmArchiveAll": {
+      "title": "أرشفة الكل؟",
+      "message": "ستنتقل كل الإشعارات في هذه القائمة ({{count}}) إلى الأرشيف وتُعلَّم كمقروءة. يمكنك قراءتها لاحقاً من تبويب الأرشيف."
+    },
+    "new": "جديد",
     "empty": "لا توجد إشعارات بعد.",
     "emptyHint": "يخبرك ولففيش هنا عند انتهاء التشغيل أو فشله أو حاجته إليك.",
     "archiveEmpty": "لا يوجد شيء في الأرشيف.",
