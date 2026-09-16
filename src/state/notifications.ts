@@ -238,6 +238,24 @@ export function unreadFor(
 }
 
 /**
+ * One conversation's notifications, minus the archived ones — what the
+ * conversation's own sheet lists, newest first.
+ *
+ * Read ones stay: being IN a conversation marks its notifications read, so by
+ * the time that sheet opens they usually all are, and a list that hid them
+ * would be empty exactly when it is opened. Archived ones go: archiving is
+ * filing, and the notifications page is where a filed one is read back.
+ */
+export function unarchivedFor(
+  state: Pick<NotificationsState, 'items'>,
+  conversationId: string
+): NotificationRecord[] {
+  return state.items.filter(
+    (record) => record.conversationId === conversationId && !record.archived
+  )
+}
+
+/**
  * Everything unread — the number on the side sheet's Notifications row and on
  * the chat screen's menu disc, which is the door to that sheet. General
  * notifications are in it: they deep-link to a settings page or nowhere, but

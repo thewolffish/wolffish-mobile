@@ -951,6 +951,7 @@
     "empty": "No notifications yet.",
     "emptyHint": "Wolffish tells you here when a run finishes, fails or needs you.",
     "archiveEmpty": "Nothing archived.",
+    "conversationEmpty": "Nothing left here — everything this conversation sent is archived.",
     "archiveEmptyHint": "Archived notifications are kept here, out of the list.",
     "phase": {
       "started": "Started",

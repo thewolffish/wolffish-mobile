@@ -1,9 +1,10 @@
-import { Menu01Icon, PlusSignIcon } from '@/components/core/icons'
+import { Menu01Icon, Notification03Icon, PlusSignIcon } from '@/components/core/icons'
 import { UnreadBadge } from '@/components/core/UnreadBadge'
-import { unreadNotifications, useNotifications } from '@/state/notifications'
+import { unarchivedFor, unreadNotifications, useNotifications } from '@/state/notifications'
 import { useTheme } from '@/providers/theme/useTheme'
 import { BlurView } from 'expo-blur'
 import type { ReactNode } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pressable, StyleSheet, View } from 'react-native'
 
@@ -14,8 +15,15 @@ import { Pressable, StyleSheet, View } from 'react-native'
  * There is no top bar. A phone chat is one column of messages and a composer,
  * and a header spent a fixed strip of the shortest axis restating a title the
  * conversation itself already says. What it held that mattered — the way out to
- * everything else, and a new chat — is here instead, as two glass discs on the
+ * everything else, and a new chat — is here instead, as glass discs on the
  * leading and trailing edges.
+ *
+ * A third disc joins the trailing pair, and only sometimes: the bell, which
+ * opens what THIS conversation has notified about. It is absent — not dimmed —
+ * for a conversation that has raised none, which is most of them. A control
+ * that is present but inert on nearly every screen teaches the user to stop
+ * seeing it; one that appears only when it has something behind it is itself
+ * the signal that there is something to read.
  *
  * Direction-logical by construction: the row is a `flex-row`, which RN reverses
  * under RTL, so the navigator is always on the leading edge and the plus on the
@@ -66,12 +74,17 @@ function GlassButton({
 
 export function FloatingChrome({
   top,
+  conversationId,
   onOpenSheet,
+  onOpenNotifications,
   onNewChat
 }: {
   /** Distance from the top of the screen — the caller's safe-area inset. */
   top: number
+  /** The conversation on screen, or null for a chat not yet minted. */
+  conversationId: string | null
   onOpenSheet: () => void
+  onOpenNotifications: () => void
   onNewChat: () => void
 }): React.JSX.Element {
   const { t } = useTranslation()
@@ -79,6 +92,16 @@ export function FloatingChrome({
   // wears the same count the rows inside it add up to. The one being read
   // clears on focus, so what remains really is "waiting elsewhere".
   const unreadTotal = useNotifications(unreadNotifications)
+  // Whether this conversation has anything to show behind the bell. Archived
+  // ones are excluded because the sheet excludes them — a bell that opened on
+  // an empty list would be a promise the sheet does not keep. Derived from
+  // `items` rather than selected directly: a selector returning a fresh array
+  // re-renders on every store write.
+  const items = useNotifications((state) => state.items)
+  const hasNotifications = useMemo(
+    () => (conversationId ? unarchivedFor({ items }, conversationId).length > 0 : false),
+    [items, conversationId]
+  )
   return (
     <View
       // box-none, so only the two discs take touches and every tap between
@@ -99,9 +122,19 @@ export function FloatingChrome({
           <UnreadBadge count={unreadTotal} />
         </View>
       </View>
-      <GlassButton label={t('chat.newChat')} onPress={onNewChat}>
-        <PlusSignIcon size={18} className="text-fg" />
-      </GlassButton>
+      {/* The trailing pair. A row of its own so the bell sits beside the plus
+          rather than pushing it off the edge, and so its absence closes the
+          gap instead of leaving a hole where a disc used to be. */}
+      <View className="flex-row items-center" style={{ gap: FLOATING_GAP }}>
+        {hasNotifications && (
+          <GlassButton label={t('notifications.title')} onPress={onOpenNotifications}>
+            <Notification03Icon size={18} className="text-fg" />
+          </GlassButton>
+        )}
+        <GlassButton label={t('chat.newChat')} onPress={onNewChat}>
+          <PlusSignIcon size={18} className="text-fg" />
+        </GlassButton>
+      </View>
     </View>
   )
 }
