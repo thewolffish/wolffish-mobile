@@ -1,4 +1,5 @@
 import {
+  BrowserIcon,
   ComputerIcon,
   ComputerTerminal01Icon,
   SmartPhone01Icon,
@@ -89,15 +90,20 @@ export function ModelSummary(): React.JSX.Element {
 }
 
 /**
- * Channels — this phone and the two bridges, as their own marks. A channel the
- * agent can actually reach you on is green; one it cannot stays muted rather
- * than disappearing, so the row says "WhatsApp is off" instead of leaving you
- * to wonder whether it exists.
+ * Channels — this phone, the terminal, the browser and the two bridges, as
+ * their own marks. A channel the agent can actually reach you on is green; one
+ * it cannot stays muted rather than disappearing, so the row says "WhatsApp is
+ * off" instead of leaving you to wonder whether it exists.
  *
  * The phone leads, in the desktop's own channel order, and reads its
- * notifications switch: reachable is the question all four answer, and for
+ * notifications switch: reachable is the question all five answer, and for
  * this device the answer is whether notify_phone is allowed to ring it. Being
  * paired is not the signal — you are looking at the app, so you know.
+ *
+ * The browser's mark answers it the desktop's way: green when a browser has
+ * the extension connected, which is the one thing that has to be true before
+ * the agent can do anything in it — how MUCH it can do there is the readiness
+ * row's business, inside the screen.
  *
  * The terminal's mark answers that same question its own way: green when a
  * shell on the desktop can resolve `wolffish`, because a command the shell
@@ -109,6 +115,9 @@ export function ChannelsSummary(): React.JSX.Element {
   const { t } = useTranslation()
   const phone = useConfigValue('mobileNotifications')
   const cli = useDemoConfig((state) => state.cli.pathInstalled === true)
+  const browser = useDemoConfig((state) =>
+    state.services.some((service) => service.key === 'browserExtension' && service.connected)
+  )
   const telegram = useConfigValue('telegramEnabled')
   const whatsapp = useConfigValue('whatsappEnabled')
   const state = (on: boolean): string => (on ? t('settings.toggle.on') : t('settings.toggle.off'))
@@ -117,10 +126,13 @@ export function ChannelsSummary(): React.JSX.Element {
       className="shrink-0 flex-row items-center gap-2"
       accessibilityLabel={`${t('settings.channels.notifications')} ${state(phone)}, ${t(
         'settings.channels.cli.title'
-      )} ${state(cli)}, Telegram ${state(telegram)}, WhatsApp ${state(whatsapp)}`}
+      )} ${state(cli)}, ${t('settings.channels.browser.title')} ${state(
+        browser
+      )}, Telegram ${state(telegram)}, WhatsApp ${state(whatsapp)}`}
     >
       <SmartPhone01Icon size={15} className={phone ? TONES.ok : TONES.muted} />
       <ComputerTerminal01Icon size={15} className={cli ? TONES.ok : TONES.muted} />
+      <BrowserIcon size={15} className={browser ? TONES.ok : TONES.muted} />
       <TelegramLogo size={15} className={telegram ? TONES.ok : TONES.muted} />
       <WhatsAppLogo size={15} className={whatsapp ? TONES.ok : TONES.muted} />
     </View>
@@ -132,9 +144,17 @@ export function ChannelsSummary(): React.JSX.Element {
  * account links carry a connection the desktop reports; Brave, video and memes
  * carry a switch. Speech-to-text and text-to-speech are neither: they are
  * always-on settings, so counting them would only ever add a constant.
+ *
+ * The browser extension is skipped even though the desktop still reports it in
+ * the same services map: it is a channel now (Channels › Browser), and a
+ * denominator that counts a panel the screen does not have is a count nobody
+ * can check against what they see.
  */
 export function ServicesSummary(): React.JSX.Element {
-  const services = useDemoConfig((state) => state.services)
+  // Filtered in the body, not in the selector: a selector that builds a new
+  // array every call hands useSyncExternalStore an unstable snapshot.
+  const all = useDemoConfig((state) => state.services)
+  const services = all.filter((service) => service.key !== 'browserExtension')
   const brave = useConfigValue('braveEnabled')
   const video = useConfigValue('videoEnabled')
   const memes = useConfigValue('memesEnabled')

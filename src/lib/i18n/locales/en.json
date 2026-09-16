@@ -122,6 +122,31 @@
       "staleHours": "Stale after (hours)",
       "hideAutomations": "Hide automations",
       "hideAutomationsDescription": "Skip scheduled runs on resume.",
+      "browser": {
+        "title": "Browser",
+        "extension": "Browser extension",
+        "extensionDescription": "Whether a browser on your desktop has it connected.",
+        "extensionConnected": "Connected",
+        "extensionNone": "Not connected",
+        "connectedAtTime": "Connected {{time}}",
+        "readinessReady": "Everything Wolffish needs is in place.",
+        "readinessLimited": "Wolffish can reach only part of your browser.",
+        "readinessBlockers": "{{count}} things are stopping Wolffish from driving your browser.",
+        "readinessBlockers_one": "One thing is stopping Wolffish from driving your browser.",
+        "readinessFixOnDesktop": "Open the browser extension panel on the desktop to fix it.",
+        "tier": {
+          "full": "Full",
+          "degraded": "Limited",
+          "managed": "Managed",
+          "none": "Not reachable"
+        },
+        "port": "Pairing port",
+        "portManagedOnDesktop": "The port is managed in the desktop app.",
+        "screenshotMaxWidth": "Screenshot width",
+        "screenshotFormat": "Screenshot format",
+        "quality": "JPEG quality (1-100)",
+        "pairingNote": "Installing and pairing the extension happens on the desktop."
+      },
       "cli": {
         "title": "CLI",
         "description": "Wolffish in a terminal on your desktop — the same agent, the same settings, the same conversations, no window needed.",
@@ -171,8 +196,6 @@
       "sttLanguageAuto": "Auto-detect",
       "ttsVoice": "Voice",
       "ttsSpeed": "Speed",
-      "screenshotMaxWidth": "Screenshot width",
-      "screenshotFormat": "Screenshot format",
       "speed": {
         "slow": "Slow",
         "normal": "Normal",
@@ -203,24 +226,6 @@
       },
       "computerUse": {
         "agentControlled": "The agent picks each screenshot’s resolution and format itself — sharper when it needs detail, lighter when it is only navigating."
-      },
-      "browserExtension": {
-        "port": "Pairing port",
-        "quality": "JPEG quality (1-100)",
-        "pairingNote": "Installing and pairing the extension happens on the desktop.",
-        "portManagedOnDesktop": "The port is managed in the desktop app.",
-        "connectedAtTime": "Connected {{time}}",
-        "readinessReady": "Everything Wolffish needs is in place.",
-        "readinessLimited": "Wolffish can reach only part of your browser.",
-        "readinessBlockers": "{{count}} things are stopping Wolffish from driving your browser.",
-        "readinessBlockers_one": "One thing is stopping Wolffish from driving your browser.",
-        "readinessFixOnDesktop": "Open the browser extension panel on the desktop to fix it.",
-        "tier": {
-          "full": "Full",
-          "degraded": "Limited",
-          "managed": "Managed",
-          "none": "Not reachable"
-        }
       },
       "keySaved": "Saved to your desktop",
       "keySaveFailed": "Couldn’t save — check the connection",

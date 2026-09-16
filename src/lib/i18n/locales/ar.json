@@ -122,6 +122,35 @@
       "staleHours": "تعتبر راكدة بعد (ساعات)",
       "hideAutomations": "إخفاء الأتمتة",
       "hideAutomationsDescription": "تجاهل التشغيلات المجدولة.",
+      "browser": {
+        "title": "المتصفح",
+        "extension": "امتداد المتصفح",
+        "extensionDescription": "ما إذا كان أحد المتصفحات على حاسوبك متصلاً به.",
+        "extensionConnected": "متصل",
+        "extensionNone": "غير متصل",
+        "connectedAtTime": "اتصل عند {{time}}",
+        "readinessReady": "كل ما يحتاجه وولفيش متوفر.",
+        "readinessLimited": "لا يصل وولفيش إلا إلى جزء من متصفحك.",
+        "readinessBlockers": "{{count}} عوائق تمنع وولفيش من قيادة متصفحك.",
+        "readinessBlockers_zero": "لا شيء يمنع وولفيش من قيادة متصفحك.",
+        "readinessBlockers_one": "عائق واحد يمنع وولفيش من قيادة متصفحك.",
+        "readinessBlockers_two": "عائقان يمنعان وولفيش من قيادة متصفحك.",
+        "readinessBlockers_few": "{{count}} عوائق تمنع وولفيش من قيادة متصفحك.",
+        "readinessBlockers_many": "{{count}} عائقًا يمنع وولفيش من قيادة متصفحك.",
+        "readinessFixOnDesktop": "افتح لوحة امتداد المتصفح في تطبيق الكمبيوتر لمعالجته.",
+        "tier": {
+          "full": "كامل",
+          "degraded": "محدود",
+          "managed": "مُدار",
+          "none": "غير متاح"
+        },
+        "port": "منفذ الاقتران",
+        "portManagedOnDesktop": "يُدار المنفذ من تطبيق الكمبيوتر.",
+        "screenshotMaxWidth": "عرض لقطة الشاشة",
+        "screenshotFormat": "صيغة لقطة الشاشة",
+        "quality": "جودة JPEG (1-100)",
+        "pairingNote": "تثبيت الامتداد واقترانه يتمّان على الحاسوب."
+      },
       "cli": {
         "title": "سطر الأوامر",
         "description": "وولفيش داخل الطرفية على حاسوبك — الوكيل نفسه، والإعدادات نفسها، والمحادثات نفسها، دون الحاجة إلى نافذة.",
@@ -171,8 +200,6 @@
       "sttLanguageAuto": "اكتشاف تلقائي",
       "ttsVoice": "الصوت",
       "ttsSpeed": "السرعة",
-      "screenshotMaxWidth": "عرض لقطة الشاشة",
-      "screenshotFormat": "صيغة لقطة الشاشة",
       "speed": {
         "slow": "بطيء",
         "normal": "عادي",
@@ -203,28 +230,6 @@
       },
       "computerUse": {
         "agentControlled": "يختار الوكيل بنفسه دقة كل لقطة شاشة وصيغتها — أوضح عندما يحتاج إلى التفاصيل، وأخفّ عندما يتنقّل فقط."
-      },
-      "browserExtension": {
-        "port": "منفذ الاقتران",
-        "quality": "جودة JPEG (1-100)",
-        "pairingNote": "تثبيت الامتداد واقترانه يتمّان على الحاسوب.",
-        "portManagedOnDesktop": "يُدار المنفذ من تطبيق الكمبيوتر.",
-        "connectedAtTime": "اتصل عند {{time}}",
-        "readinessReady": "كل ما يحتاجه وولفيش متوفر.",
-        "readinessLimited": "لا يصل وولفيش إلا إلى جزء من متصفحك.",
-        "readinessBlockers": "{{count}} عوائق تمنع وولفيش من قيادة متصفحك.",
-        "readinessBlockers_zero": "لا شيء يمنع وولفيش من قيادة متصفحك.",
-        "readinessBlockers_one": "عائق واحد يمنع وولفيش من قيادة متصفحك.",
-        "readinessBlockers_two": "عائقان يمنعان وولفيش من قيادة متصفحك.",
-        "readinessBlockers_few": "{{count}} عوائق تمنع وولفيش من قيادة متصفحك.",
-        "readinessBlockers_many": "{{count}} عائقًا يمنع وولفيش من قيادة متصفحك.",
-        "readinessFixOnDesktop": "افتح لوحة امتداد المتصفح في تطبيق الكمبيوتر لمعالجته.",
-        "tier": {
-          "full": "كامل",
-          "degraded": "محدود",
-          "managed": "مُدار",
-          "none": "غير متاح"
-        }
       },
       "keySaved": "حُفظ على جهاز الكمبيوتر",
       "keySaveFailed": "تعذّر الحفظ — تحقق من الاتصال",

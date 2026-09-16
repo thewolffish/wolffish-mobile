@@ -1,4 +1,14 @@
-## v1.0.61 — 2026-09-16 `Latest`
+## v1.0.62 — 2026-09-16 `Latest`
+
+### The Browser Moved to Channels
+
+Wolffish drives your browser the way it works in a terminal: it is **somewhere the agent does things**, not a service it borrows a key from — and your desktop has always filed it that way. On the phone it sat among Brave Search, Giphy and your Google account, which is the last place anyone would look for it.
+
+It now has **its own card on the Channels page**, between this phone and Telegram, in the order your desktop uses. Everything it carried came with it: the browsers that are connected, the verdict on what Wolffish can actually reach through them, the pairing port, and the screenshot width, format and quality — all still editable from here. Its connection reads as a row in the channel's own words now, the way the terminal's does, instead of a chip beside a service name.
+
+The settings list follows it across. The **Channels** row carries a mark for the browser beside the phone, the terminal and the two bridges — green when a browser has the extension connected — and the Services count no longer counts a panel that page no longer has.
+
+## v1.0.61 — 2026-09-16
 
 ### Your Browser Extension Now Says Whether It Can Actually Work
 
