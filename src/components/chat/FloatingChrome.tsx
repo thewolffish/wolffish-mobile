@@ -1,6 +1,11 @@
 import { Menu01Icon, Notification03Icon, PlusSignIcon } from '@/components/core/icons'
 import { UnreadBadge } from '@/components/core/UnreadBadge'
-import { unarchivedFor, unreadNotifications, useNotifications } from '@/state/notifications'
+import {
+  unarchivedFor,
+  unreadFor,
+  unreadNotifications,
+  useNotifications
+} from '@/state/notifications'
 import { useTheme } from '@/providers/theme/useTheme'
 import { BlurView } from 'expo-blur'
 import type { ReactNode } from 'react'
@@ -24,6 +29,11 @@ import { Pressable, StyleSheet, View } from 'react-native'
  * that is present but inert on nearly every screen teaches the user to stop
  * seeing it; one that appears only when it has something behind it is itself
  * the signal that there is something to read.
+ *
+ * It wears a count, and that count is load-bearing now: arriving in a
+ * conversation no longer reads its notifications, so a number here survives
+ * the visit and goes only when the bell itself is opened. The disc beside it
+ * on the leading edge carries the same mark for everything, everywhere.
  *
  * Direction-logical by construction: the row is a `flex-row`, which RN reverses
  * under RTL, so the navigator is always on the leading edge and the plus on the
@@ -102,6 +112,12 @@ export function FloatingChrome({
     () => (conversationId ? unarchivedFor({ items }, conversationId).length > 0 : false),
     [items, conversationId]
   )
+  // What this conversation is still holding. Zero renders nothing at all (see
+  // UnreadBadge), so a conversation whose notifications have all been read
+  // keeps its bell — there is still something to read back — without a mark.
+  const unreadHere = useNotifications((state) =>
+    conversationId ? unreadFor(state, conversationId) : 0
+  )
   return (
     <View
       // box-none, so only the two discs take touches and every tap between
@@ -127,9 +143,19 @@ export function FloatingChrome({
           gap instead of leaving a hole where a disc used to be. */}
       <View className="flex-row items-center" style={{ gap: FLOATING_GAP }}>
         {hasNotifications && (
-          <GlassButton label={t('notifications.title')} onPress={onOpenNotifications}>
-            <Notification03Icon size={18} className="text-fg" />
-          </GlassButton>
+          // Same corner idiom as the navigator's badge: the disc clips to its
+          // circle for the blur, so the mark hangs off a wrapper around it.
+          <View className="relative">
+            <GlassButton label={t('notifications.title')} onPress={onOpenNotifications}>
+              <Notification03Icon size={18} className="text-fg" />
+            </GlassButton>
+            <View
+              pointerEvents="none"
+              style={{ position: 'absolute', top: -4, insetInlineEnd: -4 }}
+            >
+              <UnreadBadge count={unreadHere} />
+            </View>
+          </View>
         )}
         <GlassButton label={t('chat.newChat')} onPress={onNewChat}>
           <PlusSignIcon size={18} className="text-fg" />

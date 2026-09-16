@@ -62,7 +62,8 @@ jest.mock('expo-notifications', () => ({
 
 import {
   attachNotificationHandlers,
-  reconcilePresentedNotifications
+  reconcilePresentedNotifications,
+  setActiveConversation
 } from '@/lib/notifications/push'
 import { iconBadge, unreadFor, useNotifications } from '@/state/notifications'
 
@@ -122,6 +123,7 @@ beforeEach(() => {
   mockPresented = []
   mockScheduled.length = 0
   useNotifications.setState({ items: [] })
+  setActiveConversation(null)
 })
 
 describe('a notification found in the tray', () => {
@@ -290,5 +292,22 @@ describe('which conversation a notification belongs to', () => {
       content: { data: { conversationId: 'conv-a' } }
     })
     expect(unreadFor(useNotifications.getState(), 'conv-a')).toBe(1)
+  })
+})
+
+describe('a notification for the conversation already on screen', () => {
+  it('arrives UNREAD — standing in a room is not reading the post', () => {
+    // It used to arrive read, on the reasoning that opening a conversation
+    // reads its notifications anyway. Neither half holds any more: a
+    // transcript never repeats what the run sent to a lock screen, so the
+    // count survives the visit and the bell in the chat chrome carries it.
+    // Only the bell's own sheet, or the notifications page, reads it.
+    setActiveConversation('conv-a')
+    mockPresented = [presented('n1', SENT)]
+
+    return reconcilePresentedNotifications().then(() => {
+      expect(useNotifications.getState().items[0].read).toBe(false)
+      expect(unreadFor(useNotifications.getState(), 'conv-a')).toBe(1)
+    })
   })
 })

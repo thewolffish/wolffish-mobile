@@ -11,17 +11,22 @@ jest.mock('expo-blur', () => ({ BlurView: () => null }))
  * The conversation's own notifications sheet — what this run said, read back
  * beside the transcript that produced it.
  *
- * Three rules separate it from the notifications page, and each is one the
- * user can only discover by being surprised:
+ * OPENING IT IS READING THEM, and that is the rule the rest follows from. It
+ * is one of only two places a notification becomes read (the other is the
+ * notifications page's own controls); arriving in the conversation is not,
+ * because a transcript never repeats what the run sent to a lock screen. So
+ * there is no "mark as read" button here — it would ask the user to tell the
+ * app what it can already see — and the New marks stay up for the visit off a
+ * snapshot taken before the read, rather than blinking out under a thumb.
  *
+ * The rest:
  *  - ARCHIVED ONES ARE GONE. Archiving is filing, and the page is where a
  *    filed notification is read back. A sheet that kept showing them would
  *    make the archive button look broken.
- *  - READ ONES STAY. Being in a conversation marks its notifications read, so
- *    by the time this sheet can be opened they usually all are — hiding them
- *    would empty the sheet exactly when it is opened.
- *  - NEITHER ACTION ASKS FIRST. They act on one notification and both are
- *    recoverable from the page, unlike the page's own bulk pair.
+ *  - READ ONES STAY, plainly, from earlier visits.
+ *  - NOTHING CONFIRMS, including archive-all in the header: it cannot reach
+ *    past the conversation you are standing in, and everything it files is
+ *    still on the page.
  */
 
 import { ConversationNotificationsSheet } from '@/components/chat/ConversationNotificationsSheet'
@@ -78,14 +83,13 @@ describe('what the sheet lists', () => {
     expect(screen.queryByText('Run general')).toBeNull()
   })
 
-  it('keeps read ones — which is most of them, since being here reads them', async () => {
+  it('keeps read ones from earlier visits, plainly', async () => {
     useNotifications.setState({ items: [record('n1', { read: true })] })
     await mount()
 
     expect(screen.getByText('Run n1')).toBeTruthy()
-    // Read, so no New mark and nothing left to read — archive still stands.
+    // Nothing was new this time, so no mark — archive still stands.
     expect(screen.queryByText('New')).toBeNull()
-    expect(screen.queryByText('Mark as read')).toBeNull()
     expect(screen.getByLabelText('Archive')).toBeTruthy()
   })
 
@@ -109,20 +113,43 @@ describe('what the sheet lists', () => {
   })
 })
 
-describe('its two actions', () => {
-  it('marks one read on the spot, with nothing to confirm', async () => {
+describe('opening it', () => {
+  it('reads the whole list, with no button to press', async () => {
     useNotifications.setState({ items: [record('n1'), record('n2')] })
+
     await mount()
 
-    fireEvent.press(screen.getAllByLabelText('Mark as read')[0])
-
-    // Read immediately — no dialog stands between the press and the change.
-    await waitFor(() => expect(useNotifications.getState().items[0].read).toBe(true))
-    expect(screen.queryByText('Mark all as read?')).toBeNull()
-    // …and it stays on the list, because read ones belong here.
-    expect(screen.getByText('Run n1')).toBeTruthy()
+    await waitFor(() =>
+      expect(useNotifications.getState().items.every((entry) => entry.read)).toBe(true)
+    )
+    // There is nothing to press, because there is nothing left to do.
+    expect(screen.queryByLabelText('Mark as read')).toBeNull()
   })
 
+  it('still shows what was new, rather than blinking the marks out', async () => {
+    // The read above happens on mount. The New marks come from a snapshot
+    // taken before it, so the user gets to see what they had missed.
+    useNotifications.setState({ items: [record('n1'), record('n2', { read: true })] })
+
+    await mount()
+
+    await waitFor(() => expect(useNotifications.getState().items[0].read).toBe(true))
+    expect(screen.getAllByText('New')).toHaveLength(1)
+  })
+
+  it('leaves other conversations unread', async () => {
+    useNotifications.setState({
+      items: [record('mine'), record('theirs', { conversationId: 'conv-b' })]
+    })
+
+    await mount()
+
+    await waitFor(() => expect(useNotifications.getState().items[0].read).toBe(true))
+    expect(useNotifications.getState().items[1].read).toBe(false)
+  })
+})
+
+describe('its actions', () => {
   it('archives one on the spot, and it leaves the sheet', async () => {
     useNotifications.setState({ items: [record('n1'), record('n2')] })
     await mount()
@@ -135,15 +162,28 @@ describe('its two actions', () => {
     expect(useNotifications.getState().items[0]).toMatchObject({ archived: true, read: true })
   })
 
-  it('acknowledges on a card tap without navigating anywhere', async () => {
-    // Every card here belongs to the conversation under this sheet, so the
-    // page's navigate-on-tap would push a second copy of the screen behind it.
-    useNotifications.setState({ items: [record('n1')] })
+  it('files the whole conversation from the header, without asking', async () => {
+    useNotifications.setState({
+      items: [record('n1'), record('n2'), record('other', { conversationId: 'conv-b' })]
+    })
     await mount()
 
-    fireEvent.press(screen.getByText('Run n1'))
+    fireEvent.press(screen.getByLabelText('Archive all'))
 
-    await waitFor(() => expect(useNotifications.getState().items[0].read).toBe(true))
-    expect(screen.getByText('Run n1')).toBeTruthy()
+    await waitFor(() =>
+      expect(
+        screen.getByText('Nothing left here — everything this conversation sent is archived.')
+      ).toBeTruthy()
+    )
+    // No dialog stood between the press and the change…
+    expect(screen.queryByText('Archive all?')).toBeNull()
+    // …and it could not reach past the conversation it belongs to.
+    const state = useNotifications.getState().items
+    expect(
+      state
+        .filter((entry) => entry.archived)
+        .map((entry) => entry.id)
+        .sort()
+    ).toEqual(['n1', 'n2'])
   })
 })

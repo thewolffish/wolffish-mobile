@@ -31,7 +31,7 @@ import { NEW_CHAT_PENDING_KEY, selectPending, useChatRuntime } from '@/state/cha
 import { useConfigValue } from '@/state/demoConfig'
 import { Image } from 'expo-image'
 import { useFocusEffect, useLocalSearchParams } from 'expo-router'
-import { clearConversationBadges, setActiveConversation } from '@/lib/notifications/push'
+import { dismissConversationBanners, setActiveConversation } from '@/lib/notifications/push'
 import { useActiveProject } from '@/lib/sync/projects'
 import { seedPlanMode } from '@/lib/sync/planMode'
 import {
@@ -166,14 +166,18 @@ export default function ChatScreen(): React.JSX.Element {
     useChatRuntime.getState().clearPending(NEW_CHAT_PENDING_KEY)
   }, [opened])
   /**
-   * Unread badges end where reading begins. While this screen is FOCUSED on a
-   * conversation and the app is frontmost, that conversation is the active one
-   * (new notifications for it never become badges) and whatever badge it had
-   * is cleared — including on the return path: back from a pushed settings
-   * screen, and back from the background, where the foreground reconciliation
-   * may have just counted notifications for the very conversation on screen.
-   * Blur or unmount reports no conversation active; a chat left under a pushed
-   * screen accrues badges like any other.
+   * Which conversation is on screen, and its banners off the lock screen.
+   *
+   * NOT its unread count. Being in a conversation is not reading what it sent
+   * you — the transcript does not repeat a notification — so the count stays
+   * on the bell in the chrome above, and opening that bell is what answers it.
+   * What does end here is the tray: a banner for the conversation you are
+   * standing in is noise whether or not you have read it.
+   *
+   * Runs on the return path too — back from a pushed settings screen, and back
+   * from the background, where a foreground reconciliation may have just
+   * landed banners for the very conversation on screen. Blur or unmount
+   * reports no conversation active.
    *
    * Keyed on `conversationId`, NOT `opened`: a chat minted by first send gets
    * an id without ever being "opened" (see the doc on `opened` above), and the
@@ -184,7 +188,7 @@ export default function ChatScreen(): React.JSX.Element {
     useCallback(() => {
       const seeing = (): void => {
         setActiveConversation(conversationId)
-        if (conversationId) clearConversationBadges(conversationId)
+        if (conversationId) dismissConversationBanners(conversationId)
       }
       seeing()
       const subscription = AppState.addEventListener('change', (next) => {

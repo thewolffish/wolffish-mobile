@@ -94,7 +94,8 @@ export const NotificationCard = memo(function NotificationCard({
   archiveLabel,
   onOpen,
   onRead,
-  onArchive
+  onArchive,
+  unread
 }: {
   record: NotificationRecord
   time: string
@@ -103,9 +104,19 @@ export const NotificationCard = memo(function NotificationCard({
   readLabel: string
   archiveLabel: string
   onOpen: (record: NotificationRecord) => void
-  onRead: (id: string) => void
+  /** Absent where reading is not something the user does by hand — the
+   *  conversation's sheet reads its whole list the moment it opens. */
+  onRead?: (id: string) => void
   onArchive: (id: string) => void
+  /**
+   * Whether to wear the New mark, when the record's own `read` is not the
+   * right answer. The conversation's sheet reads everything on open and then
+   * passes what WAS unread a moment ago, so the user can still see what they
+   * had missed instead of watching the marks blink out from under them.
+   */
+  unread?: boolean
 }): React.JSX.Element {
+  const isNew = unread ?? !record.read
   return (
     <Pressable
       accessibilityRole="button"
@@ -116,7 +127,7 @@ export const NotificationCard = memo(function NotificationCard({
         // The unread mark is the card's own outline rather than a dot the eye
         // has to find: a list is scanned down its edge, and a tinted border is
         // legible at that speed in both themes.
-        record.read ? 'border-border' : 'border-primary-line'
+        isNew ? 'border-primary-line' : 'border-border'
       )}
     >
       <View className="flex-row items-center gap-2">
@@ -137,7 +148,7 @@ export const NotificationCard = memo(function NotificationCard({
       <Text
         className={cn(
           'text-left text-sm',
-          record.read ? 'text-fg font-sans-medium' : 'text-fg font-sans-semibold'
+          isNew ? 'text-fg font-sans-semibold' : 'text-fg font-sans-medium'
         )}
       >
         {record.title}
@@ -145,13 +156,13 @@ export const NotificationCard = memo(function NotificationCard({
       {/* The whole body, unclipped: it is capped at 180 characters upstream,
           and this page exists precisely to show what the banner cut off. */}
       <Text className="text-muted text-left font-sans text-xs leading-relaxed">{record.body}</Text>
-      {(!record.archived || !record.read) && (
+      {(!record.archived || isNew) && (
         <View className="flex-row items-center gap-2 pt-1">
           {/* The actions grow and wrap inside their own box; min-w-0 with
               flex-1 is what keeps a long translation shrinking itself instead
               of shoving the chip off the card. */}
           <View className="min-w-0 flex-1 flex-row flex-wrap items-center gap-2">
-            {!record.archived && !record.read && (
+            {!record.archived && !record.read && onRead && (
               <CardAction label={readLabel} Icon={Tick02Icon} onPress={() => onRead(record.id)} />
             )}
             {!record.archived && (
@@ -169,7 +180,7 @@ export const NotificationCard = memo(function NotificationCard({
               where the eye leaves each card, and it is text rather than a dot
               because a dot has to be learned. Mirrors on its own: the row is
               a flex-row, which React Native reverses under RTL. */}
-          {!record.read && (
+          {isNew && (
             <View className="bg-primary rounded-full px-2 py-0.5">
               <Text className="text-primary-fg font-sans-semibold text-[10px]">{newLabel}</Text>
             </View>

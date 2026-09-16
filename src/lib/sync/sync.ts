@@ -20,7 +20,7 @@ import { invalidateProjects } from '@/lib/sync/projects'
 import { useAppStore } from '@/state/appStore'
 import { useNotifications } from '@/state/notifications'
 import { useChatRuntime } from '@/state/chatRuntime'
-import { clearConversationBadges, getActiveConversation } from '@/lib/notifications/push'
+import { forgetConversationNotifications, getActiveConversation } from '@/lib/notifications/push'
 import { clearConversationDirty } from '@/lib/sync/dirty'
 import { invalidateConversation, invalidateConversationList } from '@/lib/conversations/cache'
 import { getConversation, replaceMessage } from '@/lib/conversations/repo'
@@ -435,7 +435,7 @@ export function attachLiveUpdates(): () => void {
       // gone, and an unclearable count on the icon is worse than a missed one.
       // The full clear (not just the bucket): its notifications leave the tray
       // too, or the next reconciliation would find them with no row to charge.
-      clearConversationBadges(id)
+      forgetConversationNotifications(id)
       void deleteConversation(id).then(invalidateConversationList)
     }
   })

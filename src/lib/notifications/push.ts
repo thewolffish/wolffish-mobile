@@ -4,7 +4,7 @@ import Constants from 'expo-constants'
 import * as Notifications from 'expo-notifications'
 import * as SecureStore from 'expo-secure-store'
 import { router, type Href } from 'expo-router'
-import { AppState, Platform } from 'react-native'
+import { Platform } from 'react-native'
 import {
   ANDROID_CHANNEL_ID,
   NOTIFY_PHASES,
@@ -212,26 +212,21 @@ type Arrival = {
  * nothing that can fall out of step with what the page shows. What this
  * decides is only the two things it alone knows:
  *
- *  - whether the notification is already ANSWERED. A tap is one answer; so is
- *    arriving for the conversation the user is looking at right now, which is
- *    the same answer a beat earlier — opening that conversation reads its
- *    notifications anyway. It used to be expressed as "counts nothing", which
- *    is what made the page and the conversation row disagree: the page counts
- *    unread, the row counted increments, and a notification could reach one
- *    without the other.
+ *  - whether the notification is already ANSWERED. A TAP is the only arrival
+ *    that is: the user chose it off their lock screen and the app moved. One
+ *    that lands while its own conversation is on screen is NOT — being in a
+ *    conversation is not reading what it sent you, any more than standing in
+ *    a room is reading the post. It stays unread, the bell on the chat screen
+ *    wears the count, and opening that bell is what answers it.
  *  - whether it badges a conversation at all: only one that names one does.
  */
 function recordNotification(arrival: Arrival): void {
   const conversationId = conversationOf(arrival)
-  const viewing =
-    conversationId !== null &&
-    conversationId === activeConversationId &&
-    AppState.currentState === 'active'
   useNotifications.getState().record({
     ...arrival,
     conversationId,
     counted: conversationId !== null,
-    read: arrival.read === true || viewing
+    read: arrival.read === true
   })
 }
 
@@ -307,12 +302,27 @@ export async function reconcilePresentedNotifications(): Promise<void> {
 }
 
 /**
- * The user opened a conversation: its badge is done. Clears the bucket (the
- * store change propagates to the icon and the relay via the subscription in
- * initNotifications) and dismisses the conversation's own notifications from
- * the tray, so what the badge said is gone stops being said anywhere.
+ * The user is looking at a conversation: take its banners off the lock screen.
+ *
+ * ONLY the banners. Opening a conversation used to mark its notifications
+ * read, and that was the wrong reading of "answered": what a run told you
+ * while you were away is not answered by arriving in the transcript, and the
+ * feed does not repeat it. The notification survives the visit, the bell on
+ * the chat screen keeps its count, and opening that bell is what reads them
+ * (see ConversationNotificationsSheet). The tray still clears, because a
+ * banner for the conversation you are standing in is noise either way.
  */
-export function clearConversationBadges(conversationId: string): void {
+export function dismissConversationBanners(conversationId: string): void {
+  void dismissConversationNotifications(conversationId)
+}
+
+/**
+ * The conversation is GONE — deleted here, or deleted upstream while this
+ * phone was away. Its notifications are read, because nothing is left to open
+ * and an unread count pointing at a row that no longer exists can never be
+ * answered. The text stays on the notifications page; only the count goes.
+ */
+export function forgetConversationNotifications(conversationId: string): void {
   // One write, and the badge follows from it: the row's number, the icon and
   // the relay's copy are all counts of unread records for this conversation.
   useNotifications.getState().markConversationRead(conversationId)

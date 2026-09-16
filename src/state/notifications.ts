@@ -106,9 +106,12 @@ export type NotificationsState = {
   markAllRead: () => void
   /** The inbox button: every unarchived notification archived (and read). */
   archiveAll: () => void
-  /** The user OPENED (or deleted) the conversation, so everything it ever
-   *  notified about is answered. */
+  /** Everything this conversation ever notified about is answered — the
+   *  conversation's own sheet on open, and a deleted conversation. */
   markConversationRead: (conversationId: string) => void
+  /** File one conversation's whole handful at once, from that sheet's header.
+   *  Archiving reads too, so this needs no read pass of its own. */
+  archiveConversation: (conversationId: string) => void
   /**
    * Read the notifications of conversations the desktop no longer has.
    * `liveIds` is the full id list from a completed index sync and `before` is
@@ -193,6 +196,15 @@ export const useNotifications = create<NotificationsState>()(
           get().items,
           (record) => record.conversationId === conversationId,
           false
+        )
+        if (items === get().items) return
+        set({ items })
+      },
+      archiveConversation: (conversationId) => {
+        const items = settle(
+          get().items,
+          (record) => record.conversationId === conversationId,
+          true
         )
         if (items === get().items) return
         set({ items })
