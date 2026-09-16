@@ -16,14 +16,14 @@ jest.mock('@react-native-async-storage/async-storage', () =>
  * check the numbers TOGETHER, not each on its own.
  *
  * The three flags are separate questions and the tests keep them separate:
- * `read` is attention, `archived` is the inbox, and `counted` is only whether
- * this notification is the sort that badges a conversation at all (false for
- * the demo's seeded log, which shows a count on the sheet without marking
- * conversation rows a demo cannot honestly clear).
+ * `read` is attention, `archived` is the inbox, and `counted` narrows exactly
+ * one number — the OS icon — to keep the demo's seeded log off a home screen
+ * it has no relay or push to clear. Everything drawn INSIDE the app counts the
+ * same records either way.
  */
 
 import {
-  badgeTotal,
+  iconBadge,
   unreadFor,
   unreadNotifications,
   useNotifications,
@@ -56,7 +56,7 @@ function counts(conversationId = 'conv-a'): { row: number; icon: number; sheet: 
   const state = useNotifications.getState()
   return {
     row: unreadFor(state, conversationId),
-    icon: badgeTotal(state),
+    icon: iconBadge(state),
     sheet: unreadNotifications(state)
   }
 }
@@ -110,20 +110,21 @@ describe('the icon and the sheet', () => {
   it('keeps a general notification off the icon but on the page', () => {
     // No conversation to badge, and the icon is only ever read while the app
     // is away — but the page is where it can actually be answered.
-    deliver('n1', { conversationId: null, deeplink: 'wolffish://settings/model', counted: false })
+    deliver('n1', { conversationId: null, deeplink: 'wolffish://settings/model', counted: true })
 
     expect(counts()).toEqual({ row: 0, icon: 0, sheet: 1 })
   })
 
-  it('lets the demo show a count on the sheet without badging anything', () => {
-    // The demo's seeded log: unread, so the sheet's Notifications row carries
-    // the number, but `counted: false` keeps it off conversation rows and off
-    // the app icon — a demo has no relay, and a badge it minted would be a
-    // number the tour could not honestly clear.
+  it('keeps the demo off the OS icon while it counts everywhere inside the app', () => {
+    // `counted: false` is the demo's seeded log. It narrows ONE number: the
+    // home-screen icon, which a demo has no relay or push to clear and which
+    // would otherwise outlive the tour. Everything drawn inside the app counts
+    // it, because a row that disagrees with the list beside it is the bug this
+    // store exists to make impossible.
     deliver('n1', { counted: false })
     deliver('n2', { counted: false })
 
-    expect(counts()).toEqual({ row: 0, icon: 0, sheet: 2 })
+    expect(counts()).toEqual({ row: 2, icon: 0, sheet: 2 })
   })
 })
 

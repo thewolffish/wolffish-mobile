@@ -688,22 +688,49 @@ describe('demo notifications', () => {
     expect(new Set(log.notifications.map((entry) => entry.phase)).size).toBeGreaterThanOrEqual(3)
   })
 
-  it('opens something real from every card', () => {
+  it('belongs to a conversation that ships with it', () => {
+    // The badge comes from HERE, not from the deeplink — which is why a
+    // notification may name a conversation and no destination at all.
     for (const entry of log.notifications) {
+      if (entry.conversationId === null) continue
+      expect(`${entry.id} → ${entry.conversationId}`).toBe(
+        `${entry.id} → ${ids.has(entry.conversationId) ? entry.conversationId : 'MISSING'}`
+      )
+    }
+  })
+
+  it('opens something real from every card that offers to open anything', () => {
+    for (const entry of log.notifications) {
+      // A null deeplink is a notification the model sent without a
+      // destination — notify_phone permits it, and most mid-run ones are like
+      // that. A tap just opens the app; the card is still worth reading.
+      if (entry.deeplink === null) continue
       const target = parseDeeplink(entry.deeplink)
-      expect(`${entry.id}:${entry.deeplink}`).toEqual(expect.stringContaining('wolffish://'))
       // Resolvable by this build's own route table, not just well-formed.
+      expect(`${entry.id}:${entry.deeplink}`).toEqual(expect.stringContaining('wolffish://'))
       expect(target).not.toBeNull()
       if (target?.route === 'chat') {
-        // …and the conversation it names is in the dataset that ships with it.
-        expect(`${entry.id} → ${target.conversationId}`).toBe(
-          `${entry.id} → ${ids.has(target.conversationId ?? '') ? target.conversationId : 'MISSING'}`
-        )
+        // A link that names a conversation must name the one it came from, or
+        // the tap and the badge send the user to different places.
         expect(entry.conversationId).toBe(target.conversationId)
-      } else {
-        expect(entry.conversationId).toBeNull()
       }
     }
+  })
+
+  it('shows what a real run leaves behind — one conversation, several of them', () => {
+    // The pattern the counts exist for: a long task notifies at the start, at
+    // a finding, when it blocks, and at the end. The conversation row adds
+    // those up, so the dataset has to contain a run that produced more than
+    // one — and the mid-run ones carry no deeplink, which is what used to make
+    // them invisible to that row.
+    const byConversation = new Map<string, number>()
+    for (const entry of log.notifications) {
+      if (!entry.conversationId) continue
+      byConversation.set(entry.conversationId, (byConversation.get(entry.conversationId) ?? 0) + 1)
+    }
+    const busiest = Math.max(...byConversation.values())
+    expect(busiest).toBeGreaterThanOrEqual(3)
+    expect(log.notifications.some((entry) => entry.deeplink === null)).toBe(true)
   })
 
   it('stays inside the limits a real notification is held to', () => {
@@ -719,20 +746,25 @@ describe('demo notifications', () => {
     }
   })
 
-  it('is dated by the conversation it came out of, never ahead of it', () => {
-    const updated = new Map(
-      everyConversation().map(({ conversation }) => [conversation.id, conversation.updatedAt])
+  it('is dated inside the run it came out of', () => {
+    const spans = new Map(
+      everyConversation().map(({ conversation }) => [
+        conversation.id,
+        { from: conversation.createdAt, to: conversation.updatedAt }
+      ])
     )
     for (const entry of log.notifications) {
       expect(Number.isFinite(entry.at)).toBe(true)
       if (!entry.conversationId) continue
-      // A notification fires when its run reaches a phase, so it cannot
-      // predate the conversation's last turn — the relative time on the card
-      // and the one on the conversation row would tell different stories.
-      const at = updated.get(entry.conversationId) ?? 0
-      expect(entry.at).toBeGreaterThanOrEqual(at)
-      // …and it belongs to that turn rather than to some later day.
-      expect(entry.at - at).toBeLessThan(10 * 60_000)
+      const span = spans.get(entry.conversationId)
+      expect(span).toBeDefined()
+      // A notification fires when the run reaches a phase, so a 'started' or a
+      // mid-run 'needs_input' legitimately predates the conversation's LAST
+      // turn — but never its first, and never long after its last. Outside
+      // that window the card's relative time and the conversation row's tell
+      // different stories about the same run.
+      expect(entry.at).toBeGreaterThanOrEqual(span!.from)
+      expect(entry.at - span!.to).toBeLessThan(10 * 60_000)
     }
   })
 })

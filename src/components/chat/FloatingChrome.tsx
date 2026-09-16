@@ -1,6 +1,6 @@
 import { Menu01Icon, PlusSignIcon } from '@/components/core/icons'
 import { UnreadBadge } from '@/components/core/UnreadBadge'
-import { badgeTotal, useNotifications } from '@/state/notifications'
+import { unreadNotifications, useNotifications } from '@/state/notifications'
 import { useTheme } from '@/providers/theme/useTheme'
 import { BlurView } from 'expo-blur'
 import type { ReactNode } from 'react'
@@ -78,7 +78,7 @@ export function FloatingChrome({
   // Unread across every conversation — the disc that opens the navigator
   // wears the same count the rows inside it add up to. The one being read
   // clears on focus, so what remains really is "waiting elsewhere".
-  const unreadTotal = useNotifications(badgeTotal)
+  const unreadTotal = useNotifications(unreadNotifications)
   return (
     <View
       // box-none, so only the two discs take touches and every tap between

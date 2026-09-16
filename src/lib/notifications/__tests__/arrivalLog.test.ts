@@ -64,7 +64,7 @@ import {
   attachNotificationHandlers,
   reconcilePresentedNotifications
 } from '@/lib/notifications/push'
-import { badgeTotal, unreadFor, useNotifications } from '@/state/notifications'
+import { iconBadge, unreadFor, useNotifications } from '@/state/notifications'
 
 // Imported directly rather than through jest.isolateModules, unlike this
 // folder's other suites: isolating push.ts re-requires the two zustand stores
@@ -172,7 +172,7 @@ describe('a notification found in the tray', () => {
     })
     // The badge is the log: one unread record for conv-a IS the row's 1.
     expect(unreadFor(useNotifications.getState(), 'conv-a')).toBe(1)
-    expect(badgeTotal(useNotifications.getState())).toBe(1)
+    expect(iconBadge(useNotifications.getState())).toBe(1)
   })
 
   it('ignores a notification that is not one of ours', async () => {
@@ -234,7 +234,7 @@ describe('which conversation a notification belongs to', () => {
     await reconcilePresentedNotifications()
 
     expect(unreadFor(useNotifications.getState(), 'conv-a')).toBe(2)
-    expect(badgeTotal(useNotifications.getState())).toBe(2)
+    expect(iconBadge(useNotifications.getState())).toBe(2)
     // …and the card still opens nothing, because nothing was asked for.
     expect(useNotifications.getState().items[0].deeplink).toBeNull()
   })
@@ -264,7 +264,7 @@ describe('which conversation a notification belongs to', () => {
       counted: false
     })
     // Off the icon, but on the page — where it can be answered.
-    expect(badgeTotal(useNotifications.getState())).toBe(0)
+    expect(iconBadge(useNotifications.getState())).toBe(0)
     expect(useNotifications.getState().items).toHaveLength(1)
   })
 

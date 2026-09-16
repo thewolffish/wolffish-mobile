@@ -41,13 +41,16 @@ import type { NotifyPhase } from '@/lib/tunnel/protocol'
  *  - `archived` is about the inbox. One-way, and archiving reads at the same
  *    time, so an archived notification is always read and the archive tab is
  *    a finished pile rather than a second inbox.
- *  - `counted` is about the badge, and it is a STANDING property of the
- *    notification rather than a record of something that already happened: is
- *    this one the sort that puts a number on its conversation? True for every
- *    real arrival that names a conversation. False only for the demo's seeded
- *    log, which must show its count on the sheet's Notifications row without
- *    marking conversation rows or the app icon — a demo has no relay, and a
- *    badge it minted would be a number the tour cannot honestly clear.
+ *  - `counted` is about the OS ICON, and only that. It is a STANDING property
+ *    rather than a record of something that happened: may this notification
+ *    put a number on the app's springboard icon (and on the relay's copy of
+ *    that number, which stamps pushes while the app is away)? True for every
+ *    real arrival. False only for the demo's seeded log — a demo has no relay
+ *    and no push, so a number it put on the home-screen icon would outlive the
+ *    tour. Everything INSIDE the app still counts it: the demo's conversation
+ *    rows and its Notifications row read the same records the real ones do,
+ *    because a count that disagrees with the list beside it is the bug this
+ *    whole store exists to make impossible.
  */
 
 export type NotificationRecord = {
@@ -67,7 +70,7 @@ export type NotificationRecord = {
   phase: NotifyPhase
   read: boolean
   archived: boolean
-  /** Whether this one badges its conversation while unread. See the header. */
+  /** Whether this one may reach the OS icon while unread. See the header. */
   counted: boolean
 }
 
@@ -228,35 +231,45 @@ export function unreadFor(
 ): number {
   let total = 0
   for (const record of state.items) {
-    if (record.read || !record.counted) continue
+    if (record.read) continue
     if (record.conversationId === conversationId) total += 1
   }
   return Math.min(BADGE_MAX, total)
 }
 
 /**
- * The number the app icon and the relay carry. Conversation-linked only, as
- * it has always been: a general notification — one that deep-links to a
- * settings page or nowhere — is cleared by the app opening, and the icon is
- * only ever read while the app is away. It still shows on the notifications
- * page and in the count below, which is where it can actually be answered.
+ * Everything unread — the number on the side sheet's Notifications row and on
+ * the chat screen's menu disc, which is the door to that sheet. General
+ * notifications are in it: they deep-link to a settings page or nowhere, but
+ * the page can still answer them, so a count that leaves them out sends the
+ * user looking for something they cannot find. Archived records are read by
+ * construction and never reach this.
  */
-export function badgeTotal(state: Pick<NotificationsState, 'items'>): number {
+export function unreadNotifications(state: Pick<NotificationsState, 'items'>): number {
+  let total = 0
+  for (const record of state.items) if (!record.read) total += 1
+  return Math.min(BADGE_MAX, total)
+}
+
+/**
+ * The number the OS ICON carries — and, through it, the relay's copy that
+ * stamps pushes while the app is away.
+ *
+ * Two things narrow it, and both are about the icon being the one badge the
+ * app cannot redraw while the user is elsewhere. General notifications are
+ * out because opening the app is what answers those, and the icon is only
+ * read while the app is closed. The demo's seeded log is out because a demo
+ * has no relay and no push, so a number it put on someone's home screen would
+ * outlive the tour that minted it. Neither exclusion reaches anything drawn
+ * INSIDE the app — see unreadFor and unreadNotifications.
+ */
+export function iconBadge(state: Pick<NotificationsState, 'items'>): number {
   let total = 0
   for (const record of state.items) {
     if (record.read || !record.counted || record.conversationId === null) continue
     total += 1
   }
   return Math.min(BADGE_MAX, total)
-}
-
-/** The number the side sheet's Notifications row carries: everything unread,
- *  general notifications included — the page can answer those. Archived
- *  records are read by construction, so they never reach this. */
-export function unreadNotifications(state: Pick<NotificationsState, 'items'>): number {
-  let total = 0
-  for (const record of state.items) if (!record.read) total += 1
-  return total
 }
 
 /** Resolves once the persisted log is restored — counting before that would

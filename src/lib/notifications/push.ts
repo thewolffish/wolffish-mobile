@@ -22,7 +22,7 @@ import { toHex } from '@/lib/tunnel/pairing'
 import type { Tunnel } from '@/lib/tunnel/tunnel'
 import { invalidateConversation } from '@/lib/conversations/cache'
 import { markConversationDirty } from '@/lib/sync/dirty'
-import { badgeTotal, useNotifications, whenNotificationsHydrated } from '@/state/notifications'
+import { iconBadge, useNotifications, whenNotificationsHydrated } from '@/state/notifications'
 
 /**
  * Model-initiated notifications, phone side.
@@ -800,7 +800,7 @@ let lastSentBadge: number | null = null
  * force after (re)registration, because that relay may hold a stale count.
  */
 async function syncBadge(force = false): Promise<void> {
-  const total = badgeTotal(useNotifications.getState())
+  const total = iconBadge(useNotifications.getState())
   try {
     await Notifications.setBadgeCountAsync(total)
   } catch {
