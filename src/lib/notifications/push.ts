@@ -7,10 +7,13 @@ import { router, type Href } from 'expo-router'
 import { AppState, Platform } from 'react-native'
 import {
   ANDROID_CHANNEL_ID,
+  NOTIFY_PHASES,
   PUSH_WIRE_VERSION,
+  isAllowedDeeplink,
   parseDeeplink,
   parseNotification,
   type DeeplinkTarget,
+  type NotifyPhase,
   type RegisterPushFrame,
   type SetBadgeFrame,
   type UnregisterPushFrame
@@ -20,6 +23,7 @@ import type { Tunnel } from '@/lib/tunnel/tunnel'
 import { invalidateConversation } from '@/lib/conversations/cache'
 import { markConversationDirty } from '@/lib/sync/dirty'
 import { badgeTotal, useBadges, whenBadgesHydrated } from '@/state/badges'
+import { useNotifications } from '@/state/notifications'
 
 /**
  * Model-initiated notifications, phone side.
@@ -155,21 +159,92 @@ function conversationTarget(url: unknown): string | null {
 }
 
 /**
- * Count one notification into the badges store — every arrival path funnels
- * here (in-band frame, foreground push, tray reconciliation) and the store's
- * counted-LRU is what makes the paths safe to overlap: an id counts once no
- * matter how many of them see it.
+ * One notification, as whichever path is holding it knows it. Content is part
+ * of an arrival now, not just the id: the notifications page renders these
+ * back to the user long after the banner is gone, and nothing upstream keeps
+ * a copy to fetch (see state/notifications.ts).
  */
-function recordNotification(notificationId: string, url: unknown): void {
-  const conversationId = conversationTarget(url)
+type Arrival = {
+  id: string
+  title: string
+  body: string
+  /** The desktop's send time where it is known, else local delivery time. */
+  at: number
+  deeplink: string | null
+  phase: NotifyPhase
+  /** Set only by a tap — the tap IS the answer, so it arrives read. */
+  read?: boolean
+}
+
+/**
+ * Count one notification into the badges store and write it to the
+ * notifications log — every arrival path funnels here (in-band frame,
+ * foreground push, tray reconciliation, tap) and both stores dedupe by id, so
+ * the paths are safe to overlap: an id counts once and is logged once no
+ * matter how many of them see it.
+ *
+ * The log records WHETHER this notification counted, which is what lets the
+ * notifications page take a badge down by exactly one when the user reads it.
+ * A notification that was only ever markHandled — general, tapped, or for the
+ * conversation on screen — put nothing in a bucket and must take nothing out.
+ */
+function recordNotification(arrival: Arrival): void {
+  const conversationId = conversationTarget(arrival.deeplink)
   const store = useBadges.getState()
-  if (!conversationId) {
-    store.markHandled(notificationId)
-    return
+  let counted = false
+  if (!conversationId || arrival.read) {
+    store.markHandled(arrival.id)
+  } else {
+    const viewing = conversationId === activeConversationId && AppState.currentState === 'active'
+    if (viewing) store.markHandled(arrival.id)
+    else counted = store.count(arrival.id, conversationId)
   }
-  const viewing = conversationId === activeConversationId && AppState.currentState === 'active'
-  if (viewing) store.markHandled(notificationId)
-  else store.count(notificationId, conversationId)
+  useNotifications.getState().record({ ...arrival, conversationId, counted })
+}
+
+/**
+ * An OS notification — presented, foregrounded or tapped — read into an
+ * arrival, or null when it carries no id of ours (a notification from another
+ * source entirely). Tolerant throughout: the content fields are nullable on
+ * both platforms, and a notification sent by a desktop/relay older than the
+ * `ts` stamp simply falls back to when this phone received it.
+ */
+function arrivalOf(notification: Notifications.Notification, read?: boolean): Arrival | null {
+  const content = notification.request.content
+  const data = content.data as Record<string, unknown> | undefined
+  const id = typeof data?.notificationId === 'string' ? data.notificationId : null
+  if (!id) return null
+  const stamped = typeof data?.ts === 'number' && Number.isFinite(data.ts) ? data.ts : null
+  return {
+    id,
+    title: typeof content.title === 'string' ? content.title : '',
+    body: typeof content.body === 'string' ? content.body : '',
+    at: stamped ?? deliveredAt(notification.date),
+    deeplink: isAllowedDeeplink(data?.url) ? data.url : null,
+    phase: NOTIFY_PHASES.includes(data?.phase as NotifyPhase)
+      ? (data?.phase as NotifyPhase)
+      : 'info',
+    read
+  }
+}
+
+/**
+ * `Notification.date` in milliseconds.
+ *
+ * THE TWO PLATFORMS DISAGREE, silently: Android serializes
+ * `Date.getTime()` — milliseconds — while iOS serializes
+ * `timeIntervalSince1970`, which is SECONDS. Taken at face value every
+ * iOS notification would be dated a fortnight after the epoch, and a
+ * "56 years ago" on every card is the kind of wrong that looks like the
+ * feature is broken rather than one unit conversion.
+ *
+ * Decided by magnitude rather than by `Platform.OS` so it stays right if
+ * expo-notifications ever aligns the two: no real delivery is before 1973 in
+ * milliseconds, and no seconds stamp reaches 1e11 until the year 5138.
+ */
+function deliveredAt(date: number): number {
+  if (typeof date !== 'number' || !Number.isFinite(date) || date <= 0) return Date.now()
+  return date < 1e11 ? Math.round(date * 1000) : Math.round(date)
 }
 
 /**
@@ -194,9 +269,8 @@ export async function reconcilePresentedNotifications(): Promise<void> {
     // be counted a second time by the very loop below.
     useBadges.getState().refresh(ids)
     for (const notification of presented) {
-      const data = notification.request.content.data as Record<string, unknown> | undefined
-      const id = typeof data?.notificationId === 'string' ? data.notificationId : null
-      if (id) recordNotification(id, data?.url)
+      const arrival = arrivalOf(notification)
+      if (arrival) recordNotification(arrival)
     }
   } catch {
     // Unsupported runtime (web, an old dev client) — the counts still sync.
@@ -212,6 +286,11 @@ export async function reconcilePresentedNotifications(): Promise<void> {
  */
 export function clearConversationBadges(conversationId: string): void {
   useBadges.getState().clearConversation(conversationId)
+  // The log says the same thing the badge does, or the notifications page
+  // would keep calling unread what the icon has already stopped counting.
+  // Read WITHOUT discounting: the bucket above was emptied whole, and a
+  // per-record discount on top of that would come out of other conversations.
+  useNotifications.getState().markConversationRead(conversationId)
   void dismissConversationNotifications(conversationId)
 }
 
@@ -226,6 +305,9 @@ export function clearConversationBadges(conversationId: string): void {
  */
 export async function clearAllBadges(): Promise<void> {
   useBadges.getState().clearAll()
+  // The log goes too, not just its counts: every line in it describes a
+  // conversation this device is about to wipe, and deep-links into one.
+  useNotifications.getState().clear()
   try {
     await Notifications.dismissAllNotificationsAsync()
   } catch {
@@ -292,14 +374,21 @@ function installForegroundHandler(): void {
   Notifications.setNotificationHandler({
     handleNotification: async (notification) => {
       const data = notification.request.content.data as Record<string, unknown> | undefined
-      const id = typeof data?.notificationId === 'string' ? data.notificationId : null
+      const arrival = arrivalOf(notification)
+      const id = arrival?.id ?? null
       const duplicate = data?.inband !== true && id !== null && (await hasSeen(id))
       if (id && !duplicate) void markSeen(id)
-      // Count it — this is where a remote push landing on a FOREGROUND app
-      // enters the badge store (a rare path: it means the tunnel was down
-      // while the app was up). In-band renders pass through here too and the
-      // store's id dedupe folds them into their earlier count.
-      if (id) recordNotification(id, data?.url)
+      // Count and log it — this is where a remote push landing on a FOREGROUND
+      // app enters both stores (a rare path: it means the tunnel was down while
+      // the app was up). In-band renders pass through here too, and the id
+      // dedupe in each store folds them into their earlier entry.
+      //
+      // It is also the path that logs the ORDINARY in-band notification, since
+      // our own local render reaches this handler before attachNotificationHandlers
+      // gets to its own record() — which is exactly why that render copies the
+      // frame's `ts` into its data: without it the log would keep whichever
+      // timestamp won the race instead of the one the desktop sent.
+      if (arrival) recordNotification(arrival)
       // The arrival is evidence: something changed in the conversation it
       // names, whatever this phone's sync bookkeeping believes — a remote
       // push reaching a foreground app usually MEANS the tunnel missed the
@@ -369,6 +458,15 @@ function takeResponseHref(response: Notifications.NotificationResponse | null): 
   // If it was already counted, the screen the tap lands on clears its bucket.
   const id = data?.notificationId
   if (typeof id === 'string') useBadges.getState().markHandled(id)
+  // …and it joins the log, already read. Deferred by a tick on purpose: this
+  // function runs inside the entry screen's FIRST render (launchDeeplink is a
+  // useState initializer), and a store write from there re-renders whatever is
+  // subscribed to it while React is still rendering something else. A tap is
+  // also the only way a push that arrived while the app was dead and was
+  // opened straight from the tray ever reaches the log — the OS removes it on
+  // tap, so reconciliation will not find it.
+  const tapped = arrivalOf(response.notification, true)
+  if (tapped) setTimeout(() => recordNotification(tapped), 0)
   const target = parseDeeplink(data?.url)
   // The tap is the strongest freshness signal there is: the user is about to
   // look at this conversation BECAUSE the desktop said it changed — often
@@ -497,6 +595,11 @@ export function attachNotificationHandlers(tunnel: Tunnel): void {
               runId: frame.runId,
               phase: frame.phase,
               url: frame.deeplink,
+              // The DESKTOP's send time, carried through our own render so the
+              // notifications log dates the card by when it was sent rather
+              // than by when this phone happened to draw it. The relay stamps
+              // the same field onto the push payload.
+              ts: frame.ts,
               // Marks our own local render so the foreground handler shows it
               // instead of treating it as a duplicate of itself.
               inband: true
@@ -517,9 +620,20 @@ export function attachNotificationHandlers(tunnel: Tunnel): void {
         // Socket died between delivery and ack — the relay's fallback push
         // fires and the seen-set above is what keeps it invisible.
       }
-      // Count it — the main badge path while the app is alive. After the ack
-      // on purpose: the relay's fallback clock must not wait on store writes.
-      recordNotification(frame.notificationId, frame.deeplink)
+      // Count and log it — the main badge path while the app is alive. After
+      // the ack on purpose: the relay's fallback clock must not wait on store
+      // writes. Usually a no-op by the time it runs (our own render above has
+      // already reached the foreground handler, which logs the same id from
+      // the same data) — it stays as the path for a runtime with no foreground
+      // handler and for a duplicate frame, which never re-renders.
+      recordNotification({
+        id: frame.notificationId,
+        title: frame.title,
+        body: frame.body,
+        at: frame.ts,
+        deeplink: frame.deeplink,
+        phase: frame.phase
+      })
     })()
   })
 }

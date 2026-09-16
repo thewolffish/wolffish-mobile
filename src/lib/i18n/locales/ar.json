@@ -1198,6 +1198,29 @@
       "older": "أقدم"
     }
   },
+  "notifications": {
+    "title": "الإشعارات",
+    "tabs": {
+      "inbox": "الإشعارات",
+      "archive": "الأرشيف"
+    },
+    "markAllRead": "تعليم الكل كمقروء",
+    "archiveAll": "أرشفة الكل",
+    "markRead": "تعليم كمقروء",
+    "archive": "أرشفة",
+    "unread": "غير مقروء",
+    "empty": "لا توجد إشعارات بعد.",
+    "emptyHint": "يخبرك ولففيش هنا عند انتهاء التشغيل أو فشله أو حاجته إليك.",
+    "archiveEmpty": "لا يوجد شيء في الأرشيف.",
+    "archiveEmptyHint": "تُحفظ الإشعارات المؤرشفة هنا بعيداً عن القائمة.",
+    "phase": {
+      "started": "بدأ",
+      "needs_input": "يحتاجك",
+      "failed": "فشل",
+      "completed": "اكتمل",
+      "info": "تحديث"
+    }
+  },
   "units": {
     "bytes": "{{value}} بايت",
     "kilobytes": "{{value}} ك.ب",

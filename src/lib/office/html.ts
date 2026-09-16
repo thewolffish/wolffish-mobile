@@ -126,24 +126,37 @@ function styles(kind: OfficeKind, theme: OfficeTheme): string {
   return [
     `:root{--bg:${theme.bg};--surface:${theme.surface};--fg:${theme.fg};`,
     `--muted:${theme.muted};--border:${theme.border}}`,
-    'html,body{margin:0;padding:0;background:var(--bg);-webkit-text-size-adjust:100%}',
-    '#doc{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0}',
-    '.page{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.18);max-width:100%;overflow:hidden}',
-    '.page svg{display:block;width:100%;height:auto}',
-    '.page.doc-page{position:relative}',
-    '.page.doc-page > section{background:#fff}',
+    // The page IS the viewport: one document page fills the frame and the
+    // others are hidden behind it, so the frame never scrolls and never shows
+    // two pages at once. The card sizes itself from the `aspect` the runtime
+    // reports, so this box is already the right shape.
+    'html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);',
+    '-webkit-text-size-adjust:100%}',
+    '#doc{position:relative;width:100%;height:100%}',
+    '.page{position:absolute;inset:0;background:#fff;overflow:hidden}',
+    '.page[hidden]{display:none}',
+    // The slide SVGs carry preserveAspectRatio="xMidYMid meet", so filling the
+    // box letterboxes them rather than stretching.
+    '.page svg{display:block;width:100%;height:100%}',
+    // Positioned at the origin because fitPage centres it with a transform,
+    // which needs a known starting corner.
+    '.page.doc-page > section{position:absolute;top:0;left:0;background:#fff}',
     kind === 'xlsx'
       ? [
+          // A sheet is not a page: it has no paper of its own, so it takes the
+          // app's surface (dark included) and scrolls inside the card.
           'body{background:var(--surface)}',
-          '#doc{gap:0;padding:0;align-items:stretch}',
-          '.page{background:var(--surface);box-shadow:none;overflow:auto}',
+          '.page{background:var(--surface);overflow:auto;',
+          '-webkit-overflow-scrolling:touch}',
           'table.sheet{border-collapse:collapse;color:var(--fg);direction:ltr;',
           'font:12px -apple-system,system-ui,Roboto,sans-serif}',
           'table.sheet th,table.sheet td{border:1px solid var(--border);padding:3px 6px;',
           'white-space:nowrap;text-align:left}',
           'table.sheet th.head,table.sheet th.gutter{background:var(--bg);color:var(--muted);',
           'font-weight:500;text-align:center}',
-          'table.sheet th.gutter{min-width:34px}'
+          'table.sheet th.gutter{min-width:34px;position:sticky;left:0;z-index:1}',
+          'table.sheet th.head{position:sticky;top:0;z-index:2}',
+          'table.sheet tr:first-child th.gutter{z-index:3}'
         ].join('')
       : ''
   ].join('')

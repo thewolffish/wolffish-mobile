@@ -8,20 +8,29 @@
  *
  * The app hands over `window.__wolffishOffice` before this script runs:
  *
- *   { kind: 'docx' | 'pptx' | 'xlsx', base64, theme: { bg, fg, muted, border },
- *     maxPages, maxRows, maxCols }
+ *   { kind: 'docx' | 'pptx' | 'xlsx', base64, maxPages, maxRows, maxCols }
  *
  * and gets back, over `ReactNativeWebView.postMessage`:
  *
- *   { type: 'ready', pages, labels? }   pages rendered, pager may appear
- *   { type: 'page',  index }            the page scrolled into view changed
- *   { type: 'error', reason }           nothing renderable — card degrades
+ *   { type: 'ready', pages, labels?, aspect? }  pages found, pager may appear
+ *   { type: 'page',  index }                    the visible page changed
+ *   { type: 'error', reason }                   nothing renderable — degrades
  *
  * The app drives it through one entry point, `window.wolffishGoTo(index)`.
  *
- * Two paging models, matching the desktop's two:
- *   docx / pptx — every page is laid out in one scroller; the pager scrolls.
- *   xlsx        — one sheet at a time; the pager swaps which is mounted.
+ * ONE PAGE AT A TIME, always — the page is swapped, never scrolled past.
+ * wolffish-app scrolls its .docx pages because a desktop card is a scrollable
+ * surface; a phone card is not. It sits inside a chat list that owns the pan
+ * gesture (see FileViewers' non-interactive-preview rule), so a page the
+ * reader cannot scroll to is a page they cannot reach at all. Swapping also
+ * means the pager's index is authoritative rather than inferred from a scroll
+ * offset, so the last page is always reachable — a scrolled deck clamps at the
+ * bottom and can never report its final slide as current.
+ *
+ * `aspect` is the page's own width/height, which the card uses to size itself
+ * — the same thing wolffish-app's PresentationViewer does with its aspectRatio
+ * box. Whatever box the card settles on, the page is scaled to fit inside it
+ * whole.
  */
 ;(function () {
   var input = window.__wolffishOffice || {}
@@ -34,8 +43,10 @@
 
   /** Page elements in document order — what the pager indexes into. */
   var pages = []
-  /** 'scroll' for docx/pptx, 'swap' for xlsx. */
-  var paging = 'scroll'
+  /** Called before a page is shown, when its content is rendered lazily. */
+  var realize = null
+  /** Called after a resize, for pages whose scale depends on the viewport. */
+  var refit = null
   var current = 0
   var settled = false
 
@@ -54,10 +65,16 @@
     post({ type: 'error', reason: String(reason && reason.message ? reason.message : reason) })
   }
 
-  function ready(labels) {
+  function ready(extra) {
     if (settled) return
     settled = true
-    post({ type: 'ready', pages: pages.length, labels: labels || null })
+    var message = { type: 'ready', pages: pages.length }
+    if (extra) {
+      for (var key in extra) {
+        if (Object.prototype.hasOwnProperty.call(extra, key)) message[key] = extra[key]
+      }
+    }
+    post(message)
   }
 
   // base64 → bytes. The document arrives inlined in the page for the same
@@ -73,6 +90,7 @@
   function pageBox() {
     var box = document.createElement('div')
     box.className = 'page'
+    box.hidden = pages.length > 0
     doc.appendChild(box)
     pages.push(box)
     return box
@@ -80,89 +98,66 @@
 
   // --- paging ---------------------------------------------------------------
 
-  function trackScroll() {
-    var onScroll = function () {
-      var index = 0
-      for (var i = 0; i < pages.length; i++) {
-        // A page becomes "the one you're reading" once its top passes the
-        // viewport top, with slack so it doesn't flip a moment early.
-        //
-        // Measured against the VIEWPORT (0), not against #doc's own rect: the
-        // window is the scroller here, so #doc scrolls with the pages and the
-        // difference between them never changes — every page would report as
-        // page 1, and the pager would snap its label back after every jump.
-        // (wolffish-app measures against its scroll container because there
-        // the container is the thing that stays put.)
-        if (pages[i].getBoundingClientRect().top <= 24) index = i
-        else break
-      }
-      if (index !== current) {
-        current = index
-        post({ type: 'page', index: index })
-      }
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
+  function show(index) {
+    if (realize) realize(index)
+    for (var i = 0; i < pages.length; i++) pages[i].hidden = i !== index
+    current = index
+    // A page only has a layout once it is visible, so anything measured from
+    // it has to be measured now rather than while it was hidden.
+    if (refit) refit(index)
   }
 
   window.wolffishGoTo = function (index) {
-    if (index < 0 || index >= pages.length) return
-    if (paging === 'swap') {
-      for (var i = 0; i < pages.length; i++) pages[i].hidden = i !== index
-      window.scrollTo(0, 0)
-      current = index
-      post({ type: 'page', index: index })
-      return
-    }
-    var target = pages[index]
-    if (!target) return
-    current = index
-    window.scrollTo(0, target.offsetTop)
+    if (index < 0 || index >= pages.length || index === current) return
+    show(index)
     post({ type: 'page', index: index })
   }
 
+  window.addEventListener('resize', function () {
+    if (refit) refit(current)
+  })
+
   // --- pptx -----------------------------------------------------------------
+
+  /** `viewBox="0 0 960 720"` — the only place the renderer states the canvas. */
+  function svgAspect(svg) {
+    var box = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg)
+    if (!box) return null
+    var width = Number(box[1])
+    var height = Number(box[2])
+    if (!(width > 0) || !(height > 0)) return null
+    return width / height
+  }
 
   function renderDeck(data) {
     var pptx = engines.pptx
-    var presentation = pptx.loadPresentation(data)
-    // loadPresentation is async in some builds and sync in others; normalise.
-    return Promise.resolve(presentation).then(function (deck) {
+    return Promise.resolve(pptx.loadPresentation(data)).then(function (deck) {
       var slides = pptx.getSlides(deck)
       if (!slides || !slides.length) throw new Error('deck has no slides')
       var count = Math.min(slides.length, MAX_PAGES)
 
       var paint = function (i) {
+        var box = pages[i]
+        if (!box || box.dataset.painted) return ''
         var svg
         try {
           svg = pptx.renderSlideToSvg(deck, slides[i])
         } catch (error) {
           // One unpaintable slide must not cost the reader the other twenty —
-          // the desktop's rule. Keep the position, show it empty.
+          // wolffish-app's rule. Keep the position, show it empty.
           svg = ''
         }
-        var box = pages[i] || pageBox()
         box.innerHTML = svg
+        box.dataset.painted = '1'
+        return svg
       }
 
-      // First slide, then report — a deck must not hold the card blank while
-      // slide 40 rasterises. The rest follow a frame at a time.
       for (var i = 0; i < count; i++) pageBox()
-      paint(0)
-      ready(null)
-      var next = 1
-      var pump = function () {
-        var budget = 3
-        while (next < count && budget-- > 0) paint(next++)
-        if (next < count) setTimeout(pump, 0)
-        else trackScroll()
-      }
-      // setTimeout, not requestAnimationFrame: the inline card's WebView can
-      // be off-screen in the feed, and rAF does not run for a frame that is
-      // not being painted — the deck would stop at slide one until scrolled
-      // into view.
-      if (count > 1) setTimeout(pump, 0)
-      else trackScroll()
+      // Slides are painted on demand: a hundred-slide deck would otherwise
+      // hold a hundred SVG documents for the one the reader is looking at.
+      realize = paint
+      var first = paint(0)
+      ready({ aspect: svgAspect(first), total: slides.length })
     })
   }
 
@@ -213,13 +208,17 @@
   }
 
   function renderDocument(data) {
+    // docx-preview replaces whatever it is given, so it gets a scratch host
+    // rather than #doc, and the pages are moved out of it afterwards.
     var host = document.createElement('div')
+    host.className = 'docx-host'
     doc.appendChild(host)
+
     return engines.docx
       .renderAsync(new Blob([data]), host, host, {
         // No wrapper: the card is the wrapper, and the library's own paints a
-        // grey desk we would have to undo in both themes. Same call the
-        // desktop makes — keep the two in step.
+        // grey desk we would have to undo in both themes. Same call
+        // wolffish-app's useDocxPages makes — keep the two in step.
         inWrapper: false,
         breakPages: true,
         renderHeaders: true,
@@ -229,46 +228,67 @@
         useBase64URL: true
       })
       .then(function () {
-        // docx-preview lays the document out as one <section> per page, each at
-        // the file's real page width (8.5in ≈ 816px). A phone is half that, so
-        // every page is scaled to the card's width rather than reflowed — the
-        // document keeps its own layout, exactly like a rasterised PDF page.
         unmojibakeBullets()
+        // docx-preview lays the document out as one <section> per page.
         var sections = host.querySelectorAll('section')
         if (!sections.length) throw new Error('document has no pages')
-        for (var i = 0; i < sections.length && i < MAX_PAGES; i++) {
-          var section = sections[i]
-          var box = document.createElement('div')
-          box.className = 'page doc-page'
-          section.parentNode.insertBefore(box, section)
-          box.appendChild(section)
-          pages.push(box)
-        }
-        fitPages()
-        // An expanded sheet mounts its own frame, but a rotation resizes this
-        // one — the scale is a function of width and has to follow it.
-        window.addEventListener('resize', fitPages)
-        ready(null)
-        trackScroll()
-      })
 
-  /** Scale every docx page to the viewport width, preserving its layout. */
-  function fitPages() {
-    for (var i = 0; i < pages.length; i++) {
-      var box = pages[i]
-      var section = box.firstElementChild
-      if (!section) continue
-      section.style.transform = ''
-      box.style.height = ''
-      var natural = section.offsetWidth
-      if (!natural) continue
-      var scale = Math.min(1, doc.clientWidth / natural)
-      section.style.transformOrigin = 'top left'
-      section.style.transform = 'scale(' + scale + ')'
-      box.style.width = natural * scale + 'px'
-      box.style.height = section.offsetHeight * scale + 'px'
-    }
+        var aspect = null
+        var limit = Math.min(sections.length, MAX_PAGES)
+        for (var i = 0; i < limit; i++) {
+          var section = sections[i]
+          var box = pageBox()
+          box.classList.add('doc-page')
+          box.appendChild(section)
+          if (aspect === null) {
+            var w = section.offsetWidth
+            var h = section.offsetHeight
+            if (w > 0 && h > 0) aspect = w / h
+          }
+        }
+        host.remove()
+
+        refit = fitPage
+        fitPage(0)
+        ready({ aspect: aspect, total: sections.length })
+      })
   }
+
+  /**
+   * Scale a Word page to sit whole inside the card, and centre it.
+   *
+   * A page has a real size in CSS pixels (8.5in ≈ 816px wide) and the card is
+   * half that, so it is scaled rather than reflowed — the document keeps its
+   * own layout, exactly like a rasterised PDF page. Scaling to CONTAIN rather
+   * than to width is what keeps "one page at a time" true when the card's box
+   * is not the page's aspect: a Letter page in a 16:9 box would otherwise
+   * overflow the bottom and the reader would see two half pages.
+   */
+  function fitPage(index) {
+    var box = pages[index]
+    if (!box || box.hidden) return
+    var section = box.firstElementChild
+    if (!section) return
+    section.style.transform = ''
+    var naturalWidth = section.offsetWidth
+    var naturalHeight = section.offsetHeight
+    if (!naturalWidth || !naturalHeight) return
+    var scale = Math.min(
+      box.clientWidth / naturalWidth,
+      box.clientHeight / naturalHeight,
+      // Never blow a page up past its own size: a short page in a tall card
+      // should sit at 100%, not stretch into a poster.
+      1
+    )
+    section.style.transformOrigin = 'top left'
+    section.style.transform =
+      'translate(' +
+      (box.clientWidth - naturalWidth * scale) / 2 +
+      'px, ' +
+      Math.max(0, (box.clientHeight - naturalHeight * scale) / 2) +
+      'px) scale(' +
+      scale +
+      ')'
   }
 
   // --- xlsx -----------------------------------------------------------------
@@ -289,13 +309,11 @@
     var names = book.SheetNames || []
     if (!names.length) throw new Error('workbook has no sheets')
 
-    paging = 'swap'
     var labels = []
     for (var s = 0; s < names.length && s < MAX_PAGES; s++) {
       var name = names[s]
       labels.push(name)
       var box = pageBox()
-      box.hidden = s !== 0
       // `raw: false` asks SheetJS for each cell's FORMATTED text, so a date
       // stays a date and 0.5 stays 50% — the number formats are the document's
       // own and the only place they exist.
@@ -307,7 +325,8 @@
       })
       box.appendChild(grid(rows))
     }
-    ready(labels)
+    // No aspect: a sheet is not a page, so the card keeps its own height.
+    ready({ labels: labels })
   }
 
   function grid(rows) {

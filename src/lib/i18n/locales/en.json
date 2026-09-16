@@ -925,6 +925,29 @@
       "older": "Older"
     }
   },
+  "notifications": {
+    "title": "Notifications",
+    "tabs": {
+      "inbox": "Notifications",
+      "archive": "Archive"
+    },
+    "markAllRead": "Mark all read",
+    "archiveAll": "Archive all",
+    "markRead": "Mark as read",
+    "archive": "Archive",
+    "unread": "Unread",
+    "empty": "No notifications yet.",
+    "emptyHint": "Wolffish tells you here when a run finishes, fails or needs you.",
+    "archiveEmpty": "Nothing archived.",
+    "archiveEmptyHint": "Archived notifications are kept here, out of the list.",
+    "phase": {
+      "started": "Started",
+      "needs_input": "Needs you",
+      "failed": "Failed",
+      "completed": "Done",
+      "info": "Update"
+    }
+  },
   "units": {
     "bytes": "{{value}} B",
     "kilobytes": "{{value}} KB",

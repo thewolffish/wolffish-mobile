@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils/cn'
 import * as Sharing from 'expo-sharing'
 import { Component, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { I18nManager, Pressable, Text, View } from 'react-native'
+import { I18nManager, Pressable, ScrollView, Text, View } from 'react-native'
 
 /**
  * Shared card chrome for every file viewer — the bordered surface, header
@@ -201,6 +201,70 @@ function PagerButton({
     >
       {children}
     </Pressable>
+  )
+}
+
+/**
+ * A workbook's sheet tabs — the mobile counterpart of SheetTabs in
+ * wolffish-app's SheetGrid, and the reason a workbook card has no pager: a
+ * spreadsheet's sheets are named, not numbered, so "Readings" is worth more
+ * than "2 of 3" and every sheet is one tap away instead of two chevrons.
+ *
+ * The strip scrolls horizontally because a workbook with eleven sheets is
+ * ordinary and a phone is 390pt wide.
+ */
+export function SheetTabs({
+  names,
+  index,
+  onSelect
+}: {
+  names: string[]
+  index: number
+  onSelect: (next: number) => void
+}): React.JSX.Element {
+  const { t } = useTranslation()
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      accessibilityRole="tablist"
+      accessibilityLabel={t('chat.spreadsheetViewer.sheets')}
+      // grow-0/shrink-0 is load-bearing, not tidiness: a horizontal ScrollView
+      // in a column stretches to whatever height is going spare, and then
+      // `items-center` centres the tabs in the middle of that gap — which is
+      // what the expanded sheet has, and the card (all fixed-height rows) does
+      // not. The strip has to size to its own content in both.
+      className="border-border grow-0 shrink-0 border-t"
+      contentContainerClassName="items-center gap-1 px-2 py-1"
+    >
+      {names.map((name, i) => (
+        <Pressable
+          key={`${name}-${i}`}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: i === index }}
+          accessibilityLabel={name}
+          hitSlop={4}
+          onPress={() => onSelect(i)}
+          // bg-primary-soft, not bg-primary/10: an alpha modifier on a var()
+          // colour compiles to nothing here, and a dropped background paints
+          // black (see global.css) — the token is that composite, precomputed.
+          className={cn(
+            'shrink-0 rounded px-2 py-0.5',
+            i === index ? 'bg-primary-soft' : 'active:opacity-60'
+          )}
+        >
+          <Text
+            numberOfLines={1}
+            className={cn(
+              'text-[11px]',
+              i === index ? 'text-primary font-sans-medium' : 'text-muted font-sans'
+            )}
+          >
+            {name}
+          </Text>
+        </Pressable>
+      ))}
+    </ScrollView>
   )
 }
 

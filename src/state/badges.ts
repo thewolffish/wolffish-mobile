@@ -39,8 +39,14 @@ export type BadgeState = {
   counts: Record<string, BadgeBucket>
   /** Notification ids already counted or handled, oldest first. */
   counted: string[]
-  /** Count one notification against one conversation. No-op on a known id. */
-  count: (notificationId: string, conversationId: string) => void
+  /**
+   * Count one notification against one conversation. No-op on a known id.
+   * Answers whether it actually counted — the notification log records that
+   * per notification, because "mark as read" may only take a bucket down by
+   * one for a notification that put something in it. A notification that
+   * arrived for the conversation on screen, or was tapped, never did.
+   */
+  count: (notificationId: string, conversationId: string) => boolean
   /** Remember an id WITHOUT counting it — a tap being acted on, a general
    *  notification, one that arrived for the conversation on screen. */
   markHandled: (notificationId: string) => void
@@ -53,6 +59,13 @@ export type BadgeState = {
   refresh: (notificationIds: readonly string[]) => void
   /** The user opened (or deleted) the conversation — its badge is done. */
   clearConversation: (conversationId: string) => void
+  /**
+   * One of this conversation's notifications was answered on its own — the
+   * bucket shrinks by one instead of emptying. `clearConversation` is the
+   * "I read the conversation" answer; this is the "I read that one
+   * notification" answer, and the notifications page is its only caller.
+   */
+  discount: (conversationId: string) => void
   /**
    * Unpairing: every bucket at once. `counted` deliberately survives — it is
    * what stops a straggler push arriving after the wipe from re-minting a
@@ -80,7 +93,7 @@ export const useBadges = create<BadgeState>()(
       counted: [],
       count: (notificationId, conversationId) => {
         const { counts, counted } = get()
-        if (counted.includes(notificationId)) return
+        if (counted.includes(notificationId)) return false
         const bucket = counts[conversationId]
         set({
           counts: {
@@ -92,6 +105,7 @@ export const useBadges = create<BadgeState>()(
           },
           counted: remember(counted, notificationId)
         })
+        return true
       },
       markHandled: (notificationId) => {
         const { counted } = get()
@@ -110,6 +124,23 @@ export const useBadges = create<BadgeState>()(
         if (!(conversationId in counts)) return
         const { [conversationId]: _cleared, ...rest } = counts
         set({ counts: rest })
+      },
+      discount: (conversationId) => {
+        const { counts } = get()
+        const bucket = counts[conversationId]
+        if (!bucket) return
+        // At one, the bucket goes rather than sitting at zero: an empty bucket
+        // is indistinguishable from no bucket everywhere it is read, and
+        // prune() would keep re-examining it forever.
+        if (bucket.n <= 1) {
+          const { [conversationId]: _emptied, ...rest } = counts
+          set({ counts: rest })
+          return
+        }
+        // `at` is deliberately untouched: it records when the bucket last
+        // GREW, which is what spares a young bucket from prune(). Reading one
+        // notification is not news about the conversation's age.
+        set({ counts: { ...counts, [conversationId]: { ...bucket, n: bucket.n - 1 } } })
       },
       clearAll: () => {
         if (Object.keys(get().counts).length === 0) return

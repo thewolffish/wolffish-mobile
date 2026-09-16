@@ -39,6 +39,7 @@ import {
   MissingCard,
   RenderGuard,
   shareFile,
+  SheetTabs,
   ViewerPager,
   type Align
 } from '@/components/chat/FileChrome'
@@ -901,12 +902,31 @@ export function PdfFileCard({
   )
 }
 
-/** Which engine, icon and position line a classification maps to. */
+/** CardShell's `w-[85%]` — the width an office page is scaled to fit. */
+const CARD_WIDTH_SHARE = 0.85
+/**
+ * Bounds on the body an office page is given. The floor keeps a wide, short
+ * page (a 2:1 banner slide) from becoming a letterbox slit; the ceiling keeps
+ * a portrait Word page from taking most of the screen, and is a little above
+ * wolffish-app's own `max-h-100` for the same card.
+ */
+const OFFICE_MIN_BODY = 180
+const OFFICE_MAX_BODY = 420
+
+/**
+ * Which engine, icon and position line a classification maps to, and the page
+ * shape to assume before the file has been read.
+ *
+ * The assumed aspect is what keeps the card one size: the skeleton, the
+ * loading frame and the loaded page all use it, so the common case (US Letter
+ * / A4 documents, 16:9 decks) never resizes when the renderer reports back.
+ * A 4:3 deck still settles a little taller, which is the one nudge left.
+ */
 const OFFICE_KINDS = {
-  document: { kind: 'docx', position: 'chat.officeViewer.pageOf' },
-  workbook: { kind: 'xlsx', position: 'chat.officeViewer.sheetOf' },
-  slides: { kind: 'pptx', position: 'chat.officeViewer.slideOf' }
-} as const satisfies Record<string, { kind: OfficeKind; position: string }>
+  document: { kind: 'docx', position: 'chat.officeViewer.pageOf', aspect: 8.5 / 11 },
+  workbook: { kind: 'xlsx', position: 'chat.officeViewer.sheetOf', aspect: null },
+  slides: { kind: 'pptx', position: 'chat.officeViewer.slideOf', aspect: 16 / 9 }
+} as const satisfies Record<string, { kind: OfficeKind; position: string; aspect: number | null }>
 
 type OfficeCardKind = keyof typeof OFFICE_KINDS
 
@@ -948,6 +968,7 @@ export function OfficeFileCard({
 }: FileViewerProps): React.JSX.Element {
   const { t } = useTranslation()
   const tokens = useTokens()
+  const { width: screenWidth } = useWindowDimensions()
   const [open, setOpen] = useState(false)
   const { uri, sizeBytes: cachedSize, loading, missing } = useWorkspaceFile(relPath, conversationId)
   const name = displayName ?? classification.name ?? baseName(relPath)
@@ -964,6 +985,12 @@ export function OfficeFileCard({
   const [pages, setPages] = useState(0)
   const [labels, setLabels] = useState<string[] | null>(null)
   const [index, setIndex] = useState(0)
+  // A page's own width/height, when it has one. Documents and decks do; a
+  // workbook sheet does not, so it keeps the default body height. Seeded with
+  // the kind's usual shape so the card does not resize when the real one lands.
+  const [aspect, setAspect] = useState<number | null>(spec.aspect)
+  // Pages the file actually holds, when the renderer stopped short of them.
+  const [total, setTotal] = useState(0)
   // Set once the page has said anything at all — which is also what stops the
   // watchdog below.
   const [answered, setAnswered] = useState(false)
@@ -1019,11 +1046,23 @@ export function OfficeFileCard({
 
   const goTo = useCallback(
     (next: number) => {
+      if (next < 0 || (pages > 0 && next >= pages)) return
       setIndex(next)
       frameRef.current?.injectJavaScript(`window.wolffishGoTo(${next});true;`)
     },
-    [frameRef]
+    [frameRef, pages]
   )
+
+  // The body takes the PAGE's shape, the way wolffish-app's PresentationViewer
+  // puts its slide in an aspectRatio box: one whole page fills the card and
+  // nothing of the next one shows. Capped, because a Letter page at card width
+  // is over 400pt tall and the feed still has to be scrollable past it — the
+  // runtime scales the page to fit whatever box it ends up with.
+  const bodyHeight = useMemo(() => {
+    if (!aspect || !(aspect > 0)) return INLINE_BODY_HEIGHT + 60
+    const width = screenWidth * CARD_WIDTH_SHARE
+    return Math.round(Math.min(Math.max(width / aspect, OFFICE_MIN_BODY), OFFICE_MAX_BODY))
+  }, [aspect, screenWidth])
 
   if (loading || (uri && !oversized && !host && !engineFailed)) {
     return (
@@ -1034,7 +1073,7 @@ export function OfficeFileCard({
         relPath={relPath}
         expectedBytes={sizeBytes}
         // Exact: the loaded document frame is pinned to this same height.
-        bodyHeight={INLINE_BODY_HEIGHT + 60}
+        bodyHeight={bodyHeight}
         footerLabel={[classification.ext.toUpperCase(), formatBytes(sizeBytes ?? 0)]
           .filter(Boolean)
           .join(' · ')}
@@ -1073,7 +1112,14 @@ export function OfficeFileCard({
       // unreadable — there is nothing to retry into.
       onError={() => setEngineFailed(true)}
       onMessage={(event) => {
-        let message: { type?: string; pages?: number; labels?: string[] | null; index?: number }
+        let message: {
+          type?: string
+          pages?: number
+          labels?: string[] | null
+          index?: number
+          aspect?: number | null
+          total?: number
+        }
         try {
           message = JSON.parse(event.nativeEvent.data) as typeof message
         } catch {
@@ -1084,6 +1130,12 @@ export function OfficeFileCard({
         if (message.type === 'ready') {
           setPages(message.pages ?? 0)
           setLabels(message.labels ?? null)
+          // Only a real measurement replaces the seed — a renderer that
+          // reports none (a workbook) must not collapse the card to nothing.
+          if (typeof message.aspect === 'number' && message.aspect > 0) {
+            setAspect(message.aspect)
+          } else if (message.labels) setAspect(null)
+          setTotal(message.total ?? 0)
           if (!message.pages) setEngineFailed(true)
           // A frame that just mounted starts at the top; the reader's place is
           // held in RN state, so restore it rather than snapping them back —
@@ -1108,21 +1160,37 @@ export function OfficeFileCard({
     />
   )
 
-  // A workbook's sheets have names, and the name is more use than the number.
+  // A workbook is navigated by its tabs, so its sheet name is already on
+  // screen and the footer carries the count instead. A document or a deck has
+  // only the pager, so the footer is where its position line lives.
+  const tabbed = cardKind === 'workbook' && !!labels && labels.length > 1
   const position =
-    pages > 0
-      ? (labels?.[index] ?? t(spec.position, { index: index + 1, count: pages, defaultValue: '' }))
+    pages > 0 && !tabbed
+      ? t(spec.position, { index: index + 1, count: pages, defaultValue: '' })
       : ''
-  const footerLabel = [position, formatBytes(bytes)].filter(Boolean).join(' · ')
-  const pager = pages > 1 ? <ViewerPager index={index} count={pages} onChange={goTo} /> : null
+  const footerLabel = [
+    position,
+    // Said out loud rather than silently dropped: a 400-slide deck that stops
+    // at 200 must not look like a 200-slide deck.
+    total > pages ? t('chat.officeViewer.partial', { count: pages, total }) : '',
+    formatBytes(bytes)
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  const pager =
+    pages > 1 && !tabbed ? <ViewerPager index={index} count={pages} onChange={goTo} /> : null
+  const tabs = tabbed ? <SheetTabs names={labels} index={index} onSelect={goTo} /> : null
 
   return (
     <CardShell align={align}>
       <CardHeader icon={officeIcon(cardKind)} name={name} />
-      <PreviewTap onPress={() => setOpen(true)} label={name} height={INLINE_BODY_HEIGHT + 60}>
+      <PreviewTap onPress={() => setOpen(true)} label={name} height={bodyHeight}>
         {/* One document renderer at a time — see HtmlFileCard. */}
         {open ? <View className="bg-surface flex-1" /> : frame(cardRef)}
       </PreviewTap>
+      {/* Outside PreviewTap: that wrapper is pointerEvents="none" so the card
+          body stays a tap target for expanding, and tabs have to be tappable. */}
+      {tabs}
       <CardFooter label={footerLabel}>
         {pager}
         <ShareAction uri={uri} />
@@ -1139,7 +1207,8 @@ export function OfficeFileCard({
           </>
         }
       >
-        {frame(sheetRef)}
+        <View className="flex-1">{frame(sheetRef)}</View>
+        {tabs}
       </ExpandedSheet>
     </CardShell>
   )

@@ -456,7 +456,7 @@ describe('FileBlock — one delivered file per supported type', () => {
     await waitFor(() => expect(screen.getByText('Page 2 of 4 · 2 KB')).toBeTruthy())
   })
 
-  it('names the sheet rather than numbering it in a workbook', async () => {
+  it('gives a workbook sheet tabs rather than a pager', async () => {
     await renderBlock(<FileBlock relPath="files/book.xlsx" declared="document" sizeBytes={2048} />)
     await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy())
     expect(ensureOfficeHostDocument).toHaveBeenCalledWith(
@@ -467,7 +467,16 @@ describe('FileBlock — one delivered file per supported type', () => {
     )
 
     await ready(3, ['Species', 'Readings', 'Notes'])
-    await waitFor(() => expect(screen.getByText('Species · 2 KB')).toBeTruthy())
+    // Every sheet is one tap away, named — the desktop's SheetTabs, not a
+    // pager that would make the reader count to the sheet they want.
+    await waitFor(() => expect(screen.getByLabelText('Species')).toBeTruthy())
+    expect(screen.getByLabelText('Readings')).toBeTruthy()
+    expect(screen.getByLabelText('Notes')).toBeTruthy()
+    expect(screen.queryByLabelText('Next')).toBeNull()
+    expect(screen.queryByLabelText('Previous')).toBeNull()
+
+    await fireEvent.press(screen.getByLabelText('Notes'))
+    expect(mockInjectJavaScript).toHaveBeenCalledWith('window.wolffishGoTo(2);true;')
   })
 
   it('counts slides in a deck and carries the place into the expanded sheet', async () => {
@@ -485,6 +494,27 @@ describe('FileBlock — one delivered file per supported type', () => {
     mockInjectJavaScript.mockClear()
     await ready(7)
     expect(mockInjectJavaScript).toHaveBeenCalledWith('window.wolffishGoTo(1);true;')
+  })
+
+  it('disables the pager at both ends, so the last page is reachable', async () => {
+    await renderBlock(<FileBlock relPath="files/deck.pptx" declared="document" sizeBytes={2048} />)
+    await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy())
+    await ready(3)
+
+    // Slide 1: back is dead, forward is live.
+    await waitFor(() => expect(screen.getByText('Slide 1 of 3 · 2 KB')).toBeTruthy())
+    expect(screen.getByLabelText('Previous')).toBeDisabled()
+    expect(screen.getByLabelText('Next')).not.toBeDisabled()
+
+    await fireEvent.press(screen.getByLabelText('Next'))
+    await fireEvent.press(screen.getByLabelText('Next'))
+
+    // The last slide is a place the pager can actually arrive at — it used to
+    // be unreachable, because the index was inferred from a scroll offset that
+    // clamps at the bottom, and Next stayed enabled doing nothing.
+    await waitFor(() => expect(screen.getByText('Slide 3 of 3 · 2 KB')).toBeTruthy())
+    expect(screen.getByLabelText('Next')).toBeDisabled()
+    expect(screen.getByLabelText('Previous')).not.toBeDisabled()
   })
 
   it('degrades to the file card when no engine can render the document', async () => {
