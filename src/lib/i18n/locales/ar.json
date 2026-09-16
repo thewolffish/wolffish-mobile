@@ -700,6 +700,15 @@
       "preview": "معاينة",
       "source": "المصدر"
     },
+    "officeViewer": {
+      "pageOf": "صفحة {{index}} من {{count}}",
+      "slideOf": "شريحة {{index}} من {{count}}",
+      "sheetOf": "ورقة {{index}} من {{count}}"
+    },
+    "viewerPager": {
+      "previous": "السابق",
+      "next": "التالي"
+    },
     "chartCard": {
       "viewChart": "الرسم البياني",
       "viewData": "البيانات",
@@ -763,6 +772,16 @@
         "find": "إيجاد ملفات",
         "run": "تشغيل"
       }
+    },
+    "optionsCard": {
+      "heading_zero": "لا توجد خيارات للنسخ",
+      "heading_one": "خيار واحد للنسخ",
+      "heading_two": "خياران للنسخ",
+      "heading_few": "{{count}} خيارات للنسخ",
+      "heading_many": "{{count}} خيارًا للنسخ",
+      "heading_other": "{{count}} خيار للنسخ",
+      "optionCount": "الخيار {{current}} من {{total}}",
+      "copy": "انسخ هذا الخيار"
     },
     "questionCard": {
       "otherLabel": "شيء آخر",

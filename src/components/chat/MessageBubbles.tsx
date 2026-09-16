@@ -41,6 +41,7 @@ import { FileBlock } from '@/components/chat/FileBlock'
 import { MarkdownView, markdownHasTable } from '@/components/chat/MarkdownView'
 import { NEEDS_SELECT_SHEET, openSelectMarkdown } from '@/components/chat/SelectTextSheet'
 import { QuestionCard } from '@/components/chat/QuestionCard'
+import { OptionsCard } from '@/components/chat/OptionsCard'
 import { CountdownCard } from '@/components/chat/CountdownCard'
 import { TaskCard } from '@/components/chat/TaskCard'
 import { ThinkingIndicator } from '@/components/chat/ThinkingIndicator'
@@ -230,6 +231,10 @@ export const AssistantMessageView = memo(function AssistantMessageView({
     // ask_user renders as its card while the turn is parked on it and once it
     // has been answered; with neither there is nothing to show yet.
     if (block.type === 'question') return !!asks[block.call.toolCallId] || !!block.result
+    // offer_options draws from its call's args alone, so it renders the
+    // instant the call lands and always — clean feed included, like a
+    // delivered file: it is content the model produced FOR the user.
+    if (block.type === 'options') return true
     // An anchor earns its place only when a live card renders on it.
     if (block.type === 'toolAnchor')
       return !!asks[block.toolCallId] || !!live.approvals[block.toolCallId]
@@ -422,6 +427,8 @@ function renderBlock(
         </View>
       )
     }
+    case 'options':
+      return <OptionsCard call={block.call} />
     case 'question': {
       const ask = asks[block.call.toolCallId]
       return (

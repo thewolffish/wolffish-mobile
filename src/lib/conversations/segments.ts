@@ -33,6 +33,13 @@ const WORKFLOW_TOOL_NAMES = new Set([
 
 const ASK_TOOL_NAME = 'ask_user'
 
+/**
+ * The `options` capability's single tool. Its call renders as a tabbed
+ * copy-and-paste card, never a tool row — and always, clean feed included:
+ * the card is content the model produced FOR the user, not tool mechanics.
+ */
+const OPTIONS_TOOL_NAME = 'offer_options'
+
 /** Tools whose output is file content — markers quoted inside never render. */
 const FILE_CONTENT_TOOL_NAMES = new Set(['file_read', 'file_write', 'file_patch'])
 
@@ -76,6 +83,11 @@ export type RenderBlock =
       timing?: ToolTiming
     }
   | { type: 'question'; key: string; call: ToolCallInfo; result?: ToolResultInfo }
+  /**
+   * An offer_options card. Carries only the CALL: everything it draws is in
+   * the args, and its result is a one-line confirmation written for the model.
+   */
+  | { type: 'options'; key: string; call: ToolCallInfo }
   /** A tool_result with no tool_call in the stream — see the emit site. */
   | { type: 'toolAnchor'; key: string; toolCallId: string; result: ToolResultInfo }
   | { type: 'model'; key: string; provider: string; model: string }
@@ -355,6 +367,16 @@ export function buildRenderBlocks(
           args: segment.args ?? {}
         }
         const timing = message.toolTimings?.[segment.toolCallId]
+        if (segment.name === OPTIONS_TOOL_NAME) {
+          // Registered in openTools like any other call, so the matching
+          // result pairs with it and is absorbed — the block ignores it (its
+          // output is a one-line confirmation for the model, never for the
+          // user), and without the entry that result would raise a stray
+          // orphan anchor instead.
+          openTools.set(segment.toolCallId, blocks.length)
+          blocks.push({ type: 'options', key: `c:${segment.toolCallId}`, call })
+          break
+        }
         const type = segment.name === ASK_TOOL_NAME ? 'question' : 'tool'
         openTools.set(segment.toolCallId, blocks.length)
         blocks.push({ type, key: `c:${segment.toolCallId}`, call, timing })

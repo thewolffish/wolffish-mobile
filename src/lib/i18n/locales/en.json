@@ -696,6 +696,15 @@
       "preview": "Preview",
       "source": "Source"
     },
+    "officeViewer": {
+      "pageOf": "Page {{index}} of {{count}}",
+      "slideOf": "Slide {{index}} of {{count}}",
+      "sheetOf": "Sheet {{index}} of {{count}}"
+    },
+    "viewerPager": {
+      "previous": "Previous",
+      "next": "Next"
+    },
     "chartCard": {
       "viewChart": "Chart",
       "viewData": "Data",
@@ -759,6 +768,12 @@
         "find": "Find files",
         "run": "Run"
       }
+    },
+    "optionsCard": {
+      "heading_one": "{{count}} option to copy",
+      "heading_other": "{{count}} options to copy",
+      "optionCount": "Option {{current}} of {{total}}",
+      "copy": "Copy this option"
     },
     "questionCard": {
       "otherLabel": "Something else",
