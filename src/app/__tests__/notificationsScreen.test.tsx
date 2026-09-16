@@ -45,8 +45,7 @@ jest.mock('expo-router', () => ({
 import NotificationsScreen from '@/app/notifications'
 import '@/lib/i18n'
 import { ThemeContext } from '@/providers/theme/useTheme'
-import { badgeTotal, useBadges } from '@/state/badges'
-import { useNotifications, type NotificationRecord } from '@/state/notifications'
+import { badgeTotal, useNotifications, type NotificationRecord } from '@/state/notifications'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native'
 
 const NOW = Date.now()
@@ -67,17 +66,10 @@ function record(id: string, over: Partial<NotificationRecord> = {}): Notificatio
   }
 }
 
-/** The state a delivered notification leaves behind: a log entry, and the one
- *  it put in its conversation's badge bucket. */
+/** The state a delivered notification leaves behind. There is only the log
+ *  now: every badge in the app is counted off these records. */
 function seed(...records: NotificationRecord[]): void {
   useNotifications.setState({ items: records })
-  const counts: Record<string, { n: number; at: number }> = {}
-  for (const entry of records) {
-    if (!entry.counted || !entry.conversationId) continue
-    const bucket = counts[entry.conversationId]
-    counts[entry.conversationId] = { n: (bucket?.n ?? 0) + 1, at: entry.at }
-  }
-  useBadges.setState({ counts, counted: records.map((entry) => entry.id) })
 }
 
 async function mount(): Promise<void> {
@@ -96,7 +88,6 @@ async function mount(): Promise<void> {
 beforeEach(() => {
   mockPush.mockClear()
   useNotifications.setState({ items: [] })
-  useBadges.setState({ counts: {}, counted: [] })
 })
 
 describe('the list', () => {
@@ -147,7 +138,7 @@ describe('a card', () => {
     )
     // Opening it answers it — here and on the icon.
     expect(useNotifications.getState().items[0].read).toBe(true)
-    expect(badgeTotal(useBadges.getState())).toBe(0)
+    expect(badgeTotal(useNotifications.getState())).toBe(0)
   })
 
   it('goes nowhere for a link this build cannot resolve, but still reads', async () => {
@@ -164,13 +155,12 @@ describe('a card', () => {
 describe('mark as read', () => {
   it('takes the badge down by exactly one, leaving the card in the list', async () => {
     seed(record('n1'), record('n2'))
-    expect(badgeTotal(useBadges.getState())).toBe(2)
+    expect(badgeTotal(useNotifications.getState())).toBe(2)
     await mount()
 
     fireEvent.press(screen.getAllByText('Mark as read')[0])
 
-    await waitFor(() => expect(badgeTotal(useBadges.getState())).toBe(1))
-    expect(useBadges.getState().counts['conv-a'].n).toBe(1)
+    await waitFor(() => expect(badgeTotal(useNotifications.getState())).toBe(1))
     // Read, not gone: the text is still there to read, minus its New mark.
     expect(screen.getByText('Migration n1')).toBeTruthy()
     expect(screen.getAllByText('New')).toHaveLength(1)
@@ -187,7 +177,7 @@ describe('archive', () => {
 
     await waitFor(() => expect(screen.queryByText('Migration n1')).toBeNull())
     expect(screen.getByText('Migration n2')).toBeTruthy()
-    expect(badgeTotal(useBadges.getState())).toBe(1)
+    expect(badgeTotal(useNotifications.getState())).toBe(1)
     expect(useNotifications.getState().items[0]).toMatchObject({ archived: true, read: true })
   })
 
@@ -219,7 +209,7 @@ describe('the two bulk buttons', () => {
     // answered. Both of these act on EVERY notification at once and cannot be
     // undone from this screen, which is the whole reason they ask.
     await waitFor(() => expect(screen.getByText('Mark all as read?')).toBeTruthy())
-    expect(badgeTotal(useBadges.getState())).toBe(2)
+    expect(badgeTotal(useNotifications.getState())).toBe(2)
     expect(useNotifications.getState().items.every((entry) => !entry.read)).toBe(true)
   })
 
@@ -231,7 +221,7 @@ describe('the two bulk buttons', () => {
 
     fireEvent.press(screen.getByText('Mark all read'))
 
-    await waitFor(() => expect(badgeTotal(useBadges.getState())).toBe(0))
+    await waitFor(() => expect(badgeTotal(useNotifications.getState())).toBe(0))
     // Read, not filed: the text is all still there, and no mark is left.
     expect(screen.getByText('Migration n1')).toBeTruthy()
     expect(screen.getByText('Migration n2')).toBeTruthy()
@@ -250,7 +240,7 @@ describe('the two bulk buttons', () => {
     expect(useNotifications.getState().items.every((entry) => entry.archived && entry.read)).toBe(
       true
     )
-    expect(badgeTotal(useBadges.getState())).toBe(0)
+    expect(badgeTotal(useNotifications.getState())).toBe(0)
   })
 
   it('cancels without touching anything', async () => {
@@ -263,7 +253,7 @@ describe('the two bulk buttons', () => {
 
     await waitFor(() => expect(screen.queryByText('Archive all?')).toBeNull())
     expect(useNotifications.getState().items.every((entry) => !entry.archived)).toBe(true)
-    expect(badgeTotal(useBadges.getState())).toBe(2)
+    expect(badgeTotal(useNotifications.getState())).toBe(2)
   })
 
   it('are dead rather than absent when the inbox is empty', async () => {

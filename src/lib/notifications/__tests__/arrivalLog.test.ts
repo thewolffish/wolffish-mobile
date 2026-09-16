@@ -56,8 +56,7 @@ import {
   attachNotificationHandlers,
   reconcilePresentedNotifications
 } from '@/lib/notifications/push'
-import { useBadges } from '@/state/badges'
-import { useNotifications } from '@/state/notifications'
+import { badgeTotal, unreadFor, useNotifications } from '@/state/notifications'
 
 // Imported directly rather than through jest.isolateModules, unlike this
 // folder's other suites: isolating push.ts re-requires the two zustand stores
@@ -114,7 +113,6 @@ beforeEach(() => {
   mockPresented = []
   mockScheduled.length = 0
   useNotifications.setState({ items: [] })
-  useBadges.setState({ counts: {}, counted: [] })
 })
 
 describe('a notification found in the tray', () => {
@@ -163,7 +161,9 @@ describe('a notification found in the tray', () => {
       archived: false,
       counted: true
     })
-    expect(useBadges.getState().counts['conv-a'].n).toBe(1)
+    // The badge is the log: one unread record for conv-a IS the row's 1.
+    expect(unreadFor(useNotifications.getState(), 'conv-a')).toBe(1)
+    expect(badgeTotal(useNotifications.getState())).toBe(1)
   })
 
   it('ignores a notification that is not one of ours', async () => {
@@ -181,7 +181,7 @@ describe('a notification found in the tray', () => {
     await reconcilePresentedNotifications()
 
     expect(useNotifications.getState().items).toHaveLength(1)
-    expect(useBadges.getState().counts['conv-a'].n).toBe(1)
+    expect(unreadFor(useNotifications.getState(), 'conv-a')).toBe(1)
   })
 })
 

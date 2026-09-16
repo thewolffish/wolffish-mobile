@@ -18,7 +18,7 @@ import { applyUpdaterPush, readUpdaterState } from '@/lib/sync/updater'
 import { invalidateProcedures } from '@/lib/sync/procedures'
 import { invalidateProjects } from '@/lib/sync/projects'
 import { useAppStore } from '@/state/appStore'
-import { useBadges } from '@/state/badges'
+import { useNotifications } from '@/state/notifications'
 import { useChatRuntime } from '@/state/chatRuntime'
 import { clearConversationBadges, getActiveConversation } from '@/lib/notifications/push'
 import { clearConversationDirty } from '@/lib/sync/dirty'
@@ -170,7 +170,7 @@ export async function refreshSync(
     // Badges follow the same rule as rows: a conversation the desktop no
     // longer has cannot keep one. Buckets younger than this fetch are spared
     // — their conversation may simply be newer than the id list.
-    useBadges.getState().prune(index.ids, startedAt)
+    useNotifications.getState().prune(index.ids, startedAt)
   }
   if (rows.length || removed) invalidateConversationList()
   // Every changed conversation's own query too, not just the list. The one

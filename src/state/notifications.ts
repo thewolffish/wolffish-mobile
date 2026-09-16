@@ -2,7 +2,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import type { NotifyPhase } from '@/lib/tunnel/protocol'
-import { useBadges } from '@/state/badges'
 
 /**
  * The notification log — every model-initiated notification this phone has
@@ -23,21 +22,32 @@ import { useBadges } from '@/state/badges'
  * dead and was dismissed from the tray before the app next opened: nothing of
  * ours ran, and nothing anywhere else kept it.
  *
- * TWO INDEPENDENT FLAGS, deliberately:
+ * THIS LOG IS ALSO THE BADGES. Every unread count in the app is derived from
+ * the records below — the number on a conversation row, the total on the app
+ * icon, the count the relay stamps onto pushes, and the one on the sheet's
+ * Notifications row. It did not used to be: a separate store kept a counter
+ * per conversation, incremented at arrival and decremented on read, and two
+ * counters for one fact drift the moment any arrival path treats them
+ * differently. A notification that reached the log without incrementing the
+ * counter — one that arrived while its own conversation was on screen — left
+ * the page saying two unread and the conversation row saying one. Derived,
+ * that disagreement cannot be expressed.
  *
- *  - `read` is about this list. It starts false for everything except a
- *    tapped notification (the tap IS the answer to it), and the user turns it
- *    true from the notifications page or by opening the conversation.
- *  - `archived` is about the inbox. Archiving also reads, never the reverse,
- *    so an archived notification is always read and the archive tab is a
- *    finished pile rather than a second inbox.
+ * THREE FLAGS, and they are not the same question:
  *
- * `counted` is neither: it records whether THIS notification put a number in
- * a conversation's badge bucket, and it is the whole reason marking one read
- * can take that badge down by exactly one. push.ts decides it (it knows the
- * deeplink, the conversation on screen and the app state) and the badge store
- * confirms it — a notification the badge store deduped away counts nothing,
- * and discounting for it would take the badge below what is really unread.
+ *  - `read` is about attention. It starts false except on a tap (the tap IS
+ *    the answer) and on a notification that arrives for the conversation the
+ *    user is already looking at — which is the same answer, a beat earlier.
+ *  - `archived` is about the inbox. One-way, and archiving reads at the same
+ *    time, so an archived notification is always read and the archive tab is
+ *    a finished pile rather than a second inbox.
+ *  - `counted` is about the badge, and it is a STANDING property of the
+ *    notification rather than a record of something that already happened: is
+ *    this one the sort that puts a number on its conversation? True for every
+ *    real arrival that names a conversation. False only for the demo's seeded
+ *    log, which must show its count on the sheet's Notifications row without
+ *    marking conversation rows or the app icon — a demo has no relay, and a
+ *    badge it minted would be a number the tour cannot honestly clear.
  */
 
 export type NotificationRecord = {
@@ -57,13 +67,14 @@ export type NotificationRecord = {
   phase: NotifyPhase
   read: boolean
   archived: boolean
-  /** Still contributing one to `conversationId`'s badge bucket. */
+  /** Whether this one badges its conversation while unread. See the header. */
   counted: boolean
 }
 
 /** What an arrival knows about itself. */
 export type NotificationArrival = Omit<NotificationRecord, 'read' | 'archived'> & {
-  /** A tap arrives already answered; everything else arrives unread. */
+  /** A tap, or a notification for the conversation already on screen: both
+   *  arrive answered. Everything else arrives unread. */
   read?: boolean
 }
 
@@ -74,6 +85,10 @@ export type NotificationArrival = Omit<NotificationRecord, 'read' | 'archived'> 
  * than a phone notification list is ever read back through.
  */
 const LIMIT = 300
+
+/** A conversation's badge can never grow past this; the relay clamps to the
+ *  same ceiling, so the two ends agree about what "a lot" looks like. */
+const BADGE_MAX = 999
 
 export type NotificationsState = {
   /** Newest first. */
@@ -88,50 +103,46 @@ export type NotificationsState = {
   markAllRead: () => void
   /** The inbox button: every unarchived notification archived (and read). */
   archiveAll: () => void
-  /**
-   * The user OPENED the conversation, so everything it ever notified about is
-   * answered. Reads without discounting: the caller (clearConversationBadges)
-   * empties the whole bucket itself, and discounting on top of that would take
-   * other conversations' numbers down with it.
-   */
+  /** The user OPENED (or deleted) the conversation, so everything it ever
+   *  notified about is answered. */
   markConversationRead: (conversationId: string) => void
+  /**
+   * Read the notifications of conversations the desktop no longer has.
+   * `liveIds` is the full id list from a completed index sync and `before` is
+   * when that sync STARTED — a notification that arrived after the list was
+   * taken is spared, because its conversation may simply be newer than the
+   * list. Read rather than deleted: the text is still worth having, it just
+   * stops badging a row that no longer exists.
+   */
+  prune: (liveIds: readonly string[], before: number) => void
   /** Unpairing or a demo purge — the log describes conversations that are
    *  about to stop existing. */
   clear: () => void
 }
 
-/** Newest first, and stable for equal stamps (a reconciliation sweep can hand
- *  over several notifications carrying the same tray second). */
+/** Newest first, and capped. */
 function ordered(items: NotificationRecord[]): NotificationRecord[] {
   return [...items].sort((a, b) => b.at - a.at).slice(0, LIMIT)
 }
 
 /**
- * Flip `read` on the records a bulk action names, and hand back the badge
- * discounts that owes — one entry per record that was still counted. The
- * caller applies them, so the badge store is touched exactly once per action
- * rather than once per record.
+ * Flip `read` — and optionally `archived` — on the records an action names.
+ * Returns the same array reference when nothing changed, which is what lets
+ * every caller no-op without comparing contents.
  */
 function settle(
   items: NotificationRecord[],
   matches: (record: NotificationRecord) => boolean,
   archive: boolean
-): { items: NotificationRecord[]; discounts: string[] } {
-  const discounts: string[] = []
+): NotificationRecord[] {
   let changed = false
   const next = items.map((record) => {
     if (!matches(record)) return record
-    if (record.read && record.counted === false && (!archive || record.archived)) return record
-    if (record.counted && record.conversationId) discounts.push(record.conversationId)
+    if (record.read && (!archive || record.archived)) return record
     changed = true
-    return {
-      ...record,
-      read: true,
-      counted: false,
-      archived: archive ? true : record.archived
-    }
+    return { ...record, read: true, archived: archive ? true : record.archived }
   })
-  return { items: changed ? next : items, discounts }
+  return changed ? next : items
 }
 
 export const useNotifications = create<NotificationsState>()(
@@ -151,54 +162,50 @@ export const useNotifications = create<NotificationsState>()(
           return
         }
         set({
-          items: ordered([
-            {
-              ...arrival,
-              read: arrival.read === true,
-              archived: false,
-              // A tap answers the notification, so it stops holding a badge —
-              // push.ts has already told the badge store the same thing.
-              counted: arrival.read === true ? false : arrival.counted
-            },
-            ...items
-          ])
+          items: ordered([{ ...arrival, read: arrival.read === true, archived: false }, ...items])
         })
       },
       markRead: (id) => {
-        const { items, discounts } = settle(get().items, (record) => record.id === id, false)
+        const items = settle(get().items, (record) => record.id === id, false)
         if (items === get().items) return
         set({ items })
-        for (const conversationId of discounts) useBadges.getState().discount(conversationId)
       },
       archive: (id) => {
-        const { items, discounts } = settle(get().items, (record) => record.id === id, true)
+        const items = settle(get().items, (record) => record.id === id, true)
         if (items === get().items) return
         set({ items })
-        for (const conversationId of discounts) useBadges.getState().discount(conversationId)
       },
       markAllRead: () => {
-        const { items, discounts } = settle(get().items, (record) => !record.archived, false)
+        const items = settle(get().items, (record) => !record.archived, false)
         if (items === get().items) return
         set({ items })
-        for (const conversationId of discounts) useBadges.getState().discount(conversationId)
       },
       archiveAll: () => {
-        const { items, discounts } = settle(get().items, (record) => !record.archived, true)
+        const items = settle(get().items, (record) => !record.archived, true)
         if (items === get().items) return
         set({ items })
-        for (const conversationId of discounts) useBadges.getState().discount(conversationId)
       },
       markConversationRead: (conversationId) => {
-        const { items } = get()
-        let changed = false
-        const next = items.map((record) => {
-          if (record.conversationId !== conversationId) return record
-          if (record.read && !record.counted) return record
-          changed = true
-          return { ...record, read: true, counted: false }
-        })
-        if (!changed) return
-        set({ items: next })
+        const items = settle(
+          get().items,
+          (record) => record.conversationId === conversationId,
+          false
+        )
+        if (items === get().items) return
+        set({ items })
+      },
+      prune: (liveIds, before) => {
+        const live = new Set(liveIds)
+        const items = settle(
+          get().items,
+          (record) =>
+            record.conversationId !== null &&
+            !live.has(record.conversationId) &&
+            record.at < before,
+          false
+        )
+        if (items === get().items) return
+        set({ items })
       },
       clear: () => {
         if (get().items.length === 0) return
@@ -214,10 +221,52 @@ export const useNotifications = create<NotificationsState>()(
   )
 )
 
-/** The number the side sheet's Notifications row carries. Archived records
- *  are read by construction, so this is the inbox's unread count. */
+/** Unread notifications for one conversation — the number its row wears. */
+export function unreadFor(
+  state: Pick<NotificationsState, 'items'>,
+  conversationId: string
+): number {
+  let total = 0
+  for (const record of state.items) {
+    if (record.read || !record.counted) continue
+    if (record.conversationId === conversationId) total += 1
+  }
+  return Math.min(BADGE_MAX, total)
+}
+
+/**
+ * The number the app icon and the relay carry. Conversation-linked only, as
+ * it has always been: a general notification — one that deep-links to a
+ * settings page or nowhere — is cleared by the app opening, and the icon is
+ * only ever read while the app is away. It still shows on the notifications
+ * page and in the count below, which is where it can actually be answered.
+ */
+export function badgeTotal(state: Pick<NotificationsState, 'items'>): number {
+  let total = 0
+  for (const record of state.items) {
+    if (record.read || !record.counted || record.conversationId === null) continue
+    total += 1
+  }
+  return Math.min(BADGE_MAX, total)
+}
+
+/** The number the side sheet's Notifications row carries: everything unread,
+ *  general notifications included — the page can answer those. Archived
+ *  records are read by construction, so they never reach this. */
 export function unreadNotifications(state: Pick<NotificationsState, 'items'>): number {
   let total = 0
   for (const record of state.items) if (!record.read) total += 1
   return total
+}
+
+/** Resolves once the persisted log is restored — counting before that would
+ *  be overwritten by the rehydrate. */
+export function whenNotificationsHydrated(): Promise<void> {
+  if (useNotifications.persist.hasHydrated()) return Promise.resolve()
+  return new Promise((resolve) => {
+    const unsub = useNotifications.persist.onFinishHydration(() => {
+      unsub()
+      resolve()
+    })
+  })
 }

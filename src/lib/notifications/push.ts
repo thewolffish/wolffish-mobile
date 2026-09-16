@@ -22,8 +22,7 @@ import { toHex } from '@/lib/tunnel/pairing'
 import type { Tunnel } from '@/lib/tunnel/tunnel'
 import { invalidateConversation } from '@/lib/conversations/cache'
 import { markConversationDirty } from '@/lib/sync/dirty'
-import { badgeTotal, useBadges, whenBadgesHydrated } from '@/state/badges'
-import { useNotifications } from '@/state/notifications'
+import { badgeTotal, useNotifications, whenNotificationsHydrated } from '@/state/notifications'
 
 /**
  * Model-initiated notifications, phone side.
@@ -177,29 +176,37 @@ type Arrival = {
 }
 
 /**
- * Count one notification into the badges store and write it to the
- * notifications log — every arrival path funnels here (in-band frame,
- * foreground push, tray reconciliation, tap) and both stores dedupe by id, so
- * the paths are safe to overlap: an id counts once and is logged once no
+ * Write one notification to the log — every arrival path funnels here
+ * (in-band frame, foreground push, tray reconciliation, tap), and the log
+ * dedupes by id, so the paths are safe to overlap: an id is logged once no
  * matter how many of them see it.
  *
- * The log records WHETHER this notification counted, which is what lets the
- * notifications page take a badge down by exactly one when the user reads it.
- * A notification that was only ever markHandled — general, tapped, or for the
- * conversation on screen — put nothing in a bucket and must take nothing out.
+ * THE LOG IS THE BADGE. Every count in the app is derived from these records
+ * (see state/notifications.ts), so there is nothing to increment here and
+ * nothing that can fall out of step with what the page shows. What this
+ * decides is only the two things it alone knows:
+ *
+ *  - whether the notification is already ANSWERED. A tap is one answer; so is
+ *    arriving for the conversation the user is looking at right now, which is
+ *    the same answer a beat earlier — opening that conversation reads its
+ *    notifications anyway. It used to be expressed as "counts nothing", which
+ *    is what made the page and the conversation row disagree: the page counts
+ *    unread, the row counted increments, and a notification could reach one
+ *    without the other.
+ *  - whether it badges a conversation at all: only one that names one does.
  */
 function recordNotification(arrival: Arrival): void {
   const conversationId = conversationTarget(arrival.deeplink)
-  const store = useBadges.getState()
-  let counted = false
-  if (!conversationId || arrival.read) {
-    store.markHandled(arrival.id)
-  } else {
-    const viewing = conversationId === activeConversationId && AppState.currentState === 'active'
-    if (viewing) store.markHandled(arrival.id)
-    else counted = store.count(arrival.id, conversationId)
-  }
-  useNotifications.getState().record({ ...arrival, conversationId, counted })
+  const viewing =
+    conversationId !== null &&
+    conversationId === activeConversationId &&
+    AppState.currentState === 'active'
+  useNotifications.getState().record({
+    ...arrival,
+    conversationId,
+    counted: conversationId !== null,
+    read: arrival.read === true || viewing
+  })
 }
 
 /**
@@ -258,16 +265,10 @@ function deliveredAt(date: number): number {
 export async function reconcilePresentedNotifications(): Promise<void> {
   try {
     const presented = await Notifications.getPresentedNotificationsAsync()
-    const ids: string[] = []
-    for (const notification of presented) {
-      const data = notification.request.content.data as Record<string, unknown> | undefined
-      const id = typeof data?.notificationId === 'string' ? data.notificationId : null
-      if (id) ids.push(id)
-    }
-    // Ids still in the tray must stay in the dedupe: refreshed first, so a
-    // notification that lingers there for weeks cannot age out of the LRU and
-    // be counted a second time by the very loop below.
-    useBadges.getState().refresh(ids)
+    // No dedupe ledger to refresh first: the log keeps one record per
+    // notificationId for as long as it keeps the record, so a tray entry that
+    // lingers for weeks is recognised every sweep rather than aging out of a
+    // parallel LRU and being counted twice.
     for (const notification of presented) {
       const arrival = arrivalOf(notification)
       if (arrival) recordNotification(arrival)
@@ -285,11 +286,8 @@ export async function reconcilePresentedNotifications(): Promise<void> {
  * the tray, so what the badge said is gone stops being said anywhere.
  */
 export function clearConversationBadges(conversationId: string): void {
-  useBadges.getState().clearConversation(conversationId)
-  // The log says the same thing the badge does, or the notifications page
-  // would keep calling unread what the icon has already stopped counting.
-  // Read WITHOUT discounting: the bucket above was emptied whole, and a
-  // per-record discount on top of that would come out of other conversations.
+  // One write, and the badge follows from it: the row's number, the icon and
+  // the relay's copy are all counts of unread records for this conversation.
   useNotifications.getState().markConversationRead(conversationId)
   void dismissConversationNotifications(conversationId)
 }
@@ -304,9 +302,8 @@ export function clearConversationBadges(conversationId: string): void {
  * caller holds the socket open until the zero has been sent.
  */
 export async function clearAllBadges(): Promise<void> {
-  useBadges.getState().clearAll()
-  // The log goes too, not just its counts: every line in it describes a
-  // conversation this device is about to wipe, and deep-links into one.
+  // Every line in the log describes a conversation this device is about to
+  // wipe, and deep-links into one — and with the log go all of its counts.
   useNotifications.getState().clear()
   try {
     await Notifications.dismissAllNotificationsAsync()
@@ -448,9 +445,8 @@ function takeResponseHref(response: Notifications.NotificationResponse | null): 
   const data = response.notification.request.content.data as Record<string, unknown> | undefined
   // A tapped notification never becomes a badge: the tap IS the answer to it.
   // If it was already counted, the screen the tap lands on clears its bucket.
-  const id = data?.notificationId
-  if (typeof id === 'string') useBadges.getState().markHandled(id)
-  // …and it joins the log, already read. Deferred by a tick on purpose: this
+  // The tap joins the log, already read — which is also what takes its badge
+  // off the icon and off the conversation's row. Deferred by a tick on purpose: this
   // function runs inside the entry screen's FIRST render (launchDeeplink is a
   // useState initializer), and a store write from there re-renders whatever is
   // subscribed to it while React is still rendering something else. A tap is
@@ -554,13 +550,13 @@ export function initNotifications(): void {
     void refreshPushRegistration()
   })
   // Every badge change reaches the OS icon and the relay from ONE place —
-  // whoever moved the store (a count, a clear, a prune) never syncs it too.
-  useBadges.subscribe((state, previous) => {
-    if (state.counts !== previous.counts) void syncBadge()
+  // whoever moved the log (an arrival, a read, a prune) never syncs it too.
+  useNotifications.subscribe((state, previous) => {
+    if (state.items !== previous.items) void syncBadge()
   })
-  // Launch-time catch-up: count what the OS displayed while the app was dead.
-  // After rehydration, or the persisted counts would overwrite these.
-  void whenBadgesHydrated().then(() => reconcilePresentedNotifications())
+  // Launch-time catch-up: log what the OS displayed while the app was dead.
+  // After rehydration, or the persisted log would overwrite these.
+  void whenNotificationsHydrated().then(() => reconcilePresentedNotifications())
 }
 
 /**
@@ -771,7 +767,7 @@ let lastSentBadge: number | null = null
  * force after (re)registration, because that relay may hold a stale count.
  */
 async function syncBadge(force = false): Promise<void> {
-  const total = badgeTotal(useBadges.getState())
+  const total = badgeTotal(useNotifications.getState())
   try {
     await Notifications.setBadgeCountAsync(total)
   } catch {

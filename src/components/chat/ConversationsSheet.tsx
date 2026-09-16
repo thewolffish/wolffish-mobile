@@ -11,8 +11,7 @@ import { UnreadBadge } from '@/components/core/UnreadBadge'
 import { groupByRecency } from '@/lib/conversations/grouping'
 import { useConversationList } from '@/lib/conversations/hooks'
 import { buildConversationRows, type ConversationRow } from '@/lib/conversations/rows'
-import { useBadges } from '@/state/badges'
-import { unreadNotifications, useNotifications } from '@/state/notifications'
+import { unreadFor, unreadNotifications, useNotifications } from '@/state/notifications'
 import { useActiveProject, useProjects } from '@/lib/sync/projects'
 import { DEFAULT_PROJECT_ICON } from '@/components/workspace/ProjectDialog'
 import { cn } from '@/lib/utils/cn'
@@ -147,7 +146,7 @@ const Row = memo(function Row({
   // Subscribed per row, so a badge changing re-renders exactly the row it
   // marks. The active row can briefly hold a count mid-clear; hiding it there
   // keeps the clear from flashing a badge on the conversation being read.
-  const unread = useBadges((state) => (active ? 0 : (state.counts[row.id]?.n ?? 0)))
+  const unread = useNotifications((state) => (active ? 0 : unreadFor(state, row.id)))
   return (
     <Pressable
       accessibilityRole="button"
