@@ -44,6 +44,14 @@ jest.mock('expo-notifications', () => ({
  * fix is magnitude-based rather than platform-based, so it survives either
  * platform changing its mind, and this is what holds it.
  *
+ * The third is WHICH CONVERSATION a notification belongs to, which is not the
+ * same question as where its tap goes. notify_phone lets the model omit the
+ * deeplink entirely, so reading the badge off the link meant those arrived
+ * belonging to nothing: a conversation that had raised five notifications wore
+ * a 2 while the page showed all five. The desktop stamps the run's own
+ * conversation on every frame now, and the deeplink only outranks it when it
+ * deliberately names a different one.
+ *
  * The other half is provenance: WHEN a notification was sent is the desktop's
  * answer, not the handset's. A phone that was off for three hours receives a
  * push three hours late, and a card dated by arrival would be three hours
@@ -98,6 +106,7 @@ function frame(over: Record<string, unknown> = {}): Record<string, unknown> {
     body: 'Your migration completed without errors.',
     urgency: 'normal',
     deeplink: 'wolffish://chat?id=conv-a',
+    conversationId: 'conv-a',
     ttl: 3600,
     ts: SENT,
     ...over
@@ -210,5 +219,76 @@ describe('a notification delivered in-band', () => {
       title: 'Migration finished',
       counted: true
     })
+  })
+})
+
+describe('which conversation a notification belongs to', () => {
+  it('badges the conversation that raised it when no tap destination was set', async () => {
+    // THE REGRESSION. notify_phone permits a call with no deeplink — most
+    // mid-run ones are — and the badge has to land anyway.
+    mockPresented = [
+      presented('n1', SENT, { url: null, conversationId: 'conv-a' }),
+      presented('n2', SENT, { url: null, conversationId: 'conv-a' })
+    ]
+
+    await reconcilePresentedNotifications()
+
+    expect(unreadFor(useNotifications.getState(), 'conv-a')).toBe(2)
+    expect(badgeTotal(useNotifications.getState())).toBe(2)
+    // …and the card still opens nothing, because nothing was asked for.
+    expect(useNotifications.getState().items[0].deeplink).toBeNull()
+  })
+
+  it('lets a deeplink that names another conversation outrank where it came from', async () => {
+    // A model pointing somewhere on purpose means the tap and the badge to
+    // agree: the badge follows the tap.
+    mockPresented = [
+      presented('n1', SENT, { url: 'wolffish://chat?id=conv-b', conversationId: 'conv-a' })
+    ]
+
+    await reconcilePresentedNotifications()
+
+    expect(unreadFor(useNotifications.getState(), 'conv-b')).toBe(1)
+    expect(unreadFor(useNotifications.getState(), 'conv-a')).toBe(0)
+  })
+
+  it('stays a general notification when neither names a conversation', async () => {
+    mockPresented = [
+      presented('n1', SENT, { url: 'wolffish://settings/model', conversationId: null })
+    ]
+
+    await reconcilePresentedNotifications()
+
+    expect(useNotifications.getState().items[0]).toMatchObject({
+      conversationId: null,
+      counted: false
+    })
+    // Off the icon, but on the page — where it can be answered.
+    expect(badgeTotal(useNotifications.getState())).toBe(0)
+    expect(useNotifications.getState().items).toHaveLength(1)
+  })
+
+  it('carries the raising conversation through its own in-band render', async () => {
+    const handlers: Record<string, (raw: Record<string, unknown>) => void> = {}
+    attachNotificationHandlers({
+      sendControl: jest.fn(),
+      onControl: (type: string, handler: (raw: Record<string, unknown>) => void) => {
+        handlers[type] = handler
+      }
+    } as never)
+
+    // Its own id: the seen-LRU in push.ts is module state shared across this
+    // file, and a repeat of one already rendered is deliberately not rendered.
+    handlers.notification(
+      frame({ notificationId: 'n-inband-origin', deeplink: null, conversationId: 'conv-a' })
+    )
+    await settle()
+
+    // The foreground handler reads this local notification back, and what it
+    // cannot see there it cannot badge.
+    expect(mockScheduled[0]).toMatchObject({
+      content: { data: { conversationId: 'conv-a' } }
+    })
+    expect(unreadFor(useNotifications.getState(), 'conv-a')).toBe(1)
   })
 })

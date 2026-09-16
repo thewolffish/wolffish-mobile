@@ -148,8 +148,28 @@ export function getActiveConversation(): string | null {
   return activeConversationId
 }
 
+/**
+ * The conversation a notification belongs to — the one its badge lands on.
+ *
+ * WHERE A TAP GOES FIRST, then where the notification CAME FROM. Those are
+ * different questions and the order matters both ways round: a model that
+ * deliberately points a notification at another conversation means the tap
+ * and the badge to agree, so the deeplink wins when it names one; a model
+ * that sends no deeplink at all — which notify_phone deliberately permits,
+ * and which is most of the mid-run ones — still raised the notification
+ * somewhere, and that somewhere is what the badge is about.
+ *
+ * Reading only the deeplink is what made a conversation that had sent five
+ * notifications wear a 2: the three with no link named no conversation, so
+ * nothing counted them, while the notifications page — which counts unread
+ * records, links or not — showed all five.
+ */
+function conversationOf(arrival: Arrival): string | null {
+  return conversationTarget(arrival.deeplink) ?? arrival.origin
+}
+
 /** The conversation a notification's deeplink names, if any. `current` is the
- *  desktop-side placeholder and must never key a bucket here. */
+ *  desktop-side placeholder and must never key a badge here. */
 function conversationTarget(url: unknown): string | null {
   const target = parseDeeplink(url)
   if (!target || target.route !== 'chat') return null
@@ -170,6 +190,12 @@ type Arrival = {
   /** The desktop's send time where it is known, else local delivery time. */
   at: number
   deeplink: string | null
+  /**
+   * The conversation that RAISED this notification, as the desktop stamped
+   * it. Null from a desktop or relay older than the field, and null for a run
+   * with no conversation yet — the deeplink is the fallback in both cases.
+   */
+  origin: string | null
   phase: NotifyPhase
   /** Set only by a tap — the tap IS the answer, so it arrives read. */
   read?: boolean
@@ -196,7 +222,7 @@ type Arrival = {
  *  - whether it badges a conversation at all: only one that names one does.
  */
 function recordNotification(arrival: Arrival): void {
-  const conversationId = conversationTarget(arrival.deeplink)
+  const conversationId = conversationOf(arrival)
   const viewing =
     conversationId !== null &&
     conversationId === activeConversationId &&
@@ -228,6 +254,7 @@ function arrivalOf(notification: Notifications.Notification, read?: boolean): Ar
     body: typeof content.body === 'string' ? content.body : '',
     at: stamped ?? deliveredAt(notification.date),
     deeplink: isAllowedDeeplink(data?.url) ? data.url : null,
+    origin: typeof data?.conversationId === 'string' ? data.conversationId : null,
     phase: NOTIFY_PHASES.includes(data?.phase as NotifyPhase)
       ? (data?.phase as NotifyPhase)
       : 'info',
@@ -583,6 +610,11 @@ export function attachNotificationHandlers(tunnel: Tunnel): void {
               runId: frame.runId,
               phase: frame.phase,
               url: frame.deeplink,
+              // The conversation that raised it, carried through our own
+              // render for the same reason `ts` is: the foreground handler
+              // reads this local notification back, and what it cannot see
+              // there it cannot badge.
+              conversationId: frame.conversationId,
               // The DESKTOP's send time, carried through our own render so the
               // notifications log dates the card by when it was sent rather
               // than by when this phone happened to draw it. The relay stamps
@@ -620,6 +652,7 @@ export function attachNotificationHandlers(tunnel: Tunnel): void {
         body: frame.body,
         at: frame.ts,
         deeplink: frame.deeplink,
+        origin: frame.conversationId,
         phase: frame.phase
       })
     })()
