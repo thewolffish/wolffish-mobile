@@ -1130,6 +1130,10 @@ export function OfficeFileCard({
       javaScriptEnabled
       domStorageEnabled={false}
       setSupportMultipleWindows={false}
+      // Android does not chain a nested scroller's gesture to its parent
+      // unless told to; iOS already does. Without it a document in the feed
+      // would swallow the pan and the chat list could not be scrolled past it.
+      nestedScrollEnabled
       style={{ backgroundColor: tokens.surface }}
       onShouldStartLoadWithRequest={(request) => request.url.startsWith('file://')}
       // The composed page is a local file, so a load error means it is gone or
@@ -1185,10 +1189,16 @@ export function OfficeFileCard({
     />
   )
 
-  // A workbook is navigated by its tabs, so its sheet name is already on
-  // screen and the footer carries the count instead. A document or a deck has
-  // only the pager, so the footer is where its position line lives.
+  // Three ways to get around, one per kind, and each is the only one that
+  // suits it:
+  //   a workbook by its named tabs, so the footer carries the size alone;
+  //   a deck by its chevrons, because slides are switched between;
+  //   a document by SCROLLING, so it gets neither — its footer line is a
+  //   read-only position that follows the scroll, which is exactly what
+  //   wolffish-app's DocxViewer shows (it passes ViewerPager no onChange).
   const tabbed = cardKind === 'workbook' && !!labels && labels.length > 1
+  const paged = cardKind === 'slides'
+  const scrolls = cardKind === 'document'
   const position =
     pages > 0 && !tabbed
       ? t(spec.position, { index: index + 1, count: pages, defaultValue: '' })
@@ -1203,21 +1213,35 @@ export function OfficeFileCard({
     .filter(Boolean)
     .join(' · ')
   const pager =
-    pages > 1 && !tabbed ? <ViewerPager index={index} count={pages} onChange={goTo} /> : null
+    paged && pages > 1 ? <ViewerPager index={index} count={pages} onChange={goTo} /> : null
   const tabs = tabbed ? <SheetTabs names={labels} index={index} onSelect={goTo} /> : null
 
   return (
     <CardShell align={align}>
       <CardHeader icon={officeIcon(cardKind)} name={name} />
-      <PreviewTap
-        onPress={() => setOpen(true)}
-        label={name}
-        height={bodyAspect === null ? INLINE_BODY_HEIGHT + 60 : undefined}
-        aspectRatio={bodyAspect ?? undefined}
-      >
-        {/* One document renderer at a time — see HtmlFileCard. */}
-        {open ? <View className="bg-surface flex-1" /> : frame(cardRef)}
-      </PreviewTap>
+      {scrolls ? (
+        // A document is LIVE in the feed: it scrolls under the finger here the
+        // same way it does in the sheet, because that is how a document is
+        // read and paging one is the wrong shape entirely. It is the same
+        // exception HtmlFileCard makes, and it is safe for the same reason —
+        // `nestedScrollEnabled` hands the gesture back to the chat list once
+        // the document reaches its end, so scrolling past the card still
+        // works. Expanding moves to the footer button, since the body is no
+        // longer a tap target.
+        <View className="overflow-hidden" style={{ height: INLINE_BODY_HEIGHT + 60 }}>
+          {/* One document renderer at a time — see HtmlFileCard. */}
+          {open ? <View className="bg-surface flex-1" /> : frame(cardRef)}
+        </View>
+      ) : (
+        <PreviewTap
+          onPress={() => setOpen(true)}
+          label={name}
+          height={bodyAspect === null ? INLINE_BODY_HEIGHT + 60 : undefined}
+          aspectRatio={bodyAspect ?? undefined}
+        >
+          {open ? <View className="bg-surface flex-1" /> : frame(cardRef)}
+        </PreviewTap>
+      )}
       {/* Outside PreviewTap: that wrapper is pointerEvents="none" so the card
           body stays a tap target for expanding, and tabs have to be tappable. */}
       {tabs}

@@ -433,7 +433,7 @@ describe('FileBlock — one delivered file per supported type', () => {
   const ready = (pages: number, labels: string[] | null = null): Promise<void> =>
     post({ type: 'ready', pages, labels })
 
-  it('renders a Word document with a page pager that moves the document', async () => {
+  it('scrolls a Word document rather than paging it', async () => {
     await renderBlock(
       <FileBlock relPath="files/letter.docx" declared="document" sizeBytes={2048} />
     )
@@ -447,12 +447,19 @@ describe('FileBlock — one delivered file per supported type', () => {
     )
     // The page may not read a second file — the document is inside it.
     expect(screen.getByTestId('webview').props.allowFileAccessFromFileURLs).toBe(false)
+    // Live in the feed, and able to give the gesture back when it runs out —
+    // without this a document would swallow the chat list's pan on Android.
+    expect(screen.getByTestId('webview').props.nestedScrollEnabled).toBe(true)
 
     await ready(4)
     await waitFor(() => expect(screen.getByText('Page 1 of 4 · 2 KB')).toBeTruthy())
 
-    await fireEvent.press(screen.getByLabelText('Next'))
-    expect(mockInjectJavaScript).toHaveBeenCalledWith('window.wolffishGoTo(1);true;')
+    // A document is read, not flipped through: no chevrons, and the position
+    // line simply follows wherever the reader has scrolled to.
+    expect(screen.queryByLabelText('Next')).toBeNull()
+    expect(screen.queryByLabelText('Previous')).toBeNull()
+
+    await post({ type: 'page', index: 1 })
     await waitFor(() => expect(screen.getByText('Page 2 of 4 · 2 KB')).toBeTruthy())
   })
 
