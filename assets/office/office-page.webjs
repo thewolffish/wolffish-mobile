@@ -214,14 +214,14 @@
    * equivalent and stop asking for the font that isn't there.
    */
   var SYMBOL_BULLETS = {
-    '': '■', // Symbol: filled square
-    '': '◆', // Symbol: filled diamond
-    '': '◆',
-    '': '▪', // Symbol: small filled square
-    '': '□', // Symbol: hollow square
-    '': '•', // Symbol: the default Word bullet
-    '': '➢', // Wingdings: arrowhead
-    '': '✓' // Wingdings: check mark
+    '\uF06E': '■', // Symbol: filled square
+    '\uF071': '◆', // Symbol: filled diamond
+    '\uF075': '◆',
+    '\uF0A7': '▪', // Symbol: small filled square
+    '\uF0A8': '□', // Symbol: hollow square
+    '\uF0B7': '•', // Symbol: the default Word bullet
+    '\uF0D8': '➢', // Wingdings: arrowhead
+    '\uF0FC': '✓' // Wingdings: check mark
   }
 
   function unmojibakeBullets() {
@@ -239,8 +239,8 @@
         var rule = rules[r]
         if (!rule.style || !rule.selectorText) continue
         var content = rule.style.content
-        if (!content || !/[-]/.test(content)) continue
-        rule.style.content = content.replace(/[-]/g, function (ch) {
+        if (!content || !/[\uF000-\uF0FF]/.test(content)) continue
+        rule.style.content = content.replace(/[\uF000-\uF0FF]/g, function (ch) {
           return SYMBOL_BULLETS[ch] || '•'
         })
         rule.style.fontFamily = 'inherit'
