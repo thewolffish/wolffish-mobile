@@ -878,6 +878,21 @@
         "relaunch": "Dropped because Wolffish was relaunched before it fired."
       }
     },
+    "wait": {
+      "status": {
+        "waiting": "Waiting",
+        "elapsed": "Waited",
+        "interrupted": "Woken early",
+        "canceled": "Stopped"
+      },
+      "remaining": "{{duration}} left",
+      "waitingHint": "Waiting {{duration}} before continuing. Send a message to carry on now.",
+      "elapsedHint": "Waited {{duration}}, then carried on.",
+      "interruptedHint": "You sent a message after {{duration}}, so it carried on early.",
+      "canceledHint": "Stopped after {{duration}}.",
+      "inputPlaceholder": "Send a message to continue now",
+      "send": "Send"
+    },
     "approval": {
       "level": {
         "safe": "Safe",

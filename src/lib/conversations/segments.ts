@@ -9,6 +9,7 @@ import type {
   ToolResultMeta,
   ToolResultStatus,
   ToolTiming,
+  WaitSnapshot,
   WorkflowSnapshot
 } from '@/lib/conversations/types'
 
@@ -103,6 +104,7 @@ export type RenderBlock =
   | { type: 'workflow'; key: string; snapshot: WorkflowSnapshot }
   | { type: 'task'; key: string; snapshot: TaskSnapshot }
   | { type: 'countdown'; key: string; snapshot: CountdownSnapshot }
+  | { type: 'wait'; key: string; snapshot: WaitSnapshot }
   /** The model's task list for one turn, in its latest state. */
   | { type: 'todo'; key: string; items: TodoItem[] }
   | {
@@ -286,6 +288,7 @@ export function buildRenderBlocks(
   const workflowIndexById = new Map<string, number>()
   const taskIndexById = new Map<string, number>()
   const countdownIndexById = new Map<string, number>()
+  const waitIndexById = new Map<string, number>()
   const todoIndexByTurn = new Map<string, number>()
   let textBuffer = ''
   let textKey = ''
@@ -475,6 +478,21 @@ export function buildRenderBlocks(
         } else {
           countdownIndexById.set(id, blocks.length)
           blocks.push({ type: 'countdown', key: `cd:${id}`, snapshot: segment.snapshot })
+        }
+        break
+      }
+      case 'wait': {
+        // Blocking-wait card — replace-by-waitId, the task fold. Never
+        // verbose-gated: a turn that goes quiet with no card reads as a hang.
+        flushText()
+        const id = segment.snapshot?.waitId
+        if (!id) break
+        const existing = waitIndexById.get(id)
+        if (existing !== undefined) {
+          blocks[existing] = { type: 'wait', key: `wt:${id}`, snapshot: segment.snapshot }
+        } else {
+          waitIndexById.set(id, blocks.length)
+          blocks.push({ type: 'wait', key: `wt:${id}`, snapshot: segment.snapshot })
         }
         break
       }

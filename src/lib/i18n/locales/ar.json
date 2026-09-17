@@ -894,6 +894,21 @@
         "relaunch": "أُسقط لأن Wolffish أُعيد تشغيله قبل أن يُنفَّذ."
       }
     },
+    "wait": {
+      "status": {
+        "waiting": "بالانتظار",
+        "elapsed": "انتهى الانتظار",
+        "interrupted": "استيقظ مبكرًا",
+        "canceled": "أُوقف"
+      },
+      "remaining": "بقي {{duration}}",
+      "waitingHint": "ينتظر {{duration}} قبل المتابعة. أرسل رسالة للمتابعة الآن.",
+      "elapsedHint": "انتظر {{duration}} ثم تابع.",
+      "interruptedHint": "أرسلت رسالة بعد {{duration}}، فتابع مبكرًا.",
+      "canceledHint": "أُوقف بعد {{duration}}.",
+      "inputPlaceholder": "أرسل رسالة للمتابعة الآن",
+      "send": "إرسال"
+    },
     "approval": {
       "level": {
         "safe": "آمن",
