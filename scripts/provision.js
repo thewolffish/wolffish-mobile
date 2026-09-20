@@ -105,7 +105,15 @@ run('npm', ['install', '--package-lock-only', '--ignore-scripts'])
 const readmePaths = bumpReadmeBadge(nextVersion)
 
 run('git', ['add', 'app.config.ts', 'package.json', 'package-lock.json', ...readmePaths])
-run('git', ['commit', '-m', `provision: v${nextVersion} (build ${nextCode})`])
+// Same reason as ota.js: this script authors the commit, so the trailer has to
+// be written here or the release commit is the one commit credited to nobody.
+run('git', [
+  'commit',
+  '--trailer',
+  'Co-Authored-By: Wolffish <noreply@wolffi.sh>',
+  '-m',
+  `provision: v${nextVersion} (build ${nextCode})`
+])
 
 const hasOrigin = out('git', ['remote']).split('\n').includes('origin')
 if (hasOrigin) {
