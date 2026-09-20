@@ -221,6 +221,12 @@ export type DemoConfigValues = {
   ollamaModelsFolder: string
   providers: DemoProvider[]
   thinkingMode: ThinkingLevel
+  /**
+   * The modes the selected model honours, from the desktop's own registry.
+   * Absent on a desktop (or demo bundle) older than the field; the Library
+   * cards fall back to the full canonical scale in that case.
+   */
+  reasoningModes?: string[]
   // --- preferences ---
   launchAtStartup: boolean
   restrictPowerfulModels: boolean
@@ -694,6 +700,13 @@ export type ConfigSnapshot = {
      * keep the device's last value rather than inventing a choice.
      */
     thinkingMode?: string
+    /**
+     * The ordered modes THIS model honours, straight off the desktop's own
+     * registry — the same list its brain button renders. Absent from a desktop
+     * (or demo bundle) older than the field, which the cards read as "fall
+     * back to the full canonical scale".
+     */
+    reasoningModes?: string[]
     local: {
       enabled: boolean
       model: string | null
@@ -1222,6 +1235,9 @@ export const useDemoConfig = create<DemoConfigState>()(
             localOnly: snapshot.llm.localOnly,
             ...(THINKING_LEVELS.includes(snapshot.llm.thinkingMode as ThinkingLevel)
               ? { thinkingMode: snapshot.llm.thinkingMode as ThinkingLevel }
+              : {}),
+            ...(Array.isArray(snapshot.llm.reasoningModes)
+              ? { reasoningModes: snapshot.llm.reasoningModes.filter((m) => typeof m === 'string') }
               : {}),
             localEnabled: snapshot.llm.local?.enabled ?? false,
             localModel,

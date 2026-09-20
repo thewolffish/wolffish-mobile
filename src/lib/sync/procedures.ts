@@ -2,7 +2,13 @@ import { importLocalFile } from '@/lib/files/fileCache'
 import { queryClient } from '@/lib/query/queryClient'
 import { tunnelClient } from '@/lib/tunnel/client'
 import { toBase64Url } from '@/lib/tunnel/pairing'
-import { CHUNK_SIZE, Rpc, type SyncProcedure, type SyncProjectFile } from '@/lib/tunnel/protocol'
+import {
+  CHUNK_SIZE,
+  Rpc,
+  type ReasoningMode,
+  type SyncProcedure,
+  type SyncProjectFile
+} from '@/lib/tunnel/protocol'
 import { useDemoConfig } from '@/state/demoConfig'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { File, FileMode } from 'expo-file-system'
@@ -69,7 +75,10 @@ function normalize(procedure: SyncProcedure): SyncProcedure {
   return {
     ...procedure,
     files: procedure.files ?? [],
-    directories: procedure.directories ?? []
+    directories: procedure.directories ?? [],
+    // Absent on a desktop older than the thinking field, and on the demo
+    // bundle published before it — null is "follow the model".
+    thinking: procedure.thinking ?? null
   }
 }
 
@@ -89,6 +98,7 @@ export async function createProcedure(input: {
   title: string
   prompt: string
   mode?: 'single' | 'workflow'
+  thinking?: ReasoningMode
   icon?: string
   projectId?: string
 }): Promise<SyncProcedure> {
@@ -101,6 +111,11 @@ export async function updateProcedure(input: {
   title?: string
   prompt?: string
   mode?: 'single' | 'workflow'
+  /**
+   * The procedure's own reasoning effort. Sent only when the user picked one on
+   * the card; omitted leaves the desktop's stamp alone.
+   */
+  thinking?: ReasoningMode
   icon?: string
   /** '' unbinds the project, exactly as the desktop's setter reads it. */
   projectId?: string

@@ -602,6 +602,22 @@ export type SyncMessage = {
 export type SyncProjectFile = { path: string; name: string }
 
 /**
+ * The canonical reasoning scale, on the wire.
+ *
+ * Declared here rather than imported because protocol.ts has NO imports — it
+ * is the one file that must stay byte-identical with the desktop's copy
+ * (wolffish-app/src/main/tunnel/protocol.ts), which declares the same two
+ * names. Change them together.
+ *
+ * A model may honour fewer modes than this list (some have no distinct max,
+ * some only off/on). The wire carries the item's STAMP, which is always one of
+ * these four canonical tokens; the UI renders whichever subset the selected
+ * model supports.
+ */
+export type ReasoningMode = 'off' | 'on' | 'high' | 'max'
+export const REASONING_MODES: readonly ReasoningMode[] = ['off', 'on', 'high', 'max']
+
+/**
  * The diagnostic export, on the wire — the desktop's own DiagnosticStep,
  * DiagnosticProgress and DiagnosticResult (src/main/diagnostics.ts) verbatim,
  * so both overlays render one shape and neither has to translate.
@@ -677,6 +693,12 @@ export type SyncProject = {
    * is. An added one is checked against the desktop's own filesystem first.
    */
   directories: string[]
+  /**
+   * The project's own reasoning effort — what every turn inside it runs at.
+   * Null ⇒ follows the selected model's thinking mode. Omitted by a desktop
+   * older than this field; normalize reads that as null.
+   */
+  thinking: ReasoningMode | null
   createdAt: number
   updatedAt: number
 }
@@ -688,6 +710,11 @@ export type SyncProcedure = {
   prompt: string
   /** Null ⇒ the row follows the workspace's global chat mode. */
   mode: 'single' | 'workflow' | null
+  /**
+   * The procedure's own reasoning effort. Null ⇒ the row follows the model's
+   * thinking mode — the same live-fallback contract as `mode`.
+   */
+  thinking: ReasoningMode | null
   /** Always present on the wire; the desktop defaults it at creation. */
   icon: string
   /** Null ⇒ unbound. */
@@ -726,6 +753,11 @@ export type AutomationJob = {
   cron: string | null
   nextRunMs: number | null
   mode: 'single' | 'workflow' | null
+  /**
+   * The job's own reasoning effort, straight off the engine's parse of its
+   * `thinking:` marker. Null ⇒ the job follows the selected model's mode.
+   */
+  thinking: ReasoningMode | null
 }
 
 /**
