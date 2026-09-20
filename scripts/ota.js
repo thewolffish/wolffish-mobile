@@ -186,18 +186,7 @@ run('npm', ['install', '--package-lock-only', '--ignore-scripts'])
 const readmePaths = bumpReadmeBadge(nextVersion)
 
 run('git', ['add', 'app.config.ts', 'package.json', 'package-lock.json', ...readmePaths])
-// The trailer is not decoration: every commit Wolffish authors is co-authored
-// by it, and the ota/provision commits are authored by this script rather than
-// by hand — so without it written HERE the one commit a release is named after
-// is the only one in the repo that credits nobody. Mirrored in provision.js;
-// the two scripts share no module by design.
-run('git', [
-  'commit',
-  '--trailer',
-  'Co-Authored-By: Wolffish <noreply@wolffi.sh>',
-  '-m',
-  `ota: ${tag} (over build ${code})`
-])
+run('git', ['commit', '-m', `ota: ${tag} (over build ${code})`])
 
 // Publish exactly the committed tree. Nothing is pushed yet, so a failed
 // publish leaves only a local commit.
