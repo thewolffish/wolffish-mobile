@@ -2738,3 +2738,76 @@ export function InboxIcon(props: IconProps): React.JSX.Element {
     </IconBase>
   )
 }
+
+export function StopIcon(props: IconProps): React.JSX.Element {
+  return (
+    <IconBase {...props}>
+      <Path
+        d="M4 12C4 8.72077 4 7.08116 4.81382 5.91891C5.1149 5.48891 5.48891 5.1149 5.91891 4.81382C7.08116 4 8.72077 4 12 4C15.2792 4 16.9188 4 18.0811 4.81382C18.5111 5.1149 18.8851 5.48891 19.1862 5.91891C20 7.08116 20 8.72077 20 12C20 15.2792 20 16.9188 19.1862 18.0811C18.8851 18.5111 18.5111 18.8851 18.0811 19.1862C16.9188 20 15.2792 20 12 20C8.72077 20 7.08116 20 5.91891 19.1862C5.48891 18.8851 5.1149 18.5111 4.81382 18.0811C4 16.9188 4 15.2792 4 12Z"
+        stroke="currentColor"
+        strokeWidth={1.5}
+      />
+    </IconBase>
+  )
+}
+
+export function Search01Icon(props: IconProps): React.JSX.Element {
+  return (
+    <IconBase {...props}>
+      <Path
+        d="M17 17L21 21"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <Path
+        d="M19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19C15.4183 19 19 15.4183 19 11Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+    </IconBase>
+  )
+}
+
+export function Link01Icon(props: IconProps): React.JSX.Element {
+  return (
+    <IconBase {...props}>
+      <Path
+        d="M9.14339 10.691L9.35031 10.4841C11.329 8.50532 14.5372 8.50532 16.5159 10.4841C18.4947 12.4628 18.4947 15.671 16.5159 17.6497L13.6497 20.5159C11.671 22.4947 8.46279 22.4947 6.48405 20.5159C4.50532 18.5372 4.50532 15.329 6.48405 13.3503L6.9484 12.886"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth={1.5}
+      />
+      <Path
+        d="M17.0516 11.114L17.5159 10.6497C19.4947 8.67095 19.4947 5.46279 17.5159 3.48405C15.5372 1.50532 12.329 1.50532 10.3503 3.48405L7.48405 6.35031C5.50532 8.32904 5.50532 11.5372 7.48405 13.5159C9.46279 15.4947 12.671 15.4947 14.6497 13.5159L14.8566 13.309"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth={1.5}
+      />
+    </IconBase>
+  )
+}
+
+/** Box with an arrow leaving it — "open in the phone's browser" (hugeicons link-square-02). */
+export function LinkSquare02Icon(props: IconProps): React.JSX.Element {
+  return (
+    <IconBase {...props}>
+      <Path
+        d="M11.1002 3C7.45057 3.00657 5.53942 3.09617 4.31806 4.31756C3 5.63563 3 7.75696 3 11.9996C3 16.2423 3 18.3636 4.31806 19.6817C5.63611 20.9997 7.75743 20.9997 12.0001 20.9997C16.2427 20.9997 18.3641 20.9997 19.6821 19.6817C20.9035 18.4603 20.9931 16.5492 20.9997 12.8996"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth={1.5}
+      />
+      <Path
+        d="M20.5561 3.49637L11.0488 13.0026M20.5561 3.49637C20.0621 3.00176 16.7335 3.04785 16.03 3.05786M20.5561 3.49637C21.0501 3.99098 21.004 7.32371 20.994 8.02807"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+    </IconBase>
+  )
+}

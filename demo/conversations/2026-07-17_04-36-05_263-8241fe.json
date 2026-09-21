@@ -1202,6 +1202,41 @@
           "conversationId": "2026-07-17_04-36-05_263-8241fe"
         },
         {
+          "kind": "browser",
+          "turnId": "turn_1784252165276_562jlc",
+          "segmentId": "seg_browser_fps_1",
+          "snapshot": {
+            "tabId": "b1c0ffee-fps0-4000-8000-000000000002",
+            "conversationId": "2026-07-17_04-36-05_263-8241fe",
+            "url": "http://localhost:8080/",
+            "title": "Three.js FPS",
+            "loadState": "ready",
+            "canGoBack": false,
+            "canGoForward": false,
+            "mode": "card",
+            "frameSize": {
+              "width": 651,
+              "height": 340
+            },
+            "generation": 1,
+            "error": null,
+            "active": true,
+            "strip": [
+              {
+                "url": "http://localhost:8080/",
+                "title": "Three.js FPS",
+                "active": true
+              },
+              {
+                "url": "https://threejs.org/docs/",
+                "title": "three.js docs",
+                "active": false
+              }
+            ],
+            "still": "https://cdn.wolffi.sh/samples/threejs-fps.jpg"
+          }
+        },
+        {
           "kind": "turn_end",
           "turnId": "turn_1784252165276_562jlc",
           "segmentId": "seg_2011",

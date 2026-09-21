@@ -20,6 +20,7 @@ jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn(async () => undefin
 // cards (video players, chart WebViews, markdown engine) have no say in it.
 jest.mock('@/components/chat/FileBlock', () => ({ FileBlock: () => null }))
 jest.mock('@/components/chat/TaskCard', () => ({ TaskCard: () => null }))
+jest.mock('@/components/chat/BrowserCard', () => ({ BrowserCard: () => null }))
 jest.mock('@/components/chat/MarkdownView', () => {
   const React = jest.requireActual<typeof import('react')>('react')
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native')

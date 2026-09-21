@@ -177,44 +177,39 @@ export const Rpc = {
   abortTurn: 'desktop.chat.abort',
   /**
    * Hand a message to the conversation's RUNNING turn instead of starting a
-   * new one — the mid-turn send. Params mirror `sendMessage` minus the
-   * creation fields: `{ conversationId, messageId, text, attachments,
-   * voicePrompt?, voiceLang? }`. Nothing is saved on the desktop: the
-   * message parks in its turn runner's inbox and the agent reads it at its
-   * next stop point, where it becomes a `user_message` segment on the
-   * assistant message this phone is already mirroring. Answers
-   * `{ status: 'pending' }`, or `{ status: 'no_live_turn' }` when nothing is
-   * running and the phone should send a normal turn (see sync/prompt.ts
-   * interject). An older desktop answers with an unknown-method error, which
-   * the phone treats the same way.
+   * new one — the phone's mid-turn send. Params mirror `sendMessage` minus
+   * the creation fields: `{ conversationId, messageId, text, attachments,
+   * voicePrompt?, voiceLang? }`. The desktop saves nothing here: the message
+   * parks in the turn runner's inbox and the agent reads it at its next stop
+   * point, where it becomes a `user_message` segment on the assistant
+   * message the phone is already mirroring. Answers the runtime's
+   * InterjectResult — `{ status: 'pending' }`, or `{ status: 'no_live_turn' }`
+   * when nothing is running and the phone should send a normal turn.
+   * A voice note is transcribed BEFORE it parks (the transcript is what the
+   * model reads), so the answer can take as long as STT does.
    */
   interject: 'desktop.chat.interject',
   /**
    * Take a still-unread mid-turn message back out. Params
    * `{ conversationId, messageId }` → `{ ok }`; false once the agent has
-   * already read it.
+   * already read it — a delivered message is history and cannot be unsent.
    */
   withdrawInterjection: 'desktop.chat.withdrawInterjection',
   /**
    * The mid-turn messages parked for one conversation and not yet read, as
-   * `{ pending }` — each `{ messageId, text, attachments, voicePrompt?,
-   * voiceLang?, channel, sentAt }`. For a phone that connects or relaunches
+   * `{ pending: Interjection[] }` — for a phone that connects or relaunches
    * into a running turn and has missed the `interjection.status` pushes.
    */
   pendingInterjections: 'desktop.chat.pendingInterjections',
   /**
    * Which conversations have a turn in flight right now, as
-   * `{ conversationIds: string[] }` — the desktop's own chat:activeRuns, which
-   * it hands its renderer windows for exactly this reason.
+   * `{ conversationIds: string[] }` — this app's own chat:activeRuns, served
+   * to the phone for the reason a renderer window gets it: 'started' is a
+   * broadcast, so a surface that connects mid-run has already missed the only
+   * announcement that turn was ever going to send.
    *
-   * Turn lifecycle reaches this phone as pushes and nothing else, so a tunnel
-   * that comes up mid-run has already missed the `turn.status: started` for
-   * every turn already going. Read once per connection (see
-   * sync/prompt.ts seedActiveRuns), and the phone opens a live overlay per id
-   * — which is what every piece of chat chrome derives "running" from.
-   *
-   * An older desktop answers nothing and the phone stays as it was: it learns
-   * about the run when the desktop next mirrors it.
+   * The phone reads it once per connection and opens a live overlay per id,
+   * which is what every piece of its chat chrome derives "running" from.
    */
   activeRuns: 'desktop.chat.activeRuns',
   /**
@@ -271,12 +266,19 @@ export const Rpc = {
    * serialized by one mutation tail.
    *
    * `projectsList` answers `{ projects }` (newest-edited first, as the desktop
-   * lists them). `projectCreate` takes `{ title, icon?, instructions? }`,
-   * `projectUpdate` a partial `{ id, title?, icon?, instructions?, files? }`
-   * — a `files` array is a whole-list replace and the desktop deletes the
-   * copies it owns for anything dropped, exactly as its own dialog does — and
-   * `projectDelete` takes `{ id }`. Each answers the stored project (or
-   * `{ ok }` for the delete), never the phone's optimism.
+   * lists them). `projectCreate` takes `{ title, icon?, instructions?,
+   * thinking? }`, `projectUpdate` a partial `{ id, title?, icon?,
+   * instructions?, thinking?, files? }` — a `files` array is a whole-list
+   * replace and the desktop deletes the copies it owns for anything dropped,
+   * exactly as its own dialog does — and `projectDelete` takes `{ id }`. Each
+   * answers the stored project (or `{ ok }` for the delete), never the phone's
+   * optimism.
+   *
+   * `thinking` is the item's own reasoning effort and rides the same
+   * create/update contract `mode` already has on procedures: absent ⇒ the item
+   * follows the selected model's mode, present ⇒ the run uses it. Setting it
+   * is how the phone's card switch and the desktop's card switch stay one
+   * state seen from two places.
    */
   projectsList: 'desktop.projects.list',
   projectCreate: 'desktop.projects.create',
@@ -286,6 +288,7 @@ export const Rpc = {
    * Procedures — `brain/procedures.json`, same contract as the projects trio
    * above: `{ procedures }`, then create/update/delete answering the stored
    * row. `projectId: ''` on an update unbinds, matching the desktop's setter.
+   * `thinking` behaves as it does on projects.
    *
    * `files` and `directories` on an update are WHOLE-LIST replaces, honoured
    * only as real arrays: dropping a file DELETES the desktop's copy, so an
@@ -312,6 +315,11 @@ export const Rpc = {
    * atomic writer the desktop's markdown view uses, so the file watcher
    * reloads the scheduler for both screens. `automationRun` takes `{ label }`
    * and answers the brainstem's own `{ ok, started, error? }`.
+   *
+   * Each `AutomationJob` also carries its `thinking` — the job's own
+   * `thinking:` marker, or null when it has none. It is the one marker the
+   * phone cannot read off its own parse without duplicating the engine's
+   * regex set, and it is what the card's switch renders.
    */
   /**
    * Validate a working-folder path against THIS machine. A phone cannot browse
@@ -385,14 +393,13 @@ export const Rpc = {
    */
   diagnosticsExport: 'desktop.diagnostics.export',
   /**
-   * Whether the desktop is rebuilding its memory index right now — an
-   * `OverlaySeed`.
+   * What the phone's overlay stack should show right now — an `OverlaySeed`.
    *
-   * Taken once per connection, because the status only ever arrives as a
-   * push: a phone that connects while a rebuild is halfway through has
-   * already missed the only announcement it was going to get, and would sit
-   * blank until it ended. Nothing polls it afterwards; the pushes are what
-   * keep it current.
+   * Taken once per connection, because both halves of it only ever arrive as
+   * pushes: a phone that connects while a nightly reflection is halfway
+   * through has already missed the only announcement it was going to get, and
+   * would sit blank until the run ended. Nothing polls it afterwards; the
+   * pushes are what keep it current.
    */
   overlaysRead: 'desktop.overlays.read',
   /**
@@ -420,8 +427,40 @@ export const Rpc = {
   updaterState: 'desktop.updater.state',
   updaterCheck: 'desktop.updater.check',
   updaterInstall: 'desktop.updater.install',
-  /** Abort a pending turn-end countdown (the countdown card's Abort). `{ ok }`. */
-  countdownAbort: 'desktop.countdown.abort'
+  /**
+   * Abort a pending turn-end countdown (the card's Abort button on the
+   * phone). `{ ok }` — false once it already fired or was aborted.
+   */
+  countdownAbort: 'desktop.countdown.abort',
+  /**
+   * Managed processes — the desktop's process manager (main/processes), the
+   * registry behind its Library → Processes tab and the `process_*` tools.
+   * Read AND driven from the phone through the very functions the desktop's
+   * own page calls, so a Stop pressed here and one pressed there are one
+   * function.
+   *
+   * `processesList` answers `{ processes: SyncProcess[] }`. `processStart`
+   * takes `{ name, command, cwd?, env?, port?, restart?, onQuit?, autostart? }`
+   * and answers `{ ok, record?, error? }` once the process is ready (or the
+   * readiness wait timed out — the record says which). `processStop` /
+   * `processRestart` / `processRemove` take `{ name }`; `processStopAll` takes
+   * nothing and answers `{ results: [{ name, stopped }] }`. `processUpdate`
+   * takes `{ name }` plus any definition field (`command`, `cwd`, `env`,
+   * `port`, `restart`, `onQuit`, `autostart`, `newName`) and answers
+   * `{ ok, record?, error?, warning? }` — `autostart: "system"` installs an OS
+   * login unit on the desktop and may be refused with the reason (a macOS
+   * project under Desktop/Documents/Downloads). `processLogs` takes
+   * `{ name, lines? }` and answers `{ text }`, the tail of the process log.
+   * Every answer is the desktop's stored record, never the phone's optimism.
+   */
+  processesList: 'desktop.processes.list',
+  processStart: 'desktop.processes.start',
+  processStop: 'desktop.processes.stop',
+  processStopAll: 'desktop.processes.stopAll',
+  processRestart: 'desktop.processes.restart',
+  processUpdate: 'desktop.processes.update',
+  processRemove: 'desktop.processes.remove',
+  processLogs: 'desktop.processes.logs'
 } as const
 
 /** Event topics pushed without a request. */
@@ -438,10 +477,9 @@ export const Event = {
   turnStatus: 'turn.status',
   /**
    * A mid-turn user message changed state — `{ conversationId, messageId,
-   * channel, text, attachments, voicePrompt?, voiceLang?, state: 'pending' |
-   * 'delivered' | 'withdrawn', reason?: 'user' | 'canceled' | 'turn_ended' |
-   * 'error' }`. Its own topic, not a turn status: a pending message is not a
-   * turn boundary and must not reset the live overlay.
+   * channel, text, attachments, state: 'pending' | 'delivered' | 'withdrawn',
+   * reason? }`. Its own event, not a turn status: a pending message is not
+   * a turn boundary and must not reset the phone's live overlay.
    */
   interjection: 'interjection.status',
   /**
@@ -541,12 +579,34 @@ export const Event = {
    */
   updaterChanged: 'updater.state',
   /**
-   * A turn-end countdown changed state after its turn ended (`{ snapshot }`)
-   * — counting, fired, aborted, failed. Folded into the stored message that
-   * holds the matching `countdown` segment; the desktop also nudges a body
-   * re-read once its own file write has landed.
+   * A turn-end countdown changed state (`{ snapshot }`) — counting, fired,
+   * aborted, failed. Its arming state rides the turn mirror like any other
+   * segment; this push is for the transitions after the turn ended, which
+   * no turn stream carries. The phone folds it into the matching
+   * `countdown` segment by countdownId.
    */
-  countdownChanged: 'countdown.changed'
+  countdownChanged: 'countdown.changed',
+  /**
+   * The process registry changed — a start, a state transition, a stop, an
+   * edit, a removal, whoever caused it (the model's tools, the desktop's
+   * page, this phone, the supervisor). Payload-free on purpose: the phone
+   * re-lists, exactly as the desktop's Processes tab re-fetches on its own
+   * `processes:changed`.
+   */
+  processesChanged: 'processes.changed',
+  /**
+   * A process card in a conversation changed (`{ snapshot }`) — the card a
+   * `process_show` opened, re-rendered with the processes' current state
+   * after its turn ended. The phone folds it into the matching `process`
+   * segment by cardId, the countdown contract.
+   */
+  processCardChanged: 'process.card',
+  /**
+   * The conversation's in-app browser changed (`{ snapshot }`) — a page
+   * loaded, the active tab switched, a still frame landed. The phone folds
+   * it into the conversation's `browser` segment (one per conversation).
+   */
+  browserChanged: 'browser.changed'
 } as const
 
 export type RpcMethod = (typeof Rpc)[keyof typeof Rpc]
@@ -604,15 +664,16 @@ export type SyncProjectFile = { path: string; name: string }
 /**
  * The canonical reasoning scale, on the wire.
  *
- * Declared here rather than imported because protocol.ts has NO imports — it
- * is the one file that must stay byte-identical with the desktop's copy
- * (wolffish-app/src/main/tunnel/protocol.ts), which declares the same two
- * names. Change them together.
+ * Declared here rather than imported from `@main/runtime/reasoning` because
+ * protocol.ts has NO imports — it is the one file that must stay
+ * byte-identical between the desktop and the phone, and the phone cannot reach
+ * into the desktop's main process. The desktop's own ReasoningMode is
+ * structurally identical; the two must be changed together.
  *
  * A model may honour fewer modes than this list (some have no distinct max,
  * some only off/on). The wire carries the item's STAMP, which is always one of
- * these four canonical tokens; the UI renders whichever subset the selected
- * model supports.
+ * these four canonical tokens; the phone renders whichever subset the selected
+ * model supports, exactly as the desktop's card does.
  */
 export type ReasoningMode = 'off' | 'on' | 'high' | 'max'
 export const REASONING_MODES: readonly ReasoningMode[] = ['off', 'on', 'high', 'max']
@@ -678,6 +739,72 @@ export type DiagnosticResult = {
   warnings: string[]
 }
 
+/**
+ * A managed process — the desktop's ProcessRecord (main/processes/types.ts)
+ * on the wire, field for field. A DEFINITION (name, command, cwd, policies)
+ * plus its current or last RUN (pid, port, URL, state, exit). Names are
+ * slugs unique per workspace; `run.state` is `stopped | starting | running |
+ * stopping | exited | crashed`. Read tolerantly: a desktop older than a field
+ * simply does not send it.
+ */
+/** How a managed process gets its port — the Wolffish band, an exact port, or none. */
+export type SyncProcessPort =
+  /** A free port from the Wolffish band (20000-20999), filled into `{port}`. */
+  | { mode: 'wolffish' }
+  /** This exact port; `takeover` stops whatever holds it first (confirmed on the desktop). */
+  | { mode: 'fixed'; port: number; takeover?: boolean }
+  | { mode: 'none' }
+
+export type SyncProcess = {
+  id: string
+  name: string
+  command: string
+  cwd: string
+  env: Record<string, string>
+  port: SyncProcessPort
+  ready: { port?: boolean; logMatch?: string; timeoutMs?: number }
+  restart: 'never' | 'on-failure' | 'always'
+  onQuit: 'keep' | 'stop'
+  autostart: 'off' | 'wolffish' | 'system'
+  origin: { conversationId: string | null; kind: 'started' | 'shell' | 'adopted' }
+  createdAt: number
+  updatedAt: number
+  run: {
+    pid: number | null
+    signature: string
+    osStart: string | null
+    port: number | null
+    url: string | null
+    state: 'stopped' | 'starting' | 'running' | 'stopping' | 'exited' | 'crashed'
+    exitCode: number | null
+    exitSignal: string | null
+    startedAt: number | null
+    readyAt: number | null
+    endedAt: number | null
+    restarts: number
+    logPath: string | null
+    unit: string | null
+    adoptedAt: number | null
+    lastError: string | null
+  }
+}
+
+/**
+ * A process card in a conversation (the desktop's ProcessCardSnapshot): the
+ * processes a `process_show` chose to show, replaced whole by cardId on every
+ * change. `names: null` follows every managed process.
+ */
+export type SyncProcessCard = {
+  cardId: string
+  conversationId: string | null
+  turnId: string | null
+  title: string | null
+  names: string[] | null
+  processes: SyncProcess[]
+  createdAt: number
+  updatedAt: number
+}
+
 /** A project — the desktop's Project (main/projects.ts) on the wire. */
 export type SyncProject = {
   id: string
@@ -696,7 +823,7 @@ export type SyncProject = {
   /**
    * The project's own reasoning effort — what every turn inside it runs at.
    * Null ⇒ follows the selected model's thinking mode. Omitted by a desktop
-   * older than this field; normalize reads that as null.
+   * older than this field; the phone normalizes it to null.
    */
   thinking: ReasoningMode | null
   createdAt: number
@@ -712,7 +839,8 @@ export type SyncProcedure = {
   mode: 'single' | 'workflow' | null
   /**
    * The procedure's own reasoning effort. Null ⇒ the row follows the model's
-   * thinking mode — the same live-fallback contract as `mode`.
+   * thinking mode — the same live-fallback contract as `mode`. Omitted by a
+   * desktop older than this field, which the phone normalizes to null.
    */
   thinking: ReasoningMode | null
   /** Always present on the wire; the desktop defaults it at creation. */
@@ -753,10 +881,7 @@ export type AutomationJob = {
   cron: string | null
   nextRunMs: number | null
   mode: 'single' | 'workflow' | null
-  /**
-   * The job's own reasoning effort, straight off the engine's parse of its
-   * `thinking:` marker. Null ⇒ the job follows the selected model's mode.
-   */
+  /** The job's own reasoning effort; null ⇒ follows the model's mode. */
   thinking: ReasoningMode | null
 }
 
@@ -788,9 +913,9 @@ export type AutomationQueuedRun = {
 }
 
 /**
- * The brainstem's run pool: in-flight runs plus the FIFO overflow. Every row
- * is normalized off the wire (lib/sync/automations.ts readRuns) rather than
- * trusted: an older desktop may send rows without `kind`.
+ * The brainstem's run pool: in-flight runs plus the FIFO overflow. The phone
+ * normalizes every row rather than trusting the shape (an older desktop may
+ * send rows without `kind`).
  */
 export type AutomationRuns = {
   running: AutomationRun[]
@@ -914,20 +1039,18 @@ export function isAllowedDeeplink(value: unknown): value is string {
 }
 
 /**
- * Every screen a notification tap can land on, spelled exactly as this app's
- * router knows it (the expo-router file routes under src/app).
+ * Every screen a notification tap can land on, spelled exactly as the mobile
+ * app's router knows it (the expo-router file routes under mobile src/app).
  *
  * This list IS the contract, and both ends hold it: the desktop refuses a
  * deeplink naming anything else — so the model is corrected inside the call
  * that got it wrong, instead of sending someone to a screen that does not
- * exist — and this app ignores one it cannot resolve, which is what keeps an
- * older build safe against a newer desktop. `chat` is the only route that
- * takes a parameter (`?id=<conversationId>`); without one it opens a new chat.
+ * exist — and the phone ignores one it cannot resolve, which is what keeps an
+ * older app safe against a newer desktop. `chat` is the only route that takes
+ * a parameter (`?id=<conversationId>`); without one it opens a new chat.
  *
  * Deliberately absent: `/` (the pairing door, which a paired phone bounces off
- * anyway) and `/showcase` (a component gallery, not a destination). Keep it in
- * step with the routes themselves — a screen missing from here is a screen no
- * notification can reach.
+ * anyway) and `/showcase` (a component gallery, not a destination).
  */
 export const DEEPLINK_ROUTES = [
   'chat',
@@ -939,6 +1062,7 @@ export const DEEPLINK_ROUTES = [
   'settings/projects',
   'settings/automations',
   'settings/procedures',
+  'settings/processes',
   'settings/customization',
   'settings/channels',
   'settings/capabilities',
@@ -1068,18 +1192,18 @@ export type NotificationAckFrame = { v: 1; type: 'notification_ack'; notificatio
  * The relay keeps one integer per device, incremented per delivered notify
  * and stamped as `badge` onto Expo pushes so the app icon counts while the
  * app is dead; this frame overwrites it whenever the phone's own state
- * changes. Absolute rather than a delta so a lost frame can never drift it.
+ * changes. The desktop never sends or receives it — mirrored here so the
+ * three protocol files carry the same control-plane contract.
  */
 export type SetBadgeFrame = { v: 1; type: 'set_badge'; phoneId: string; count: number }
 
 /**
- * Phone → relay, on unpairing: forget this device entirely — token, platform,
- * badge count. Sent while the socket is still up (after it there is no path
- * to this pairing's relay state, ever); the relay then answers every later
- * notify for this phoneId with `dropped` instead of pushing at a phone that
- * wiped its copy of everything the notification would describe. An old relay
- * ignores the unknown type — delivery there degrades to the pre-frame status
- * quo, never to a broken tunnel.
+ * Phone → relay, on unpairing: forget the device entirely — token, platform,
+ * badge count. The relay then answers every later notify for that phoneId
+ * with `dropped` instead of claiming delivery to a phone that wiped its copy
+ * of everything the notification would describe. The desktop never sends or
+ * receives it — mirrored here so the three protocol files carry the same
+ * control-plane contract.
  */
 export type UnregisterPushFrame = { v: 1; type: 'unregister_push'; phoneId: string }
 

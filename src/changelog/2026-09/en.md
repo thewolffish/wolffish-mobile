@@ -1,4 +1,28 @@
-## v1.0.72 — 2026-09-20 `Latest`
+## v1.0.73 — 2026-09-22 `Latest`
+
+### Everything Your Desktop Keeps Running, Now on Your Phone
+
+Ask Wolffish for a dev server, a tunnel or a script and it keeps that process alive for you — and until now the machine it runs on was the only place you could see any of it. **Library has a Processes tab**: every managed process, grouped by the folder it belongs to, each with its state, the address it answers on, how long it has been up and the command behind it.
+
+Every one of them is **yours to drive from here**. Stop it, restart it, or start it again after it exited. Choose whether it comes back **with Wolffish, at login, or not at all**, and whether one that falls over **restarts never, on failure, or always**. Open its **log** and watch the tail keep up while it runs; **edit** the command, the folder, the restart rule and what happens **when Wolffish quits**; or remove it along with its logs. When you want the machine quiet, **Stop all** and **Delete all** sit at the top.
+
+With a lot running, **search by name, command, folder or address** and filter by state or by autostart level — and folders collapse, so five projects read as five lines instead of a page.
+
+### The Process Card in a Conversation Stays Live
+
+When Wolffish starts something for you mid-conversation, the **card it leaves in the chat** is not a picture of that moment. It keeps up with the processes it names — a server that crashed an hour after the turn ended says so when you scroll back to it — and its **Stop and Restart work right there**, with no trip to the Library.
+
+### See the Page Your Desktop Is Looking At
+
+When Wolffish uses its own browser during a conversation, **the page comes with it**: one card per conversation, sitting at the latest turn that used it, with the open pages along the top, the address underneath and a picture of what your desktop is showing.
+
+A page **on the open internet opens on your phone** with a tap — in the app or in your own browser — and the address copies either way. A page **only your desktop can reach**, like something on localhost or inside its network, keeps the picture and says so plainly instead of handing you a link that could never load.
+
+### Text, Code and Table Files Scroll Where They Are
+
+A file in the chat used to be a preview you had to open before you could read past its first few lines. **Text, code, data and table files now scroll inside the card**, in the conversation itself, and hand the scroll back to the chat at the top and bottom of the file. The expand button is still in the card's footer for the full-screen view — you just no longer have to go there to read twelve more lines.
+
+## v1.0.72 — 2026-09-20
 
 ### Every Automation, Project and Procedure Picks Its Own Thinking Level
 

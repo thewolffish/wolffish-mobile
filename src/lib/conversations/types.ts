@@ -11,6 +11,8 @@
  * kinds and tool names.
  */
 
+import type { SyncProcess } from '@/lib/tunnel/protocol'
+
 export type ConversationChannel =
   'electron' | 'telegram' | 'whatsapp' | 'mobile' | 'cli' | 'heartbeat' | 'procedure'
 
@@ -129,6 +131,24 @@ export type CountdownSnapshot = {
   abortedBy?: CountdownAbortReason
 }
 
+/**
+ * A process card — mirrors the desktop's ProcessCardSnapshot
+ * (main/processes/types.ts): the managed processes a `process_show` chose to
+ * put in the chat, with Stop/Restart. Snapshots REPLACE each other by cardId;
+ * `names: null` follows every managed process. The records are the wire's
+ * SyncProcess, field for field.
+ */
+export type ProcessCardSnapshot = {
+  cardId: string
+  conversationId: string | null
+  turnId: string | null
+  title: string | null
+  names: string[] | null
+  processes: SyncProcess[]
+  createdAt: number
+  updatedAt: number
+}
+
 export type WaitStatus = 'waiting' | 'elapsed' | 'interrupted' | 'canceled'
 
 /**
@@ -138,6 +158,26 @@ export type WaitStatus = 'waiting' | 'elapsed' | 'interrupted' | 'canceled'
  * Snapshots REPLACE each other by waitId; the card derives its clock from
  * endsAt locally, so a four-hour wait costs two segments.
  */
+/** The desktop in-app browser's card state — src/main/browser/types.ts, mirrored. */
+export type BrowserTabSnapshot = {
+  tabId: string
+  conversationId: string | null
+  url: string
+  title: string
+  loadState: 'idle' | 'loading' | 'ready' | 'error'
+  canGoBack: boolean
+  canGoForward: boolean
+  mode: 'card' | 'expanded'
+  frameSize: { width: number; height: number }
+  generation: number
+  error: { code: string; message: string } | null
+  active: boolean
+  /** Every tab of the conversation's browser, in strip order. */
+  strip: Array<{ url: string; title: string; active: boolean }>
+  /** Workspace-relative JPEG of the active page, captured for the phone. */
+  still: string | null
+}
+
 export type WaitSnapshot = {
   waitId: string
   conversationId: string | null
@@ -273,6 +313,8 @@ export type Segment =
   | { kind: 'task'; turnId: string; segmentId: string; snapshot: TaskSnapshot }
   | { kind: 'countdown'; turnId: string; segmentId: string; snapshot: CountdownSnapshot }
   | { kind: 'wait'; turnId: string; segmentId: string; snapshot: WaitSnapshot }
+  | { kind: 'process'; turnId: string; segmentId: string; snapshot: ProcessCardSnapshot }
+  | { kind: 'browser'; turnId: string; segmentId: string; snapshot: BrowserTabSnapshot }
   | {
       kind: 'compaction_started'
       turnId: string
