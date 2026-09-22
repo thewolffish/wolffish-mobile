@@ -1,4 +1,10 @@
-## v1.0.73 — 2026-09-22 `Latest`
+## v1.0.74 — 2026-09-23 `Latest`
+
+### Find Any Conversation by Its Title
+
+**The Conversations screen and the conversations sheet now each have a search field** that narrows the list as you type. It matches **every word you type, in any order**, and ignores **case and accents** — so a word or two you remember from anywhere in a title is enough. The field stays put while the results move and never hides the pages above it in the sheet. Tap a result with the keyboard up and it **opens on that first tap**, with the keyboard already gone by the time the conversation appears; start scrolling the results and the keyboard steps out of the way. It all works the same in Arabic, right to left.
+
+## v1.0.73 — 2026-09-22
 
 ### Everything Your Desktop Keeps Running, Now on Your Phone
 

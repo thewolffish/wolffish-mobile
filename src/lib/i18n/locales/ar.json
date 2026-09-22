@@ -1250,6 +1250,8 @@
     "deleteCancel": "إلغاء",
     "newChat": "محادثة جديدة",
     "processing": "قيد المعالجة…",
+    "searchPlaceholder": "ابحث في المحادثات بالعنوان",
+    "searchEmpty": "لا توجد محادثات تطابق هذا البحث.",
     "groups": {
       "today": "اليوم",
       "yesterday": "أمس",

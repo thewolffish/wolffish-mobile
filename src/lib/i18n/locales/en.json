@@ -973,6 +973,8 @@
     "deleteCancel": "Cancel",
     "newChat": "New chat",
     "processing": "Processing…",
+    "searchPlaceholder": "Search conversations by title",
+    "searchEmpty": "No conversations match that search.",
     "groups": {
       "today": "Today",
       "yesterday": "Yesterday",
