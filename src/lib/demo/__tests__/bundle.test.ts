@@ -22,12 +22,7 @@ import {
 import { parseAnswers, parseQuestionsFromArgs } from '@/components/chat/QuestionCard'
 import { CUSTOMIZATION_MAX_BYTES, utf8Bytes, type ConfigSnapshot } from '@/state/demoConfig'
 import type { DemoNotification } from '@/lib/demo/importer'
-import {
-  NOTIFY_BODY_MAX,
-  NOTIFY_PHASES,
-  NOTIFY_TITLE_MAX,
-  parseDeeplink
-} from '@/lib/tunnel/protocol'
+import { NOTIFY_PHASES, NOTIFY_TITLE_MAX, parseDeeplink } from '@/lib/tunnel/protocol'
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 
@@ -741,7 +736,6 @@ describe('demo notifications', () => {
       expect(entry.title.trim().length).toBeGreaterThan(0)
       expect(entry.title.length).toBeLessThanOrEqual(NOTIFY_TITLE_MAX)
       expect(entry.body.trim().length).toBeGreaterThan(0)
-      expect(entry.body.length).toBeLessThanOrEqual(NOTIFY_BODY_MAX)
       expect(NOTIFY_PHASES).toContain(entry.phase)
     }
   })

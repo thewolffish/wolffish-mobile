@@ -1018,7 +1018,9 @@ export type NotifyUrgency = (typeof NOTIFY_URGENCIES)[number]
 export type PushPlatform = 'ios' | 'android'
 
 export const NOTIFY_TITLE_MAX = 60
-export const NOTIFY_BODY_MAX = 180
+// No body ceiling. The banner is read at a glance, but the phone keeps its own
+// log and renders the body whole on its notifications page — a cap here cut
+// text the user could then read nowhere at all. Only presence is validated.
 export const NOTIFY_TTL_MIN = 60
 export const NOTIFY_TTL_MAX = 86_400
 
@@ -1234,7 +1236,7 @@ export function parseNotification(raw: Record<string, unknown>): NotificationFra
   const title = raw.title
   const body = raw.body
   if (typeof title !== 'string' || !title || title.length > NOTIFY_TITLE_MAX) return null
-  if (typeof body !== 'string' || !body || body.length > NOTIFY_BODY_MAX) return null
+  if (typeof body !== 'string' || !body) return null
   const ttlRaw = typeof raw.ttl === 'number' && Number.isFinite(raw.ttl) ? raw.ttl : NOTIFY_TTL_MIN
   return {
     v: 1,
