@@ -89,6 +89,10 @@ function statusTone(status: ToolResultInfo['status'] | 'running'): {
       return { container: 'bg-red-500/15', text: 'text-red-600 dark:text-red-400' }
     case 'denied':
       return { container: 'bg-amber-500/15', text: 'text-amber-600 dark:text-amber-400' }
+    // Checked in: the desktop's still-running state — the model got a
+    // progress report and the call keeps going until its real result lands.
+    case 'checked_in':
+      return { container: 'bg-amber-500/15', text: 'text-amber-600 dark:text-amber-400' }
     default:
       return { container: 'bg-primary-soft', text: 'text-primary' }
   }
@@ -156,7 +160,7 @@ export const ToolCard = memo(function ToolCard({
   // tap changes it afterwards — never a status transition.
   const [expanded, setExpanded] = useState(!compact)
   const status = result?.status ?? 'running'
-  const running = status === 'running'
+  const running = status === 'running' || status === 'checked_in'
   const tone = statusTone(status)
   const meta = result?.meta
   const headline = headlineFor(call)
@@ -167,16 +171,21 @@ export const ToolCard = memo(function ToolCard({
   // A live tick keeps the elapsed counter moving while the tool runs; once the
   // result lands, timing.endedAt freezes it. A reopened conversation has no
   // live timing, so the tool's own measured duration fills the same slot.
+  // A checked-in call keeps ticking: its result is a progress report, not an
+  // end. Without live timing the clock runs from the reported duration.
+  const checkedIn = status === 'checked_in'
   const [now, setNow] = useState(() => Date.now())
+  const [mountedAt] = useState(() => Date.now())
+  const ticking = checkedIn || (!!timing && timing.endedAt === undefined)
   useEffect(() => {
-    if (!timing || timing.endedAt !== undefined) return
+    if (!ticking) return
     const id = setInterval(() => setNow(Date.now()), 500)
     return () => clearInterval(id)
-  }, [timing])
+  }, [ticking])
   const elapsedMs = timing
-    ? (timing.endedAt ?? now) - timing.startedAt
+    ? (checkedIn ? now : (timing.endedAt ?? now)) - timing.startedAt
     : typeof meta?.durationMs === 'number'
-      ? meta.durationMs
+      ? meta.durationMs + (checkedIn ? now - mountedAt : 0)
       : null
 
   const labelKey = labelKeyFor(call.name)
@@ -232,6 +241,11 @@ export const ToolCard = memo(function ToolCard({
             <Text className="text-emerald-600 dark:text-emerald-400">+{meta.diff.additions}</Text>
             <Text className="text-muted"> </Text>
             <Text className="text-red-600 dark:text-red-400">−{meta.diff.deletions}</Text>
+          </Text>
+        ) : null}
+        {checkedIn && meta?.checkIn ? (
+          <Text className="text-muted font-mono text-[10px]" style={{ writingDirection: 'ltr' }}>
+            {meta.checkIn.handle}
           </Text>
         ) : null}
         {typeof meta?.exitCode === 'number' ? (

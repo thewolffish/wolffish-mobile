@@ -1,4 +1,10 @@
-## v1.0.74 — 2026-09-23 `Latest`
+## v1.0.76 — 2026-09-25 `Latest`
+
+### A Long-Running Call Shows Itself as Still Running
+
+Your desktop now checks in on any tool call that runs long instead of sitting frozen inside it: after its check-in time the call keeps going, and Wolffish reads its progress and decides whether to wait, stop it, or carry on. **The phone's tool card now shows that state.** A call that has checked in wears an amber **"Still running"** pill with its handle and a clock that keeps counting, in the clean feed and the verbose one alike, and the card updates in place with the real output and total duration the moment the call finishes. A card marked done is done; a card marked still running is exactly that.
+
+## v1.0.74 — 2026-09-23
 
 ### Find Any Conversation by Its Title
 

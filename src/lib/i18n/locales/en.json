@@ -761,7 +761,8 @@
         "running": "Running",
         "success": "Done",
         "failed": "Failed",
-        "denied": "Denied"
+        "denied": "Denied",
+        "checked_in": "Still running"
       },
       "exit": "exit {{code}}",
       "savedTo": "Full output saved to",

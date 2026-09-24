@@ -167,6 +167,38 @@ describe('clean feed (Task results off)', () => {
   })
 })
 
+const parked: ConversationMessage = {
+  ...message,
+  segments: pair(
+    'slow',
+    'shell_exec',
+    { command: 'find ~ -name x' },
+    {
+      status: 'checked_in',
+      output: 'STILL RUNNING: `shell_exec` has been running for 2m.',
+      meta: { checkIn: { handle: 'call-3', state: 'running' }, durationMs: 120_000 }
+    }
+  )
+}
+
+describe('a checked-in run (still running)', () => {
+  it('shows the still-running pill and the handle in the clean feed', async () => {
+    await draw(<AssistantMessageView message={parked} conversationId="conv-1" verbose={false} />)
+    expect(has('Still running')).toBe(true)
+    expect(has('call-3')).toBe(true)
+    expect(has('find ~ -name x')).toBe(true)
+    expect(has('Done')).toBe(false)
+    expect(has('Failed')).toBe(false)
+  })
+
+  it('shows them in the verbose feed too', async () => {
+    await draw(<AssistantMessageView message={parked} conversationId="conv-1" verbose />)
+    expect(has('Still running')).toBe(true)
+    expect(has('call-3')).toBe(true)
+    expect(has('shell_exec')).toBe(true)
+  })
+})
+
 describe('verbose feed (Task results on)', () => {
   it('shows every tool as a full card, the task list included', async () => {
     await draw(<AssistantMessageView message={message} conversationId="conv-1" verbose />)

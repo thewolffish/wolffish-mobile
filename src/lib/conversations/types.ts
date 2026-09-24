@@ -19,7 +19,7 @@ export type ConversationChannel =
 export type SegmentTurnEndReason =
   'end_turn' | 'tool_use' | 'max_tokens' | 'error' | 'no_provider_available'
 
-export type ToolResultStatus = 'success' | 'failed' | 'denied'
+export type ToolResultStatus = 'success' | 'failed' | 'denied' | 'checked_in'
 
 /** A file change as a unified diff — what the edit tools attach to their result. */
 export type ToolResultDiff = {
@@ -47,6 +47,8 @@ export type ToolResultMeta = {
   cwd?: string
   /** A short human label chosen by the tool (e.g. "Run tests"). */
   label?: string
+  /** The call checked in as still running (desktop runtime/check-in.ts): its handle and state. */
+  checkIn?: { handle: string; state: 'running' | 'finished' | 'stopped' }
 }
 
 export type TodoStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled'
